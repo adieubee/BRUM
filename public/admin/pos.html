@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FACIAL R US - Point of Sale</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #receiptModal,
+            #receiptModal * {
+                visibility: visible;
+            }
+
+            #receiptModal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                display: block !important;
+            }
+
+            .modal-content {
+                box-shadow: none;
+                border: none;
+            }
+
+            .close,
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="admin-body">
+
+    <aside class="admin-sidebar">
+        <div class="admin-brand">
+            <div>
+                <span class="admin-logo-small">FACIAL R US</span>
+                <h2 class="admin-logo-large">Admin Portal</h2>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <ul class="admin-nav">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="appointments.html">Appointments</a></li>
+            <li><a href="reports.html">Reports</a></li>
+            <li><a href="commissions.html">Commissions</a></li>
+            <li><a href="staff.html">Staff</a></li>
+            <li><a href="pos.html" class="active">POS</a></li>
+        </ul>
+
+        <button class="admin-logout-btn" onclick="adminLogout()">Log Out</button>
+    </aside>
+
+    <main class="admin-main">
+
+        <header class="admin-header">
+            <div class="header-text">
+                <h1>Point of Sale</h1>
+                <p>Process payments and generate receipts</p>
+            </div>
+        </header>
+
+        <div class="pos-layout">
+
+            <div class="admin-content-card pos-panel">
+                <h3 class="pos-section-title">1. Select Appointment</h3>
+                <div class="input-group">
+                    <select id="apptSelect" class="admin-select" onchange="loadAppointmentDetails()">
+                        <option value="">-- Choose Confirmed Appointment --</option>
+                    </select>
+                </div>
+
+                <div id="apptDetails" class="pos-details-box" style="display: none;">
+                    <p><strong>Client:</strong> <span id="clientName"></span></p>
+                    <p><strong>Service:</strong> <span id="serviceName"></span></p>
+                    <p><strong>Base Price:</strong> ₱<span id="servicePrice"></span></p>
+
+                    <div id="wartsInputContainer"
+                        style="display: none; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc;">
+                        <label for="wartsCount" style="font-weight: bold; color: #a46464;">Number of Warts
+                            Removed:</label>
+                        <input type="number" id="wartsCount" min="1" value="1" oninput="updateWartsPrice()"
+                            style="width: 80px; padding: 5px; margin-left: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <p id="wartsCalculationText" style="margin: 5px 0 0; font-size: 0.85rem; color: #777;">1 piece x
+                            ₱35 = ₱35</p>
+                    </div>
+                </div>
+
+                <h3 class="pos-section-title" style="margin-top: 30px;">2. Add Products (Optional)</h3>
+                <div class="pos-add-product-row">
+                    <select id="productSelect" class="admin-select">
+                        <option value="">-- Select Product --</option>
+                    </select>
+                    <button class="action-btn" onclick="addProduct()">Add</button>
+                </div>
+
+                <ul id="productList" class="pos-product-list">
+                </ul>
+
+                <h3 class="pos-section-title" style="margin-top: 30px;">3. Assign Commission To</h3>
+                <div class="input-group">
+                    <select id="staffSelect" class="admin-select" required style="border-color: #8b2d2d;">
+                        <option value="">-- Select Staff Member --</option>
+                    </select>
+                    <p style="font-size: 0.8rem; color: #777; margin-top: 5px;">Required for commission tracking.</p>
+                </div>
+            </div>
+
+            <div class="admin-content-card pos-panel">
+                <h3 class="pos-section-title">Order Summary</h3>
+
+                <div class="pos-summary-row">
+                    <span>Service Total:</span>
+                    <span>₱<span id="sumService">0.00</span></span>
+                </div>
+                <div class="pos-summary-row">
+                    <span>Products Total:</span>
+                    <span>₱<span id="sumProducts">0.00</span></span>
+                </div>
+                <div class="pos-summary-row" id="dpRow" style="display: none; color: #2e7d32;">
+                    <span>Down Payment (Paid):</span>
+                    <span>-₱<span id="sumDp">0.00</span></span>
+                </div>
+                <div class="pos-summary-row" id="dpCreditRow" style="display: none; color: #0277bd;">
+                    <span>DP Overpayment Credit:</span>
+                    <span>₱<span id="sumDpCredit">0.00</span></span>
+                </div>
+                <div class="pos-summary-row pos-grand-total">
+                    <span>Amount Due:</span>
+                    <span>₱<span id="sumTotal">0.00</span></span>
+                </div>
+
+                <h3 class="pos-section-title" style="margin-top: 30px;">Payment Calculator</h3>
+                <div class="pos-calculator">
+                    <div class="calc-display">
+                        <label>Cash Received</label>
+                        <input type="text" id="cashInput" readonly placeholder="₱0.00">
+                    </div>
+
+                    <div class="calc-numpad">
+                        <button onclick="calcType('1')">1</button>
+                        <button onclick="calcType('2')">2</button>
+                        <button onclick="calcType('3')">3</button>
+                        <button onclick="calcType('4')">4</button>
+                        <button onclick="calcType('5')">5</button>
+                        <button onclick="calcType('6')">6</button>
+                        <button onclick="calcType('7')">7</button>
+                        <button onclick="calcType('8')">8</button>
+                        <button onclick="calcType('9')">9</button>
+                        <button onclick="calcType('C')" class="calc-clear">C</button>
+                        <button onclick="calcType('0')">0</button>
+                        <button onclick="calcType('00')">00</button>
+                    </div>
+
+                    <div class="pos-change-row">
+                        <span>Change Due:</span>
+                        <span id="changeDue" style="color: #a46464; font-weight: 800;">₱0.00</span>
+                    </div>
+
+                    <button class="submit-btn" style="width: 100%; margin-top: 20px;"
+                        onclick="processCheckout()">Process Checkout</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="receiptModal" class="modal">
+        <div class="modal-content receipt-content">
+            <span class="close" onclick="closeReceipt()">&times;</span>
+            <div class="receipt-header">
+                <img src="../assets/ICON.svg" alt="Logo" style="width: 50px; margin-bottom: 10px;">
+                <h2 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; margin: 0;">FACIAL R US</h2>
+                <p>Official Receipt</p>
+            </div>
+
+            <div class="receipt-body" id="receiptBody">
+            </div>
+
+            <div class="receipt-footer">
+                <p>Thank you for choosing Facial R Us!</p>
+                <button class="action-btn no-print" onclick="window.print()"
+                    style="margin-top: 15px; margin-right: 10px;"><i class="fas fa-print"></i> Print Receipt</button>
+                <button class="action-btn no-print" onclick="closeReceipt()" style="margin-top: 15px;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        let currentTotal = 0;
+        let servicePrice = 0;
+        let productsTotal = 0;
+        let currentCash = "";
+        let addedProducts = [];
+        let currentUser = null;
+        let confirmedAppts = [];
+        let dpPaid = 0;
+        let dpCredit = 0;
+        let allInventory = [];
+        let branches = [];
+        let allStaff = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            currentUser = Auth.getUser();
+            if (!currentUser || currentUser.role === 'client') {
+                console.log('Access Denied.');
+                window.location.href = '../login.html';
+                return;
+            }
+
+            // Hide Reports for non-owners
+            const reportsLink = document.querySelector('a[href="reports.html"]');
+            if (reportsLink && currentUser.role !== 'owner') {
+                reportsLink.parentElement.style.display = 'none';
+            }
+
+            try {
+                // Fetch Branches
+                const bRes = await fetch('/api/branches');
+                const bData = await bRes.json();
+                if (bData.success) {
+                    branches = bData.branches;
+                }
+                const getBranchName = (id) => {
+                    const b = branches.find(branch => branch.branch_id === id);
+                    return b ? b.name : 'Unknown';
+                };
+
+                // Fetch Staff for Commissions Dropdown
+                const sRes = await fetch('/api/users/staff');
+                const sData = await sRes.json();
+                if (sData.success) {
+                    allStaff = sData.staff;
+                    const staffSelect = document.getElementById('staffSelect');
+                    allStaff.forEach(staff => {
+                        const opt = document.createElement('option');
+                        opt.value = staff.id;
+                        opt.textContent = `${staff.name} (${getBranchName(staff.branch_id)})`;
+                        staffSelect.appendChild(opt);
+                    });
+                }
+
+                // Fetch confirmed appointments (all branches)
+                const apptRes = await fetch('/api/bookings/branch');
+                const apptData = await apptRes.json();
+
+                const select = document.getElementById('apptSelect');
+                if (apptData.success) {
+                    confirmedAppts = apptData.appointments.filter(a => a.status === 'Confirmed');
+
+                    if (confirmedAppts.length === 0) {
+                        const opt = document.createElement('option');
+                        opt.value = '';
+                        opt.textContent = 'No confirmed appointments available';
+                        opt.disabled = true;
+                        select.appendChild(opt);
+                    } else {
+                        confirmedAppts.forEach(appt => {
+                            const opt = document.createElement('option');
+                            opt.value = appt.appointment_id;
+                            const bName = getBranchName(appt.branch_id);
+                            const paxTag = appt.pax > 1 ? ` (${appt.pax} pax)` : '';
+                            const svcDisplay = appt.all_service_names || appt.service_name;
+                            opt.textContent = `${appt.client_name || 'Guest'} — ${svcDisplay}${paxTag} (${bName} - ${appt.appointment_date.split('T')[0]})`;
+                            select.appendChild(opt);
+                        });
+                    }
+                }
+
+                // Fetch global inventory
+                const invRes = await fetch('/api/inventory');
+                const invData = await invRes.json();
+                if (invData.success) {
+                    allInventory = invData.inventory.filter(i => i.quantity > 0);
+                    const prodSelect = document.getElementById('productSelect');
+                    allInventory.forEach(item => {
+                        const opt = document.createElement('option');
+                        const mockPrice = 150; // Mock fallback for pos items
+                        const bName = getBranchName(item.branch_id);
+                        opt.value = item.inventory_id;
+                        opt.setAttribute('data-name', item.item_name);
+                        opt.setAttribute('data-price', mockPrice);
+                        opt.textContent = `${item.item_name} [${bName}] (Qty: ${item.quantity}) - ₱${mockPrice}`;
+                        prodSelect.appendChild(opt);
+                    });
+                }
+
+                // Check for auto-select from URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const autoSelectId = urlParams.get('appointment_id');
+                if (autoSelectId) {
+                    const selectElement = document.getElementById('apptSelect');
+                    const optionExists = Array.from(selectElement.options).some(opt => opt.value === autoSelectId);
+                    if (optionExists) {
+                        selectElement.value = autoSelectId;
+                        loadAppointmentDetails();
+                    }
+                }
+
+            } catch (err) {
+                console.error("Initialization error:", err);
+            }
+        });
+
+        function loadAppointmentDetails() {
+            const selectVal = document.getElementById('apptSelect').value;
+            const appt = confirmedAppts.find(a => a.appointment_id == selectVal);
+
+            if (appt) {
+                const serviceName = appt.all_service_names || appt.service_name || 'Unknown';
+                const price = parseFloat(appt.total_service_price || appt.service_price) || 0;
+
+                document.getElementById('apptDetails').style.display = 'block';
+                document.getElementById('clientName').textContent = appt.client_name || 'Guest';
+                document.getElementById('serviceName').textContent = serviceName + (appt.pax > 1 ? ` (${appt.pax} pax)` : '');
+                document.getElementById('servicePrice').textContent = price.toFixed(2);
+
+                // Track original base price
+                servicePrice = price;
+
+                // Store the actual DP paid during booking
+                window._apptDpPaid = parseFloat(appt.dp_paid) || 0;
+                // Store warts-specific DP and non-warts price for correct credit calculation
+                window._wartsDp = parseFloat(appt.warts_dp) || 0;
+                window._nonWartsPrice = parseFloat(appt.non_warts_price) || 0;
+
+                // Filter staff and products to the appointment's branch
+                const branchId = appt.branch_id;
+
+                const staffSelect = document.getElementById('staffSelect');
+                staffSelect.innerHTML = '<option value="">-- Select Staff Member --</option>';
+                const branchStaff = allStaff.filter(staff => String(staff.branch_id) === String(branchId));
+                branchStaff.forEach(staff => {
+                    const opt = document.createElement('option');
+                    opt.value = staff.id;
+                    const b = branches.find(branch => branch.branch_id === staff.branch_id);
+                    const bName = b ? b.name : 'Unknown';
+                    opt.textContent = `${staff.name} (${bName})`;
+                    staffSelect.appendChild(opt);
+                });
+                // Auto-select the assigned staff member from the appointment if still available
+                if (appt.staff_id) {
+                    staffSelect.value = appt.staff_id;
+                }
+
+                const prodSelect = document.getElementById('productSelect');
+                prodSelect.innerHTML = '<option value="">-- Select Product --</option>';
+                const branchProducts = allInventory.filter(item => String(item.branch_id) === String(branchId) && item.quantity > 0);
+                branchProducts.forEach(item => {
+                    const opt = document.createElement('option');
+                    const mockPrice = 150; // Mock fallback for pos items
+                    const b = branches.find(branch => branch.branch_id === item.branch_id);
+                    const bName = b ? b.name : 'Unknown';
+                    opt.value = item.inventory_id;
+                    opt.setAttribute('data-name', item.item_name);
+                    opt.setAttribute('data-price', mockPrice);
+                    opt.textContent = `${item.item_name} [${bName}] (Qty: ${item.quantity}) - ₱${mockPrice}`;
+                    prodSelect.appendChild(opt);
+                });
+
+                // Handle dynamic warts logic
+                const wartsContainer = document.getElementById('wartsInputContainer');
+                if (serviceName.toLowerCase().includes('warts removal')) {
+                    wartsContainer.style.display = 'block';
+                    document.getElementById('wartsCount').value = 1;
+                    updateWartsPrice();
+                } else {
+                    wartsContainer.style.display = 'none';
+                    updateTotals();
+                }
+
+            } else {
+                document.getElementById('apptDetails').style.display = 'none';
+                document.getElementById('wartsInputContainer').style.display = 'none';
+                servicePrice = 0;
+                // Reset staff and products back to all branches when no appointment is selected
+                const staffSelect = document.getElementById('staffSelect');
+                staffSelect.innerHTML = '<option value="">-- Select Staff Member --</option>';
+                allStaff.forEach(staff => {
+                    const opt = document.createElement('option');
+                    opt.value = staff.id;
+                    const b = branches.find(branch => branch.branch_id === staff.branch_id);
+                    const bName = b ? b.name : 'Unknown';
+                    opt.textContent = `${staff.name} (${bName})`;
+                    staffSelect.appendChild(opt);
+                });
+
+                const prodSelect = document.getElementById('productSelect');
+                prodSelect.innerHTML = '<option value="">-- Select Product --</option>';
+                allInventory.forEach(item => {
+                    const opt = document.createElement('option');
+                    const mockPrice = 150; // Mock fallback for pos items
+                    const b = branches.find(branch => branch.branch_id === item.branch_id);
+                    const bName = b ? b.name : 'Unknown';
+                    opt.value = item.inventory_id;
+                    opt.setAttribute('data-name', item.item_name);
+                    opt.setAttribute('data-price', mockPrice);
+                    opt.textContent = `${item.item_name} [${bName}] (Qty: ${item.quantity}) - ₱${mockPrice}`;
+                    prodSelect.appendChild(opt);
+                });
+                updateTotals();
+            }
+        }
+
+        function updateWartsPrice() {
+            const count = parseInt(document.getElementById('wartsCount').value) || 1;
+            const rate = count >= 50 ? 30 : 35;
+            const wartsCost = count * rate;
+            // Preserve non-warts service prices for multi-service bookings
+            servicePrice = (window._nonWartsPrice || 0) + wartsCost;
+            window._wartsActualCost = wartsCost;
+
+            document.getElementById('servicePrice').textContent = servicePrice.toFixed(2);
+            document.getElementById('wartsCalculationText').textContent = `${count} piece(s) x ₱${rate} = ₱${servicePrice.toFixed(2)}`;
+            updateTotals();
+        }
+
+        function addProduct() {
+            const select = document.getElementById('productSelect');
+            if (!select.value) return;
+
+            const opt = select.options[select.selectedIndex];
+            const price = parseFloat(opt.getAttribute('data-price'));
+            const name = opt.getAttribute('data-name');
+            const inventory_id = select.value;
+
+            // Simple merging logic
+            const existing = addedProducts.find(p => p.inventory_id === inventory_id);
+            if (existing) {
+                existing.quantity += 1;
+                existing.price_each = price;
+            } else {
+                addedProducts.push({ inventory_id, item_name: name, quantity: 1, price_each: price });
+            }
+
+            productsTotal += price;
+
+            renderProductList();
+            updateTotals();
+            select.value = "";
+        }
+
+        function removeProduct(inventory_id) {
+            const index = addedProducts.findIndex(p => p.inventory_id === inventory_id);
+            if (index > -1) {
+                const product = addedProducts[index];
+                productsTotal -= (parseFloat(product.price_each) * parseInt(product.quantity));
+                addedProducts.splice(index, 1);
+                renderProductList();
+                updateTotals();
+            }
+        }
+
+        function renderProductList() {
+            const ul = document.getElementById('productList');
+            ul.innerHTML = '';
+            addedProducts.forEach(p => {
+                const li = document.createElement('li');
+                li.style.display = 'flex';
+                li.style.justifyContent = 'space-between';
+                li.style.alignItems = 'center';
+                li.style.marginBottom = '8px';
+                li.innerHTML = `
+                    <span>${p.item_name} (x${p.quantity})</span> 
+                    <div style="display: flex; align-items: center;">
+                        <span>₱${(p.price_each * p.quantity).toFixed(2)}</span>
+                        <button onclick="removeProduct('${p.inventory_id}')" style="background: #dc3545; color: white; border: none; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; margin-left: 10px; display: inline-flex; align-items: center; justify-content: center; transition: background 0.2s;" onmouseover="this.style.background='#a71d2a'" onmouseout="this.style.background='#dc3545'" title="Remove Item"><i class="fas fa-times"></i></button>
+                    </div>
+                `;
+                ul.appendChild(li);
+            });
+        }
+
+        function updateTotals() {
+            // Use the actual DP paid during booking (stored in DB)
+            dpPaid = window._apptDpPaid || 0;
+
+            const grossTotal = servicePrice + productsTotal;
+
+            // Calculate DP credit ONLY from the warts DP portion (not from regular 20% DP)
+            const wartsDp = window._wartsDp || 0;
+            const wartsActualCost = window._wartsActualCost || 0;
+            if (wartsDp > 0 && wartsDp > wartsActualCost) {
+                dpCredit = wartsDp - wartsActualCost;
+            } else {
+                dpCredit = 0;
+            }
+
+            // Amount Due = gross total minus the DP already paid
+            currentTotal = Math.max(0, grossTotal - dpPaid);
+
+            document.getElementById('sumService').textContent = servicePrice.toFixed(2);
+            document.getElementById('sumProducts').textContent = productsTotal.toFixed(2);
+
+            // Show/hide DP rows
+            const dpRow = document.getElementById('dpRow');
+            const dpCreditRow = document.getElementById('dpCreditRow');
+
+            if (dpPaid > 0 && servicePrice > 0) {
+                dpRow.style.display = 'flex';
+                document.getElementById('sumDp').textContent = dpPaid.toFixed(2);
+            } else {
+                dpRow.style.display = 'none';
+            }
+
+            if (dpCredit > 0) {
+                dpCreditRow.style.display = 'flex';
+                document.getElementById('sumDpCredit').textContent = dpCredit.toFixed(2);
+            } else {
+                dpCreditRow.style.display = 'none';
+            }
+
+            document.getElementById('sumTotal').textContent = currentTotal.toFixed(2);
+            calculateChange();
+        }
+
+        function calcType(val) {
+            if (val === 'C') {
+                currentCash = "";
+            } else {
+                currentCash += val;
+            }
+            document.getElementById('cashInput').value = currentCash ? `₱${currentCash}.00` : "";
+            calculateChange();
+        }
+
+        function calculateChange() {
+            const cash = parseFloat(currentCash) || 0;
+            // dpCredit from DP overpayment acts like extra cash
+            let change = (cash + dpCredit) - currentTotal;
+            if (change < 0 || (currentTotal === 0 && dpCredit === 0)) change = 0;
+            document.getElementById('changeDue').textContent = `₱${change.toFixed(2)}`;
+        }
+
+        async function processCheckout() {
+            const hasService = servicePrice > 0;
+            const hasProducts = productsTotal > 0;
+            if (!hasService && !hasProducts) {
+                alert("Please select an appointment or add a product first.");
+                return;
+            }
+            const cash = parseFloat(currentCash) || 0;
+            if (cash < currentTotal) {
+                alert("Insufficient cash provided! Please enter the cash received using the numpad.");
+                return;
+            }
+
+            const change = (cash + dpCredit) - currentTotal;
+            const clientName = document.getElementById('clientName').textContent;
+            const serviceName = document.getElementById('serviceName').textContent;
+
+            const appointment_id = document.getElementById('apptSelect').value;
+            const appt = confirmedAppts.find(a => a.appointment_id == appointment_id);
+
+            const selectedStaffId = document.getElementById('staffSelect').value;
+            if (!selectedStaffId) {
+                alert("Please select the Staff Member who will receive commission for this transaction.");
+                return;
+            }
+
+            const payload = {
+                branch_id: appt ? appt.branch_id : null,
+                appointment_id: appointment_id || null,
+                staff_id: parseInt(selectedStaffId) || null,
+                client_name: clientName,
+                service_name: serviceName,
+                service_price: servicePrice,
+                products_total: productsTotal,
+                cash_received: cash,
+                change_due: change,
+                products_bought: addedProducts,
+                total_amount: currentTotal,
+                payment_method: 'Cash'
+            };
+
+            const btn = document.querySelector('.submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+
+            try {
+                const response = await fetch('/api/finance/transaction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    // Build receipt
+                    let receiptHTML = `
+                        <div class="receipt-row"><span><strong>Client:</strong></span> <span>${clientName}</span></div>
+                        <div class="receipt-row"><span><strong>Service:</strong></span> <span>${serviceName}</span></div>
+                        <div class="receipt-row"><span>Service Cost:</span> <span>₱${servicePrice.toFixed(2)}</span></div>
+                        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 10px 0;">
+                    `;
+
+                    if (addedProducts.length > 0) {
+                        receiptHTML += `<div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 5px;">Products:</div>`;
+                        addedProducts.forEach(p => {
+                            receiptHTML += `<div class="receipt-row"><span>${p.item_name} (x${p.quantity})</span> <span>₱${(p.price_each * p.quantity).toFixed(2)}</span></div>`;
+                        });
+                        receiptHTML += `<hr style="border: 0; border-top: 1px dashed #ccc; margin: 10px 0;">`;
+                    }
+
+                    if (dpPaid > 0) {
+                        receiptHTML += `<div class="receipt-row" style="color: #2e7d32;"><span>Down Payment (Online):</span> <span>-₱${dpPaid.toFixed(2)}</span></div>`;
+                        if (dpCredit > 0) {
+                            receiptHTML += `<div class="receipt-row" style="color: #0277bd;"><span>DP Overpayment Credit:</span> <span>₱${dpCredit.toFixed(2)}</span></div>`;
+                        }
+                        receiptHTML += `<hr style="border: 0; border-top: 1px dashed #ccc; margin: 10px 0;">`;
+                    }
+
+                    receiptHTML += `
+                        <div class="receipt-row" style="font-weight: 800; font-size: 1.1rem;"><span>BALANCE DUE:</span> <span>₱${currentTotal.toFixed(2)}</span></div>
+                        <div class="receipt-row"><span>Cash:</span> <span>₱${cash.toFixed(2)}</span></div>
+                        <div class="receipt-row"><span>Change:</span> <span>₱${change.toFixed(2)}</span></div>
+                        <div class="receipt-row" style="margin-top: 10px; font-size: 0.8rem; color: #999;"><span>Processed by:</span> <span>${currentUser.name}</span></div>
+                    `;
+
+                    document.getElementById('receiptBody').innerHTML = receiptHTML;
+                    document.getElementById('receiptModal').style.display = 'flex';
+                } else {
+                    alert('Error: ' + result.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Process Checkout';
+                }
+            } catch (err) {
+                console.error('Checkout error:', err);
+                alert('Server connection failed. Could not process checkout.');
+                btn.disabled = false;
+                btn.textContent = 'Process Checkout';
+            }
+        }
+
+        function closeReceipt() {
+            document.getElementById('receiptModal').style.display = 'none';
+            window.location.reload();
+        }
+
+        function adminLogout() {
+            if (confirm('Are you sure you want to logout?')) Auth.logout();
+        }
+    </script>
+</body>
+
+</html>

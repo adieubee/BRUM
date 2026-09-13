@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Our Branches | Facial R Us Locations in Bulacan & Malabon</title>
+   <meta name="description"
+      content="Visit Facial R Us at our branches in Malolos, Pulilan, and Malabon. Find the nearest clinic and book your facial treatment today.">
+   <meta name="keywords"
+      content="Facial R Us branches, Malolos clinic, Pulilan skincare, Malabon facial, beauty clinic locations">
+   <link rel="canonical" href="https://facial-r-us.vercel.app/branches.html">
+   <link rel="stylesheet" href="css/style.css">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="services-body">
+
+   <header class="navbar">
+      <div class="nav-brand">
+         <a href="index.html" class="nav-logo-link">
+            <img src="./assets/ICON.svg" alt="Facial R Us Logo" class="nav-logo">
+            <span class="nav-title">FACIAL R US</span>
+         </a>
+      </div>
+
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">
+         <i class="fas fa-bars"></i>
+      </button>
+
+      <nav class="nav-links" id="navLinks">
+         <a href="services.html">Services</a>
+         <a href="branches.html">Branches</a>
+         <a href="about-us.html">About Us</a>
+         <a href="login.html" class="nav-btn" id="navAuthBtn">Login | Sign Up</a>
+      </nav>
+   </header>
+
+   <section class="services-page-section">
+      <div class="branches-bg-curve"></div>
+
+      <div class="services-content-wrapper">
+         <div class="services-page-header">
+            <h2>OUR BRANCHES</h2>
+            <p>Find the nearest Facial R Us location</p>
+         </div>
+
+         <div class="map-container">
+            <iframe id="branchMap" src="https://maps.google.com/maps?q=Manila&t=&z=12&ie=UTF8&iwloc=&output=embed"
+               width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"
+               referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+         </div>
+
+         <div class="branches-grid" id="branchesContainer"></div>
+      </div>
+   </section>
+
+
+   <script>
+      document.addEventListener('DOMContentLoaded', () => {
+         renderBranches();
+      });
+
+      function renderBranches() {
+         const container = document.getElementById('branchesContainer');
+         if (!container) return;
+
+         const staticBranches = [
+            { branch_id: 1, name: "Malolos Branch", address: "RB Building, Arbe Compound Cor. Mac Arthur Hi-Way, Malolos, 3000 Bulacan", hours: "Mon to Sun 9:00AM - 8:00PM" },
+            { branch_id: 2, name: "Pulilan Branch", address: "2nd Floor, GSM Bldg., Regional Rd., Pulilan, Bulacan", hours: "Mon to Sun 9:00AM - 8:00PM" },
+            { branch_id: 3, name: "Malabon Branch", address: "4B Manapat St., Tanong, Malabon", hours: "Mon to Sun 9:00AM - 8:00PM" }
+         ];
+
+         container.innerHTML = '';
+
+         staticBranches.forEach(branch => {
+            const card = document.createElement('div');
+            card.className = 'branch-card';
+
+            card.innerHTML = `
+                <div>
+                    <h3>${branch.name}</h3>
+                    <div class="branch-info-row">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a46464" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        <p>${branch.address}</p>
+                    </div>
+                    <div class="branch-info-row">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a46464" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        <p>${branch.hours || 'Mon to Sun 9:00AM - 8:00PM'}</p>
+                    </div>
+                </div>
+                <div class="branch-actions">
+                    <a href="client/booking.html?branch=${encodeURIComponent(branch.name)}" class="branch-btn">Book Here</a>
+                    <button type="button" class="map-btn" onclick="updateMap('${branch.address}')">View on Map</button>
+                </div>
+            `;
+            container.appendChild(card);
+         });
+      }
+
+      function updateMap(address) {
+         const mapIframe = document.getElementById('branchMap');
+         mapIframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+         document.querySelector('.map-container').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+   </script>
+
+   <!-- ═══ FOOTER ═══ -->
+   <footer class="footer">
+      <div class="container">
+         <div class="footer-brand">FACIAL R US</div>
+         <div class="footer-links">
+            <a href="index.html">Home</a>
+            <a href="services.html">Services</a>
+            <a href="branches.html">Branches</a>
+            <a href="about-us.html">About Us</a>
+         </div>
+         <div class="footer-divider"></div>
+         <p>&copy; 2026 Facial R Us Management System. All rights reserved.</p>
+      </div>
+   </footer>
+
+   <script src="js/auth.js"></script>
+   <script src="js/main.js"></script>
+</body>
+
+</html>

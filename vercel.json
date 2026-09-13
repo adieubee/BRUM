@@ -1,0 +1,39 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/auth/:path*",
+            "destination": "/api/auth"
+        },
+        {
+            "source": "/api/bookings/:path*",
+            "destination": "/api/bookings"
+        },
+        {
+            "source": "/api/finance/:path*",
+            "destination": "/api/finance"
+        },
+        {
+            "source": "/api/inventory/:path*",
+            "destination": "/api/inventory"
+        },
+        {
+            "source": "/api/users/:path*",
+            "destination": "/api/users"
+        },
+        {
+            "source": "/api/(.*)",
+            "destination": "/api/$1"
+        }
+    ],
+    "headers": [
+        {
+            "source": "/api/(.*)",
+            "headers": [
+                {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                }
+            ]
+        }
+    ]
+}

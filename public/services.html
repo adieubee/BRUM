@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skincare & Facial Services | Facial R Us Treatments</title>
+    <meta name="description"
+        content="Explore our wide range of facial treatments, diamond peels, LED therapy, and lash services. Professional skincare tailored for you at Facial R Us.">
+    <meta name="keywords"
+        content="facial services, diamond peel, LED therapy, eyelash extension, facial cleaning, skincare bulacan">
+    <link rel="canonical" href="https://facial-r-us.vercel.app/services.html">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="services-body">
+
+    <header class="navbar">
+        <div class="nav-brand">
+            <a href="index.html" class="nav-logo-link">
+                <img src="./assets/ICON.svg" alt="Facial R Us Logo" class="nav-logo">
+                <span class="nav-title">FACIAL R US</span>
+            </a>
+        </div>
+
+        <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <nav class="nav-links" id="navLinks">
+            <a href="services.html" class="active">Services</a>
+            <a href="branches.html">Branches</a>
+            <a href="about-us.html">About Us</a>
+            <a href="login.html" class="nav-btn" id="navAuthBtn">Login | Sign Up</a>
+        </nav>
+    </header>
+
+    <section class="services-page-section">
+        <div class="services-bg-curve"></div>
+
+        <div class="services-content-wrapper">
+            <div class="services-page-header">
+                <h2>OUR SERVICES</h2>
+                <p>Signature Treatments for Your Glow</p>
+            </div>
+
+            <div id="servicesContainer"
+                style="width: 100%; max-width: 1100px; margin: 0 auto; position: relative; z-index: 2;">
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-brand">FACIAL R US</div>
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="services.html">Services</a>
+                <a href="branches.html">Branches</a>
+                <a href="about-us.html">About Us</a>
+            </div>
+            <div class="footer-divider"></div>
+            <p>&copy; 2026 Facial R Us Management System. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCategorizedServices();
+        });
+
+        function renderCategorizedServices() {
+            const container = document.getElementById('servicesContainer');
+            if (!container) return;
+            const serviceCategories = [
+                {
+                    title: "Basic Facial Treatments",
+                    icon: "assets/basic-facial.svg",
+                    items: [
+                        { name: "Facial", price: 550, duration: "45 mins" },
+                        { name: "Facial Whitening", price: 600, duration: "60 mins" },
+                        { name: "Intensive Cleaning", price: 750, duration: "60 mins" },
+                        { name: "Hydra Facial", price: 900, duration: "60 mins" },
+                        { name: "Hydra with Facial Cleaning", price: 1300, duration: "90 mins" }
+                    ]
+                },
+                {
+                    title: "Diamond Peel Treatments",
+                    icon: "assets/diamond-peel.svg",
+                    items: [
+                        { name: "Diamond Peel", price: 600, duration: "45 mins" },
+                        { name: "3 Sessions of Diamond Peel", price: 1000, duration: "3 Sessions" },
+                        { name: "Facial with Diamond Peel", price: 900, duration: "90 mins" }
+                    ]
+                },
+                {
+                    title: "LED Light Therapy",
+                    icon: "assets/led-light.svg",
+                    items: [
+                        { name: "LED Light Therapy", price: 600, duration: "30 mins" },
+                        { name: "3 Sessions of LED Light Therapy", price: 1200, duration: "3 Sessions" },
+                        { name: "Facial with LED", price: 1000, duration: "75 mins" }
+                    ]
+                },
+                {
+                    title: "Combination Treatments",
+                    icon: "assets/combination.svg",
+                    items: [
+                        { name: "Facial with Diamond Peel & LED", price: 1300, duration: "120 mins" },
+                        { name: "Diamond Peel with LED Light", price: 1000, duration: "75 mins" }
+                    ]
+                },
+                {
+                    title: "Skin & Body Treatments",
+                    icon: "assets/skin-body.svg",
+                    items: [
+                        { name: "Underarm Whitening", price: 500, duration: "30 mins" },
+                        { name: "Back Cleaning", price: 1500, duration: "60 mins", desc: "• Includes 1 free check-up after 1 week" }
+                    ]
+                },
+                {
+                    title: "Minor Skin Procedures",
+                    icon: "assets/minor-skin.svg",
+                    items: [
+                        { name: "Warts Removal", priceStr: "₱35 / piece", duration: "Varies", desc: "• 50 pcs and above - ₱30 per piece<br>• Includes free cream" }
+                    ]
+                },
+                {
+                    title: "Lash Services",
+                    icon: "assets/lash-services.svg",
+                    items: [
+                        { name: "Curlash", price: 450, duration: "45 mins" },
+                        { name: "Eyelash Extension", price: 550, duration: "90 mins" }
+                    ]
+                }
+            ];
+
+            container.innerHTML = '';
+
+            serviceCategories.forEach(category => {
+                // 1. Create the Category Wrapper
+                const catSection = document.createElement('div');
+                catSection.className = 'category-section';
+
+                // 2. Add Category Title and Line
+                const titleWrapper = document.createElement('div');
+                titleWrapper.className = 'category-title-wrapper';
+
+                const catTitle = document.createElement('h2');
+                catTitle.className = 'category-title';
+                catTitle.textContent = category.title;
+
+                const catLine = document.createElement('div');
+                catLine.className = 'category-line';
+
+                titleWrapper.appendChild(catTitle);
+                titleWrapper.appendChild(catLine);
+                catSection.appendChild(titleWrapper);
+
+                const grid = document.createElement('div');
+                grid.className = 'services-list-grid';
+
+                category.items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'service-item-card';
+
+                    const displayPrice = item.priceStr ? item.priceStr : `₱${item.price.toLocaleString()}`;
+                    const displayDesc = item.desc ? `<div class="service-note">${item.desc}</div>` : '';
+
+                    card.innerHTML = `
+                        <div>
+                            <img src="${category.icon}" alt="${category.title} Icon">
+                            <h3>${item.name}</h3>
+                            <div class="service-item-details">
+                                <p><strong>Price:</strong> ${displayPrice}</p>
+                                <p><strong>Duration:</strong> ${item.duration}</p>
+                                ${displayDesc}
+                            </div>
+                        </div>
+                        <a href="client/booking.html?service=${encodeURIComponent(item.name)}" class="service-book-btn">Book Now</a>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                catSection.appendChild(grid);
+                container.appendChild(catSection);
+            });
+        }
+    </script>
+</body>
+
+</html>
+
+<!-- t
+===========================
+FRUMS - SERVICES PAGE (services.html)
+===========================
+
+PURPOSE:
+- This page displays all available skincare/facial services offered by Facial R Us.
+- Must match the same clean aesthetic from index.html.
+
+DESIGN: Follow the reference design theme.
+
+PAGE LAYOUT:
+
+1. NAVBAR (Same as index.html)
+   - Logo + FACIAL R US (left)
+   - Links: Services | Branches | About Us (center)
+   - Right button:
+       - If NOT logged in: "Login / Sign Up"
+       - If logged in: "Hi, [Name]"
+
+2. HERO / HEADER SECTION
+   - Simple banner section (smaller than homepage hero)
+   - Heading: "Our Services"
+   - Subtitle: "Signature Treatments for Your Glow"
+
+3. SERVICES LIST SECTION
+   - Dynamically display services from mockServices
+   - Each service card must show:
+       - Service Name
+       - Price (₱)
+       - Duration (minutes)
+       - Optional: "Book Now" button linking to booking.html
+
+4. RESPONSIVE DESIGN
+   - Mobile: 1 column cards
+   - Tablet: 2 columns
+   - Desktop: 3 columns
+
+LOGIC REQUIREMENTS(no need to implement yet):
+- Services should be rendered using JavaScript from mockServices
+- No database yet (prototype only)
+
+TODO FOR MEMBERS:
+- Keep icons simple line-art style
+- Match spacing, rounded corners, and centered headings
+-->

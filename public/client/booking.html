@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FACIAL R US - Book Appointment</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal-card {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .modal-title {
+            font-family: 'Brown Sugar', serif;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .modal-desc {
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .modal-amount {
+            background: #fdfaf6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .modal-amount span {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: #777;
+        }
+
+        .modal-amount strong {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.8rem;
+            color: #d09c62;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .modal-actions button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-cancel {
+            background: #eee;
+            color: #555;
+        }
+
+        .btn-cancel:hover {
+            background: #ddd;
+        }
+
+        .btn-confirm {
+            background: #333;
+            color: #fff;
+            flex-grow: 1;
+        }
+
+        .btn-confirm:hover {
+            background: #111;
+            transform: translateY(-2px);
+        }
+
+        .modal-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 0, 0, .1);
+            border-radius: 50%;
+            border-top-color: #d09c62;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #servicesContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pax-panel {
+            background: #faf6ee;
+            border: 1px solid #e8dcc8;
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .pax-panel-header {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #8b2d2d;
+            margin-bottom: 10px;
+        }
+
+        .pax-services {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .service-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .service-row select {
+            flex: 1;
+        }
+
+        .remove-svc-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .remove-svc-btn:hover {
+            background: #a71d2a;
+        }
+
+        .add-service-btn {
+            background: none;
+            border: 1px dashed #c4a96a;
+            color: #8b6914;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-family: 'Poppins', sans-serif;
+            margin-top: 8px;
+            transition: all 0.2s;
+        }
+
+        .add-service-btn:hover {
+            background: #f0e8d5;
+            border-color: #8b6914;
+        }
+    </style>
+</head>
+
+<body class="services-body">
+
+    <!-- Payment Confirmation Modal -->
+    <div id="paymentModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div id="modalContentConfirm">
+                <i class="fa-solid fa-wallet modal-icon" style="color: #d09c62;"></i>
+                <h3 class="modal-title">Confirm Checkout</h3>
+                <p class="modal-desc">To secure your booking slot, a 20% down payment is required to proceed.</p>
+                <div class="modal-amount">
+                    <span>Down Payment Required</span>
+                    <strong id="modalDpAmount">₱ 0.00</strong>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel"
+                        onclick="document.getElementById('paymentModal').style.display='none'">Cancel</button>
+                    <button type="button" class="btn-confirm" id="confirmPayBtn">Proceed to PayMongo</button>
+                </div>
+            </div>
+            <div id="modalContentLoading" style="display: none; padding: 20px 0;">
+                <div class="modal-spinner"></div>
+                <h3 class="modal-title">Preparing Checkout</h3>
+                <p class="modal-desc">Creating your secure payment session. Please wait...</p>
+            </div>
+        </div>
+    </div>
+
+    <header class="navbar">
+        <div class="nav-brand">
+            <a href="../index.html" class="nav-logo-link">
+                <img src="../assets/ICON.svg" alt="Facial R Us Logo" class="nav-logo">
+                <span class="nav-title">FACIAL R US</span>
+            </a>
+        </div>
+
+        <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <nav class="nav-links" id="navLinks">
+            <a href="../services.html">Services</a>
+            <a href="../branches.html">Branches</a>
+            <a href="../about-us.html">About Us</a>
+            <a href="../login.html" class="nav-btn" id="navAuthBtn">Login | Sign Up</a>
+        </nav>
+    </header>
+
+    <section class="booking-section">
+        <div class="booking-bg-curve"></div>
+
+        <div class="booking-content">
+
+            <div class="booking-card">
+
+                <div id="step1">
+                    <form id="bookingForm">
+                        <div class="line-input-group">
+                            <label for="name">Name*</label>
+                            <input type="text" id="name" placeholder="Name" required>
+                        </div>
+
+                        <div class="line-input-group">
+                            <label for="branch">Preferred Branch*</label>
+                            <select id="branch" required>
+                                <option value="" disabled selected>Loading Branches...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="line-input-group flex-2">
+                                <label>Preferred Schedule*</label>
+                                <div class="split-inputs">
+                                    <input type="date" id="date" required>
+                                    <select id="time" required>
+                                        <option value="" disabled selected>Time</option>
+                                        <option value="09:00:00">09:00 AM</option>
+                                        <option value="10:00:00">10:00 AM</option>
+                                        <option value="11:00:00">11:00 AM</option>
+                                        <option value="12:00:00">12:00 PM</option>
+                                        <option value="13:00:00">01:00 PM</option>
+                                        <option value="14:00:00">02:00 PM</option>
+                                        <option value="15:00:00">03:00 PM</option>
+                                        <option value="16:00:00">04:00 PM</option>
+                                        <option value="17:00:00">05:00 PM</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="line-input-group flex-1">
+                                <label for="people"># of People*</label>
+                                <select id="people" required>
+                                    <option value="" disabled selected>Pax</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="line-input-group">
+                            <label>Service(s)*</label>
+                            <div id="servicesContainer">
+                                <div class="pax-panel" data-pax="1">
+                                    <div class="pax-panel-header">Person 1</div>
+                                    <div class="pax-services">
+                                        <select class="service-select" required>
+                                            <option value="" selected disabled>Select a Service</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" class="add-service-btn" onclick="addServiceToPanel(this)">+
+                                        Add Another Service</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="line-input-group">
+                            <label for="tech">Preferred Dermatechnician*</label>
+                            <select id="tech" required>
+                                <option value="" disabled selected>Select Branch First</option>
+                            </select>
+                        </div>
+
+                        <div class="line-input-group">
+                            <label for="message">Message</label>
+                            <input type="text" id="message" placeholder="Type your message here...">
+                        </div>
+
+                        <button type="submit" class="next-btn">Next</button>
+                    </form>
+                </div>
+
+                <div id="step2" style="display: none;">
+                    <h2 class="confirm-title">Confirmation of Booking</h2>
+
+                    <div class="confirm-details-grid">
+                        <div class="col">
+                            <p><strong>Name:</strong> <span id="confName"></span></p>
+                            <p><strong>Date & Time:</strong> <span id="confDateTime"></span></p>
+                            <p><strong># of People:</strong> <span id="confPeople"></span></p>
+                            <p><strong>Preferred Dermatechnician:</strong> <span id="confTech"></span></p>
+                            <p><strong>Branch:</strong> <span id="confBranch"></span></p>
+                            <p><strong>Message:</strong> <span id="confMessage"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="confirm-services-grid">
+                        <div class="col">
+                            <p><strong>Service Availed:</strong></p>
+                            <span id="confService"></span>
+                        </div>
+                        <div class="col text-right">
+                            <p><strong>Price:</strong></p>
+                            <p>₱ --</p>
+                        </div>
+                    </div>
+
+                    <div class="confirm-disclaimer">
+                        <p>Please note that to secure your appointment/booking slot, a 20% down payment of the total
+                            service price is required. Your slot will only be confirmed once the payment has been
+                            received. Down payment is non-refundable!</p>
+                        <p>An SMS confirmation will be sent to your registered phone number once your booking has been
+                            successfully secured.</p>
+                    </div>
+
+                    <div class="confirm-totals" style="margin-bottom: 20px;">
+                        <p><strong>Total:</strong> ₱ --</p>
+                        <p><strong>Down Payment (20% of Total):</strong> ₱ --</p>
+                    </div>
+
+                    <button type="button" class="next-btn" id="proceedPaymentBtn">Proceed to Payment</button>
+                </div>
+
+            </div>
+
+            <div class="contact-info">
+                <h2
+                    style="font-family: 'Brown Sugar', serif; font-size: 4.5rem; color: #fcfaf3; font-weight: normal; margin-bottom: 30px;">
+                    GET IN TOUCH</h2>
+
+                <div class="contact-block">
+                    <h4>Address | Main Branch</h4>
+                    <p>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        4B Manapat St., Tanong, Malabon
+                    </p>
+                </div>
+
+                <div class="contact-block">
+                    <h4>Opening Hours</h4>
+                    <p>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Mon to Fri 9:00AM - 8:00PM<br>Sat to Sun 9:00AM - 6:00PM</span>
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ═══ FOOTER ═══ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-brand">FACIAL R US</div>
+            <div class="footer-links">
+                <a href="../index.html">Home</a>
+                <a href="../services.html">Services</a>
+                <a href="../branches.html">Branches</a>
+                <a href="../about-us.html">About Us</a>
+            </div>
+            <div class="footer-divider"></div>
+            <p>&copy; 2026 Facial R Us Management System. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        let globalServices = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = Auth.getUser();
+            if (!user) {
+                window.location.href = '../login.html?redirect=client/booking.html';
+                return;
+            }
+
+            // Pre-fill name if logged in
+            const nameInput = document.getElementById('name');
+            if (nameInput && user.name) {
+                nameInput.value = user.name;
+            }
+
+            // Limit past dates on the date picker
+            const dtToday = new Date();
+            const month = (dtToday.getMonth() + 1).toString().padStart(2, '0');
+            const day = dtToday.getDate().toString().padStart(2, '0');
+            const year = dtToday.getFullYear();
+            document.getElementById('date').setAttribute('min', year + '-' + month + '-' + day);
+
+            try {
+                // Fetch both branches and services from a single optimized endpoint
+                const formDataRes = await fetch('/api/bookings/form-data');
+                const formData = await formDataRes.json();
+
+                const branchesData = { success: formData.success, branches: formData.branches };
+                const servicesData = { success: formData.success, services: formData.services };
+
+                const branchSelect = document.getElementById('branch');
+                const techSelect = document.getElementById('tech');
+                const serviceContainer = document.getElementById('serviceCheckboxes');
+
+                branchSelect.innerHTML = '<option value="" disabled selected>Select Branch</option>';
+
+                if (branchesData.success) {
+                    branchesData.branches.forEach(b => {
+                        branchSelect.innerHTML += `<option value="${b.branch_id}">${b.name}</option>`;
+                    });
+                }
+
+                if (servicesData.success) {
+                    globalServices = servicesData.services;
+
+                    // Build a template select element to clone for each service dropdown
+                    const templateSelect = document.createElement('select');
+                    templateSelect.className = 'service-select';
+                    templateSelect.required = true;
+                    templateSelect.innerHTML = '<option value="" selected disabled>Select a Service</option>';
+
+                    const categoryGroups = {};
+                    servicesData.services.forEach(s => {
+                        const cat = s.category || 'Other Services';
+                        if (!categoryGroups[cat]) categoryGroups[cat] = [];
+                        categoryGroups[cat].push(s);
+                    });
+
+                    for (const category in categoryGroups) {
+                        if (category === 'Other Services') continue;
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = category.toUpperCase();
+                        categoryGroups[category].forEach(s => {
+                            const option = document.createElement('option');
+                            option.value = s.service_id;
+                            option.setAttribute('data-name', s.name);
+                            option.setAttribute('data-price', s.price);
+                            if (s.name === 'Warts Removal') {
+                                option.textContent = `WARTS REMOVAL (₱35/pc, 50+ pcs: ₱30/pc)`;
+                            } else {
+                                option.textContent = `${s.name.toUpperCase()} - ₱${parseFloat(s.price).toLocaleString()}`;
+                            }
+                            optgroup.appendChild(option);
+                        });
+                        templateSelect.appendChild(optgroup);
+                    }
+
+                    // Store template globally for cloning
+                    window._serviceSelectTemplate = templateSelect;
+
+                    // Populate the first panel's first select
+                    const firstSelect = document.querySelector('.pax-panel .service-select');
+                    firstSelect.innerHTML = templateSelect.innerHTML;
+
+                    // Pax change handler — creates/removes per-person panels
+                    document.getElementById('people').addEventListener('change', function () {
+                        const maxPax = parseInt(this.value) || 1;
+                        const container = document.getElementById('servicesContainer');
+                        const currentPanels = container.querySelectorAll('.pax-panel');
+
+                        // Add more panels if needed
+                        if (currentPanels.length < maxPax) {
+                            for (let i = currentPanels.length; i < maxPax; i++) {
+                                const panel = document.createElement('div');
+                                panel.className = 'pax-panel';
+                                panel.setAttribute('data-pax', i + 1);
+                                panel.innerHTML = `
+                                    <div class="pax-panel-header">Person ${i + 1}</div>
+                                    <div class="pax-services">
+                                        <select class="service-select" required>${window._serviceSelectTemplate.innerHTML}</select>
+                                    </div>
+                                    <button type="button" class="add-service-btn" onclick="addServiceToPanel(this)">+ Add Another Service</button>
+                                `;
+                                container.appendChild(panel);
+                            }
+                        }
+                        // Remove excess panels
+                        else if (currentPanels.length > maxPax) {
+                            for (let i = currentPanels.length - 1; i >= maxPax; i--) {
+                                container.removeChild(currentPanels[i]);
+                            }
+                        }
+
+                        // Show/hide "Person 1" header when solo
+                        container.querySelectorAll('.pax-panel-header').forEach(h => {
+                            h.style.display = maxPax === 1 ? 'none' : 'block';
+                        });
+                    });
+
+                    // Hide "Person 1" header by default (single pax)
+                    document.querySelector('.pax-panel-header').style.display = 'none';
+                }
+
+                // Handle picking a branch -> Fetches the staff for that branch
+                branchSelect.addEventListener('change', async (e) => {
+                    techSelect.innerHTML = '<option value="" disabled selected>Loading staff...</option>';
+                    try {
+                        const staffRes = await fetch('/api/users/staff');
+                        const staffData = await staffRes.json();
+                        techSelect.innerHTML = '<option value="" disabled selected>Select Dermatechnician</option>';
+
+                        // "No Preference" option
+                        techSelect.innerHTML += '<option value="0">No Preference</option>';
+
+                        if (staffData.success && staffData.staff.length > 0) {
+                            staffData.staff.forEach(staffMem => {
+                                // Filter by branch_id matches branchSelect value
+                                if (String(staffMem.branch_id) === String(e.target.value)) {
+                                    techSelect.innerHTML += `<option value="${staffMem.staff_id}">${staffMem.name}</option>`;
+                                }
+                            });
+                        }
+                    } catch (err) {
+                        console.error("Error loading branch staff:", err);
+                        techSelect.innerHTML = '<option value="" disabled selected>Error loading staff</option>';
+                    }
+                });
+
+                // Pre-fill from URL params
+                const urlParams = new URLSearchParams(window.location.search);
+                const branchParam = urlParams.get('branch');
+                if (branchParam) {
+                    Array.from(branchSelect.options).forEach(opt => {
+                        if (opt.text.toLowerCase() === branchParam.toLowerCase()) opt.selected = true;
+                    });
+
+                    // Manually trigger change event to fetch the correct staff
+                    branchSelect.dispatchEvent(new Event('change'));
+                }
+
+                const serviceParam = urlParams.get('service');
+                if (serviceParam) {
+                    const firstSelect = document.querySelector('.service-select');
+                    // Look through all optgroups to find the exact match
+                    const allOptions = firstSelect.querySelectorAll('option');
+                    allOptions.forEach(opt => {
+                        const optName = opt.getAttribute('data-name');
+                        // Exact match on the clean `data-name` attribute
+                        if (optName && optName.toLowerCase() === serviceParam.toLowerCase()) {
+                            opt.selected = true;
+                        }
+                    });
+                }
+
+                // Check for unavailable times
+                async function checkUnavailableTimes() {
+                    const branchId = document.getElementById('branch').value;
+                    const dateVal = document.getElementById('date').value;
+                    const techId = document.getElementById('tech').value;
+                    const timeSelect = document.getElementById('time');
+
+                    // Reset all options
+                    Array.from(timeSelect.options).forEach(opt => {
+                        if (opt.value) {
+                            opt.disabled = false;
+                            opt.text = opt.text.replace(' (Booked)', '');
+                        }
+                    });
+
+                    if (branchId && dateVal) {
+                        try {
+                            let url = `/api/bookings/unavailable-times?branch_id=${branchId}&date=${dateVal}`;
+                            if (techId) url += `&staff_id=${techId}`;
+                            
+                            const res = await fetch(url);
+                            const data = await res.json();
+                            if (data.success && data.unavailable_times) {
+                                // Disable booked times
+                                Array.from(timeSelect.options).forEach(opt => {
+                                    if (data.unavailable_times.includes(opt.value) || data.unavailable_times.includes(opt.value + ':00')) {
+                                        opt.disabled = true;
+                                        opt.text += ' (Booked)';
+                                        if (opt.selected) timeSelect.selectedIndex = 0; // Reset if currently selected
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            console.error('Error fetching unavailable times', e);
+                        }
+                    }
+                }
+
+                document.getElementById('branch').addEventListener('change', checkUnavailableTimes);
+                document.getElementById('date').addEventListener('change', checkUnavailableTimes);
+                document.getElementById('tech').addEventListener('change', checkUnavailableTimes);
+
+            } catch (err) {
+                console.error("Error loading dropdown data:", err);
+            }
+        });
+
+        // Global helper: Add another service <select> inside a person's panel
+        function addServiceToPanel(btn) {
+            const panel = btn.closest('.pax-panel');
+            const servicesDiv = panel.querySelector('.pax-services');
+            const row = document.createElement('div');
+            row.className = 'service-row';
+            row.innerHTML = `
+                <select class="service-select" required>${window._serviceSelectTemplate.innerHTML}</select>
+                <button type="button" class="remove-svc-btn" onclick="removeServiceRow(this)" title="Remove">×</button>
+            `;
+            servicesDiv.appendChild(row);
+        }
+
+        // Global helper: Remove a service row from a panel
+        function removeServiceRow(btn) {
+            const row = btn.closest('.service-row');
+            row.remove();
+        }
+
+        // Step 1 → Step 2: Show confirmation
+        document.getElementById('bookingForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            // Validate all services are selected
+            const serviceSelects = document.querySelectorAll('.service-select');
+            let allSelected = true;
+            serviceSelects.forEach(sel => {
+                if (sel.selectedIndex === 0 || !sel.value) {
+                    allSelected = false;
+                }
+            });
+            if (!allSelected) {
+                alert('Please select a service for each slot.');
+                return;
+            }
+
+            const branchSelect = document.getElementById('branch');
+
+            document.getElementById('confName').textContent = document.getElementById('name').value;
+            document.getElementById('confBranch').textContent = branchSelect.options[branchSelect.selectedIndex].text;
+            const selectedTimeText = document.getElementById('time').options[document.getElementById('time').selectedIndex].text;
+            document.getElementById('confDateTime').textContent = `${document.getElementById('date').value} | ${selectedTimeText}`;
+            document.getElementById('confPeople').textContent = document.getElementById('people').value;
+
+            // Build per-person service display
+            const panels = document.querySelectorAll('.pax-panel');
+            let serviceListHTML = '';
+            let basePriceSum = 0;
+            let finalDp = 0;
+            let hasWarts = false;
+
+            panels.forEach((panel, pIdx) => {
+                const selects = panel.querySelectorAll('.service-select');
+                if (panels.length > 1) {
+                    serviceListHTML += `<p style="font-weight: 600; color: #8b2d2d; margin-top: ${pIdx > 0 ? '8px' : '0'};">Person ${pIdx + 1}:</p>`;
+                }
+                selects.forEach((sel) => {
+                    const opt = sel.options[sel.selectedIndex];
+                    const name = opt.getAttribute('data-name');
+                    const price = parseFloat(opt.getAttribute('data-price') || 0);
+
+                    if (name === 'Warts Removal') {
+                        hasWarts = true;
+                        finalDp += 100;
+                        serviceListHTML += `
+                        <div style="display: flex; justify-content: space-between; margin-left: ${panels.length > 1 ? '12px' : '0'};">
+                            <span>• ${name}</span>
+                            <span>Varies (₱35/pc)</span>
+                        </div>`;
+                    } else {
+                        basePriceSum += price;
+                        serviceListHTML += `
+                        <div style="display: flex; justify-content: space-between; margin-left: ${panels.length > 1 ? '12px' : '0'};">
+                            <span>• ${name}</span>
+                            <span>₱${price.toLocaleString()}</span>
+                        </div>`;
+                    }
+                });
+            });
+
+            finalDp += Math.round(basePriceSum * 0.2);
+
+            // Replace both the Title and the empty Price column with one unified display block
+            document.querySelector('.confirm-services-grid').innerHTML = `
+                <div class="col" style="width: 100%;">
+                    <p style="margin-bottom: 10px;"><strong>Service Availed:</strong></p>
+                    ${serviceListHTML}
+                </div>
+            `;
+
+            const techSelect = document.getElementById('tech');
+            const selectedTechText = techSelect.options[techSelect.selectedIndex].text;
+            document.getElementById('confTech').textContent = selectedTechText;
+
+            document.getElementById('confMessage').textContent = document.getElementById('message').value || "None";
+
+            // Calculate totals for display
+            let displayTotalText = '';
+            if (hasWarts && basePriceSum === 0) {
+                displayTotalText = "Varies (₱35/pc)";
+            } else if (hasWarts && basePriceSum > 0) {
+                displayTotalText = `₱${basePriceSum.toLocaleString()} + Warts (Varies)`;
+            } else {
+                displayTotalText = `₱${basePriceSum.toLocaleString()}`;
+            }
+
+            document.querySelectorAll('.confirm-totals p')[0].innerHTML = `<strong>Estimated Total:</strong> ${displayTotalText}`;
+            document.querySelectorAll('.confirm-totals p')[1].innerHTML = `<strong>Down Payment Required (20% of Total):</strong> ₱${finalDp.toLocaleString()}`;
+
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        });
+
+        // Step 2 Submit: Show Modal Pop-up
+        document.getElementById('proceedPaymentBtn').addEventListener('click', function () {
+            const serviceSelects = document.querySelectorAll('.service-select');
+            let basePriceSum = 0;
+            let finalDp = 0;
+            serviceSelects.forEach(sel => {
+                const opt = sel.options[sel.selectedIndex];
+                const name = opt.getAttribute('data-name');
+                const price = parseFloat(opt.getAttribute('data-price') || 0);
+
+                if (name === 'Warts Removal') {
+                    finalDp += 100;
+                } else {
+                    basePriceSum += price;
+                }
+            });
+
+            finalDp += Math.round(basePriceSum * 0.2);
+
+            document.getElementById('modalDpAmount').textContent = `₱${finalDp.toLocaleString()}`;
+
+            // Reset modal state
+            document.getElementById('modalContentConfirm').style.display = 'block';
+            document.getElementById('modalContentLoading').style.display = 'none';
+            document.getElementById('paymentModal').style.display = 'flex';
+        });
+
+        // Modal Action: Confirm & Pay
+        document.getElementById('confirmPayBtn').addEventListener('click', async function () {
+            const user = Auth.getUser();
+            if (!user) return;
+
+            // Show loading state
+            document.getElementById('modalContentConfirm').style.display = 'none';
+            document.getElementById('modalContentLoading').style.display = 'block';
+
+            // Collect all service_ids (flattened from all panels, filter empty)
+            const serviceSelects = document.querySelectorAll('.service-select');
+            const service_ids = Array.from(serviceSelects).map(sel => sel.value).filter(v => v);
+            const pax = parseInt(document.getElementById('people').value);
+
+            const payload = {
+                client_id: user.id,
+                branch_id: document.getElementById('branch').value,
+                service_ids: service_ids,
+                pax: pax,
+                staff_id: document.getElementById('tech').value || null,
+                date: document.getElementById('date').value,
+                time: document.getElementById('time').value,
+                message: document.getElementById('message').value || ''
+            };
+
+            try {
+                const response = await fetch('/api/bookings/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.success && result.checkout_url) {
+                    console.log(' Appointment pending payment! Redirecting to PayMongo...');
+                    window.location.href = result.checkout_url;
+                } else {
+                    document.getElementById('paymentModal').style.display = 'none';
+                    alert('Error: ' + (result.message || 'Failed to create payment session.'));
+                }
+            } catch (error) {
+                console.error('Booking post error:', error);
+                document.getElementById('paymentModal').style.display = 'none';
+                alert('Server connection failed. Please try again.');
+            }
+        });
+    </script>
+
+</body>
+
+</html>

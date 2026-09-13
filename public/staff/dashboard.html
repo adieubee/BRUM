@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FACIAL R US - Staff Portal</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="admin-body">
+
+    <aside class="admin-sidebar">
+        <div class="admin-brand">
+            <div>
+                <span class="admin-logo-small">FACIAL R US</span>
+                <h2 class="admin-logo-large">Staff Portal</h2>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <ul class="admin-nav" id="adminNav">
+            <li><a href="dashboard.html" class="active">Dashboard</a></li>
+            <li><a href="appointments.html">Appointments</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="pos.html">POS</a></li>
+        </ul>
+
+        <button class="admin-logout-btn" onclick="staffLogout()">Log Out</button>
+    </aside>
+
+    <main class="admin-main">
+
+        <header class="admin-header">
+            <div class="header-text">
+                <h1>Welcome Back, <span id="staffName">Staff</span></h1>
+                <p><span id="branchName">Loading...</span> &mdash; <span id="currentDate"></span></p>
+            </div>
+            <a href="../index.html" class="back-home-btn">Back to Home</a>
+        </header>
+
+        <!-- Stat Cards -->
+        <section class="stat-cards">
+            <div class="stat-card">
+                <div class="stat-icon pink">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div>
+                    <div class="stat-number" id="countToday">0</div>
+                    <div class="stat-label">Appointments Today</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon orange">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div>
+                    <div class="stat-number" id="countPending">0</div>
+                    <div class="stat-label">Pending Requests</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon red">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <div class="stat-number" id="countLowStock">0</div>
+                    <div class="stat-label">Low Stock Alerts</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Today's Schedule -->
+        <div class="admin-content-card" style="margin-top: 20px;">
+            <div class="admin-filter-bar">
+                <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 1.5rem; margin: 0;">
+                    <i class="fas fa-list"></i> Today's Schedule
+                </h3>
+                <a href="appointments.html" class="submit-btn"
+                    style="padding: 8px 18px; font-size: 0.85rem; text-decoration: none;">
+                    <i class="fas fa-calendar"></i> Full Schedule
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Service</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scheduleBody">
+                        <tr>
+                            <td colspan="5">
+                                <div class="loading-spinner-container">
+                                    <div class="spinner"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <section class="admin-widgets" style="margin-top: 20px;">
+            <div class="widget-card" style="text-align: center; cursor: pointer;"
+                onclick="window.location.href='pos.html'">
+                <h3><i class="fas fa-cash-register"></i></h3>
+                <p style="font-weight: 700; color: #645933;">Process Payment</p>
+                <p style="font-size: 0.8rem; color: #999;">Open POS for checkout</p>
+            </div>
+            <div class="widget-card" style="text-align: center; cursor: pointer;"
+                onclick="window.location.href='inventory.html'">
+                <h3><i class="fas fa-boxes-stacked"></i></h3>
+                <p style="font-weight: 700; color: #645933;">Check Stock</p>
+                <p style="font-size: 0.8rem; color: #999;">View branch inventory</p>
+            </div>
+            <div class="widget-card" style="text-align: center; cursor: pointer;"
+                onclick="window.location.href='appointments.html'">
+                <h3><i class="fas fa-calendar-alt"></i></h3>
+                <p style="font-weight: 700; color: #645933;">Full Schedule</p>
+                <p style="font-size: 0.8rem; color: #999;">View all appointments</p>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = Auth.getUser();
+            if (!user || (user.role !== 'staff' && user.role !== 'owner')) {
+                console.log('Access Denied. Staff/Owner only.');
+                window.location.href = '../login.html';
+                return;
+            }
+
+            // Date Header
+            document.getElementById('staffName').textContent = user.name;
+            document.getElementById('currentDate').textContent =
+                new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+            // Fetch Branch Info
+            try {
+                const bRes = await fetch('/api/branches');
+                const bData = await bRes.json();
+                if (bData.success) {
+                    const branch = bData.branches.find(b => b.branch_id === user.branch_id);
+                    document.getElementById('branchName').textContent = branch ? branch.name : 'All Branches';
+                }
+            } catch (e) { console.error('Error fetching branch:', e); }
+
+            // ── Stats & Schedule ─────────────────────────────
+            await loadDashboardData(user);
+        });
+
+        async function loadDashboardData(user) {
+            const today = new Date().toISOString().split('T')[0];
+            let apiSuffix = user.branch_id ? `?branch_id=${user.branch_id}` : '';
+
+            try {
+                // Fetch Appointments
+                const apptRes = await fetch(`/api/bookings/branch${apiSuffix}`);
+                const apptData = await apptRes.json();
+
+                // Fetch Inventory
+                const invRes = await fetch(`/api/inventory${apiSuffix}`);
+                const invData = await invRes.json();
+
+                if (apptData.success) {
+                    const appointments = apptData.appointments;
+
+                    // Format dates and filter
+                    const todayAppts = appointments.filter(a => a.appointment_date.split('T')[0] === today);
+                    const pendingAppts = appointments.filter(a => a.status === 'Pending Payment');
+
+                    document.getElementById('countToday').textContent = todayAppts.length;
+                    document.getElementById('countPending').textContent = pendingAppts.length;
+
+                    renderTodaySchedule(todayAppts);
+                }
+
+                if (invData.success) {
+                    const lowStockItems = invData.inventory.filter(i => i.quantity < 10);
+                    document.getElementById('countLowStock').textContent = lowStockItems.length;
+                }
+
+            } catch (err) {
+                console.error("Dashboard error:", err);
+            }
+        }
+
+        function renderTodaySchedule(todayAppts) {
+            const tbody = document.getElementById('scheduleBody');
+
+            // Sort by time
+            todayAppts.sort((a, b) => (a.appointment_time || '').localeCompare(b.appointment_time || ''));
+
+            if (todayAppts.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 30px; color: #999;">No appointments scheduled for today.</td></tr>`;
+                return;
+            }
+
+            let htmlContent = '';
+            todayAppts.forEach(appt => {
+                const serviceName = appt.all_service_names || appt.service_name || 'Unknown';
+                const paxLabel = appt.pax > 1 ? ` (${appt.pax} pax)` : '';
+                const isPending = appt.status === 'Pending Payment';
+                const isConfirmed = appt.status === 'Confirmed';
+
+                htmlContent += `
+                    <tr>
+                        <td data-label="Client"><strong>${appt.client_name || 'Guest'}</strong></td>
+                        <td data-label="Service" style="font-size: 0.85rem; line-height: 1.4;">${serviceName.split(', ').join('<br>')} ${paxLabel}</td>
+                        <td data-label="Time">${appt.appointment_time || '—'}</td>
+                        <td data-label="Status"><span class="status-badge ${appt.status.toLowerCase()}">${appt.status}</span></td>
+                        <td data-label="Action">
+                            ${isPending ? `<button class="action-btn" onclick="updateApptStatus(${appt.appointment_id}, 'Confirmed')">Confirm</button>` : ''}
+                            ${isConfirmed ? `<button class="action-btn" onclick="window.location.href='pos.html?appointment_id=${appt.appointment_id}'">Checkout POS</button>` : ''}
+                            ${isPending ? `<button class="action-btn" style="background:#dc3545;color:white;margin-left:5px;" onclick="updateApptStatus(${appt.appointment_id}, 'Cancelled')">Cancel</button>` : ''}
+                            ${!isPending && !isConfirmed ? '—' : ''}
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = htmlContent;
+        }
+
+        async function updateApptStatus(id, newStatus) {
+            const user = Auth.getUser();
+            try {
+                const res = await fetch('/api/bookings/status', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ appointment_id: id, status: newStatus })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    console.log(`Appointment ${newStatus.toLowerCase()} successfully.`);
+                    // Refresh data
+                    loadDashboardData(user);
+                } else {
+                    console.log('Error: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Update status error:', err);
+                console.log('Server connection failed.');
+            }
+        }
+
+        function staffLogout() {
+            if (confirm('Are you sure you want to logout?')) Auth.logout();
+        }
+    </script>
+</body>
+
+</html>

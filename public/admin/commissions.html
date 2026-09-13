@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FACIAL R US - Staff Commissions</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="admin-body">
+
+    <aside class="admin-sidebar">
+        <div class="admin-brand">
+            <div>
+                <span class="admin-logo-small">FACIAL R US</span>
+                <h2 class="admin-logo-large">Admin Portal</h2>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <ul class="admin-nav">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="appointments.html">Appointments</a></li>
+            <li><a href="reports.html">Reports</a></li>
+            <li><a href="commissions.html" class="active">Commissions</a></li>
+            <li><a href="staff.html">Staff</a></li>
+            <li><a href="pos.html">POS</a></li>
+        </ul>
+
+        <button class="admin-logout-btn" onclick="adminLogout()">Log Out</button>
+    </aside>
+
+    <main class="admin-main">
+
+        <header class="admin-header">
+            <div class="header-text">
+                <h1>Staff Commissions</h1>
+                <p>Calculate payouts based on base pay, product sales, and services performed.</p>
+            </div>
+            <a href="../index.html" class="back-home-btn">Back to Home</a>
+        </header>
+
+        <!-- Filters Section -->
+        <section class="admin-table-section" style="margin-top: 20px;">
+            <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Start Date</label>
+                    <input type="date" id="startDate" class="form-input">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>End Date</label>
+                    <input type="date" id="endDate" class="form-input">
+                </div>
+                <button class="submit-btn" style="width: auto; padding: 10px 20px;" onclick="loadCommissions()">
+                    <i class="fas fa-filter"></i> Apply Filter
+                </button>
+                <div style="margin-left: auto;">
+                    <button class="submit-btn" style="width: auto; padding: 10px 20px; background: #28a745;"
+                        onclick="window.print()">
+                        <i class="fas fa-print"></i> Print Report
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Commissions Table -->
+        <section class="admin-table-section" style="margin-top: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="font-family: 'Poppins', sans-serif; color: #8b2d2d; font-size: 1.2rem;">
+                    Commission Report
+                </h2>
+                <div style="font-size: 0.85rem; color: #666;">
+                    <em>Base Pay: ₱695/day &nbsp;|&nbsp; Soaps: ₱10 &nbsp;|&nbsp; Products: ₱20 &nbsp;|&nbsp; Selected
+                        Services: ₱50</em>
+                </div>
+            </div>
+            <div class="table-responsive"
+                style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <table class="appointments-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Staff Name</th>
+                            <th>Days Worked</th>
+                            <th>Total Sales Generated</th>
+                            <th>Base Salary</th>
+                            <th>Product Commission</th>
+                            <th>Service Commission</th>
+                            <th style="font-weight: 700; color: #8b2d2d; background: #fff5f5;">Total Payout</th>
+                        </tr>
+                    </thead>
+                    <tbody id="commissionsBody">
+                        <tr>
+                            <td colspan="7">
+                                <div class="loading-spinner-container">
+                                    <div class="spinner"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = Auth.getUser();
+            if (!user || user.role !== 'owner') {
+                alert('Access Denied. Owner only.');
+                window.location.href = '../login.html';
+                return;
+            }
+
+            // Set default dates to current month
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+
+            loadCommissions();
+        });
+
+        async function loadCommissions() {
+            const tbody = document.getElementById('commissionsBody');
+            tbody.innerHTML = '<tr><td colspan="7"><div class="loading-spinner-container"><div class="spinner"></div></div></td></tr>';
+
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            try {
+                let url = '/api/finance/commissions';
+                const params = new URLSearchParams();
+                if (startDate) params.append('start_date', startDate);
+                if (endDate) params.append('end_date', endDate);
+                if (params.toString()) url += '?' + params.toString();
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    const commissions = data.commissions || [];
+
+                    if (commissions.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #666; padding: 20px;">No transaction data found for this period.</td></tr>';
+                        return;
+                    }
+
+                    // Calculate totals
+                    let gtDays = 0, gtSales = 0, gtBase = 0, gtProdAmt = 0, gtSrvAmt = 0, gtPayout = 0;
+
+                    tbody.innerHTML = commissions.map(c => {
+                        gtDays += c.days_worked;
+                        gtSales += c.total_sales;
+                        gtBase += c.base_pay;
+                        gtProdAmt += c.commission_products;
+                        gtSrvAmt += c.commission_services;
+                        gtPayout += c.total_payout;
+
+                        return `
+                            <tr>
+                                <td data-label="Staff Name"><strong>${c.staff_name}</strong></td>
+                                <td data-label="Days Worked">${c.days_worked}</td>
+                                <td data-label="Total Sales Generated">₱${c.total_sales.toFixed(2)}</td>
+                                <td data-label="Base Salary">₱${c.base_pay.toFixed(2)}</td>
+                                <td data-label="Product Commission">₱${c.commission_products.toFixed(2)}</td>
+                                <td data-label="Service Commission">₱${c.commission_services.toFixed(2)}</td>
+                                <td data-label="Total Payout" style="font-weight: 700; color: #8b2d2d; background: #fff5f5;">
+                                    ₱${c.total_payout.toFixed(2)}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    // Add grand total row
+                    tbody.innerHTML += `
+                        <tr style="background-color: #f1ebd8; font-weight: bold;">
+                            <td data-label="Staff Name">GRAND TOTAL</td>
+                            <td data-label="Days Worked">${gtDays}</td>
+                            <td data-label="Total Sales Generated">₱${gtSales.toFixed(2)}</td>
+                            <td data-label="Base Salary">₱${gtBase.toFixed(2)}</td>
+                            <td data-label="Product Commission">₱${gtProdAmt.toFixed(2)}</td>
+                            <td data-label="Service Commission">₱${gtSrvAmt.toFixed(2)}</td>
+                            <td data-label="Total Payout" style="color: #8b2d2d;">₱${gtPayout.toFixed(2)}</td>
+                        </tr>
+                    `;
+
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="7" style="color: red; text-align: center;">Error loading data: ${data.message}</td></tr>`;
+                }
+            } catch (err) {
+                console.error("Fetch error:", err);
+                tbody.innerHTML = `<tr><td colspan="7" style="color: red; text-align: center;">Connection error.</td></tr>`;
+            }
+        }
+
+        function adminLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                Auth.logout();
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FACIAL R US - Payment Successful</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .success-container {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .success-card {
+            background: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+
+        .success-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .success-text {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .btn-view {
+            display: inline-block;
+            background: #333;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view:hover {
+            background: #555;
+            transform: translateY(-2px);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 0, 0, .1);
+            border-radius: 50%;
+            border-top-color: #333;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="services-body">
+
+    <header class="navbar">
+        <div class="nav-brand">
+            <a href="../index.html" class="nav-logo-link">
+                <img src="../assets/ICON.svg" alt="Facial R Us Logo" class="nav-logo">
+                <span class="nav-title">FACIAL R US</span>
+            </a>
+        </div>
+        <nav class="nav-links">
+            <a href="../services.html">Services</a>
+            <a href="../branches.html">Branches</a>
+            <a href="../about-us.html">About Us</a>
+            <a href="../login.html" class="nav-btn" id="navAuthBtn">Login | Sign Up</a>
+        </nav>
+    </header>
+
+    <div class="success-container">
+        <div class="success-card" id="statusCard">
+            <div class="loading-spinner"></div>
+            <h2 class="success-title">Confirming Payment...</h2>
+            <p class="success-text">Please wait while we verify your transaction.</p>
+        </div>
+    </div>
+
+    <!-- ═══ FOOTER ═══ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-brand">FACIAL R US</div>
+            <div class="footer-links">
+                <a href="../index.html">Home</a>
+                <a href="../services.html">Services</a>
+                <a href="../branches.html">Branches</a>
+                <a href="../about-us.html">About Us</a>
+            </div>
+            <div class="footer-divider"></div>
+            <p>&copy; 2026 Facial R Us Management System. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = Auth.getUser();
+            if (!user) {
+                window.location.href = '../login.html';
+                return;
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const idsParam = urlParams.get('ids');
+            const statusCard = document.getElementById('statusCard');
+
+            if (!idsParam) {
+                statusCard.innerHTML = `
+                    <i class="fa-solid fa-circle-exclamation success-icon" style="color: #f44336;"></i>
+                    <h2 class="success-title">Invalid Session</h2>
+                    <p class="success-text">We couldn't verify this payment session.</p>
+                    <a href="my-appointments.html" class="btn-view">View My Appointments</a>
+                `;
+                return;
+            }
+
+            const ids = idsParam.split(',').filter(id => id.trim() !== '');
+
+            try {
+                const response = await fetch('/api/bookings/payment-success', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusCard.innerHTML = `
+                        <i class="fa-solid fa-circle-check success-icon"></i>
+                        <h2 class="success-title">Payment Successful & Booking Confirmed!</h2>
+                        <p class="success-text">Your down payment has been processed and your appointment is now fully confirmed. We've sent an SMS confirmation to your registered phone number with the details.</p>
+                        <a href="my-appointments.html" class="btn-view">View My Appointments</a>
+                    `;
+                } else {
+                    throw new Error(result.message || 'Verification failed');
+                }
+            } catch (error) {
+                console.error("Payment confirmation error:", error);
+                statusCard.innerHTML = `
+                    <i class="fa-solid fa-circle-exclamation success-icon" style="color: #ff9800;"></i>
+                    <h2 class="success-title">Payment Received</h2>
+                    <p class="success-text">Your payment went through, but we experienced a delay updating your booking status. Please check the "My Appointments" page in a few minutes.</p>
+                    <a href="my-appointments.html" class="btn-view">View My Appointments</a>
+                `;
+            }
+        });
+    </script>
+</body>
+
+</html>

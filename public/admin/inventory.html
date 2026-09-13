@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FACIAL R US - Inventory Management</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="admin-body">
+
+    <aside class="admin-sidebar">
+        <div class="admin-brand">
+            <div>
+                <span class="admin-logo-small">FACIAL R US</span>
+                <h2 class="admin-logo-large">Admin Portal</h2>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <ul class="admin-nav">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="inventory.html" class="active">Inventory</a></li>
+            <li><a href="appointments.html">Appointments</a></li>
+            <li><a href="reports.html">Reports</a></li>
+            <li><a href="commissions.html">Commissions</a></li>
+            <li><a href="staff.html">Staff</a></li>
+            <li><a href="pos.html">POS</a></li>
+        </ul>
+
+        <button class="admin-logout-btn" onclick="adminLogout()">Log Out</button>
+    </aside>
+
+    <main class="admin-main">
+
+        <header class="admin-header">
+            <div class="header-text">
+                <h1>Inventory Management</h1>
+                <p>Monitor stock levels across branches</p>
+            </div>
+        </header>
+
+        <div class="admin-content-card">
+
+            <div class="admin-filter-bar"
+                style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px;">
+                <div class="input-group" style="margin-bottom: 0; width: 300px;">
+                    <label for="branchFilter" style="color: #645933;">Filter by Branch</label>
+                    <select id="branchFilter" class="admin-select" onchange="renderInventory()">
+                        <option value="All">All Branches</option>
+                        <option value="Malolos Branch">Malolos Branch</option>
+                        <option value="Quezon City Branch">Quezon City Branch</option>
+                        <option value="Makati Branch">Makati Branch</option>
+                        <option value="BGC Taguig Branch">BGC Taguig Branch</option>
+                    </select>
+                </div>
+                <button class="action-btn" onclick="openAddProductModal()"
+                    style="padding: 10px 20px; font-size: 0.9rem;"><i class="fas fa-plus"></i> Add Product</button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Branch</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody">
+                        <tr>
+                            <td colspan="7">
+                                <div class="loading-spinner-container">
+                                    <div class="spinner"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </main>
+
+    <div id="restockModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeRestockModal()">&times;</span>
+            <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 2rem; margin-top: 0;">Restock Item
+            </h3>
+
+            <form id="restockForm">
+                <input type="hidden" id="restockItemId">
+
+                <div class="input-group">
+                    <label for="restockQuantity">Quantity to Add</label>
+                    <input type="number" id="restockQuantity" min="1" required
+                        style="background-color: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                </div>
+
+                <button type="submit" class="submit-btn" style="width: 100%; margin-top: 15px;">Add Stock</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddProductModal()">&times;</span>
+            <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 2rem; margin-top: 0;">Add New
+                Product</h3>
+
+            <form id="addProductForm">
+                <div class="input-group">
+                    <label for="addItemName">Product Name</label>
+                    <input type="text" id="addItemName" required
+                        style="background-color: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                </div>
+                <div class="input-group">
+                    <label for="addUnit">Unit</label>
+                    <input type="text" id="addUnit" placeholder="e.g. pcs, bottles, box" required
+                        style="background-color: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                </div>
+                <div class="form-row" style="display: flex; gap: 15px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label for="addPrice">Price (₱)</label>
+                        <input type="number" id="addPrice" min="0" step="0.01" required
+                            style="background-color: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label for="addStock">Initial Stock</label>
+                        <input type="number" id="addStock" min="0" required
+                            style="background-color: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="addBranch">Branch</label>
+                    <select id="addBranch" class="admin-select" required style="background-color: #fff;"></select>
+                </div>
+                <button type="submit" class="submit-btn" style="width: 100%; margin-top: 15px;">Add Product</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        let allInventory = [];
+        let branches = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = Auth.getUser();
+            if (!user || user.role === 'client') {
+                console.log('Access Denied.');
+                window.location.href = '../login.html';
+                return;
+            }
+
+            // Hide Reports for non-owners
+            const reportsLink = document.querySelector('a[href="reports.html"]');
+            if (reportsLink && user.role !== 'owner') {
+                reportsLink.parentElement.style.display = 'none';
+            }
+
+            try {
+                // Fetch Branches
+                const bRes = await fetch('/api/branches');
+                const bData = await bRes.json();
+
+                const branchFilter = document.getElementById('branchFilter');
+                branchFilter.innerHTML = '<option value="all">All Branches</option>';
+
+                if (bData.success) {
+                    branches = bData.branches;
+
+                    if (user.role === 'staff' && user.branch_id) {
+                        const branch = branches.find(b => b.branch_id === user.branch_id);
+                        branchFilter.innerHTML = `<option value="${user.branch_id}">${branch ? branch.name : 'My Branch'}</option>`;
+                        branchFilter.disabled = true;
+                    } else {
+                        branches.forEach(branch => {
+                            const opt = document.createElement('option');
+                            opt.value = branch.branch_id;
+                            opt.textContent = branch.name;
+                            branchFilter.appendChild(opt);
+                        });
+                    }
+                }
+
+                // Fetch Global Inventory
+                const invRes = await fetch('/api/inventory');
+                const invData = await invRes.json();
+
+                if (invData.success) {
+                    allInventory = invData.inventory;
+                }
+            } catch (err) {
+                console.error("Error loading data:", err);
+            }
+
+            renderInventory();
+        });
+
+        function getBranchName(id) {
+            const b = branches.find(branch => branch.branch_id === id);
+            return b ? b.name : 'Unknown';
+        }
+
+        function renderInventory() {
+            const tableBody = document.getElementById('inventoryTableBody');
+            const filterValue = document.getElementById('branchFilter').value;
+            tableBody.innerHTML = '';
+
+            let items = [...allInventory];
+            if (filterValue !== 'all') {
+                items = items.filter(item => String(item.branch_id) === String(filterValue));
+            }
+
+            if (items.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 30px; color: #999;">No inventory items found.</td></tr>`;
+                return;
+            }
+
+            items.forEach(item => {
+                const branchName = getBranchName(item.branch_id);
+                const row = document.createElement('tr');
+
+                if (item.quantity < 10) row.classList.add('low-stock-row');
+
+                let statusText = 'Good';
+                if (item.quantity < 3) statusText = 'Critical';
+                else if (item.quantity < 10) statusText = 'Low Stock';
+
+                row.innerHTML = `
+                <td data-label="Item"><strong>${item.item_name}</strong></td>
+                <td data-label="Branch">${branchName}</td>
+                <td data-label="Stock" style="font-weight: 800; font-size: 1.1rem;">${item.quantity}</td>
+                <td data-label="Status"><span class="status-badge ${statusText === 'Good' ? 'confirmed' : 'cancelled'}">${statusText}</span></td>
+                <td data-label="Action">
+                    <button class="action-btn" onclick="restockItem(${item.inventory_id})">Restock</button>
+                </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function restockItem(id) {
+            document.getElementById('restockItemId').value = id;
+            document.getElementById('restockQuantity').value = '';
+            document.getElementById('restockModal').style.display = 'flex';
+        }
+
+        function closeRestockModal() {
+            document.getElementById('restockModal').style.display = 'none';
+        }
+
+        document.getElementById('restockForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = parseInt(document.getElementById('restockItemId').value, 10);
+            const amountToAdd = parseInt(document.getElementById('restockQuantity').value, 10);
+
+            if (isNaN(amountToAdd) || amountToAdd <= 0) {
+                alert("Please enter a valid positive number.");
+                return;
+            }
+
+            const item = allInventory.find(i => i.inventory_id === id);
+            if (!item) return;
+
+            const newQuantity = item.quantity + amountToAdd;
+            try {
+                const res = await fetch('/api/inventory/restock', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inventory_id: id, quantity: newQuantity })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    item.quantity = newQuantity; // update locally
+                    renderInventory();
+                    closeRestockModal();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Restock error:', err);
+                alert('Server connection failed.');
+            }
+        });
+
+        function openAddProductModal() {
+            // Populate branch dropdown from fetched branches
+            const branchSelect = document.getElementById('addBranch');
+            branchSelect.innerHTML = '<option value="" disabled selected>Select Branch</option>';
+            branches.forEach(b => {
+                branchSelect.innerHTML += `<option value="${b.branch_id}">${b.name}</option>`;
+            });
+            document.getElementById('addProductModal').style.display = 'flex';
+        }
+
+        function closeAddProductModal() {
+            document.getElementById('addProductModal').style.display = 'none';
+            document.getElementById('addProductForm').reset();
+        }
+
+        document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const payload = {
+                item_name: document.getElementById('addItemName').value,
+                unit: document.getElementById('addUnit').value,
+                price: parseFloat(document.getElementById('addPrice').value),
+                quantity: parseInt(document.getElementById('addStock').value, 10),
+                branch_id: parseInt(document.getElementById('addBranch').value, 10)
+            };
+
+            try {
+                const res = await fetch('/api/inventory/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    alert('Product added successfully!');
+                    closeAddProductModal();
+                    // Refresh inventory
+                    const invRes = await fetch('/api/inventory');
+                    const invData = await invRes.json();
+                    if (invData.success) {
+                        allInventory = invData.inventory;
+                        renderInventory();
+                    }
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Add product error:', err);
+                alert('Server connection failed.');
+            }
+        });
+
+        function adminLogout() {
+            if (confirm('Are you sure you want to logout?')) Auth.logout();
+        }
+    </script>
+</body>
+
+</html>
