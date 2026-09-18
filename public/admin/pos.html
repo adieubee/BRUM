@@ -292,7 +292,7 @@
                     const prodSelect = document.getElementById('productSelect');
                     allInventory.forEach(item => {
                         const opt = document.createElement('option');
-                        const mockPrice = 150; // Mock fallback for pos items
+                        const mockPrice = parseFloat(item.price) || 0;
                         const bName = getBranchName(item.branch_id);
                         opt.value = item.inventory_id;
                         opt.setAttribute('data-name', item.item_name);
@@ -357,7 +357,8 @@
                 });
                 // Auto-select the assigned staff member from the appointment if still available
                 if (appt.staff_id) {
-                    staffSelect.value = appt.staff_id;
+                    const assigned = allStaff.find(staff => String(staff.staff_id) === String(appt.staff_id));
+                    if (assigned) staffSelect.value = assigned.id;
                 }
 
                 const prodSelect = document.getElementById('productSelect');
@@ -365,7 +366,7 @@
                 const branchProducts = allInventory.filter(item => String(item.branch_id) === String(branchId) && item.quantity > 0);
                 branchProducts.forEach(item => {
                     const opt = document.createElement('option');
-                    const mockPrice = 150; // Mock fallback for pos items
+                    const mockPrice = parseFloat(item.price) || 0;
                     const b = branches.find(branch => branch.branch_id === item.branch_id);
                     const bName = b ? b.name : 'Unknown';
                     opt.value = item.inventory_id;
@@ -406,7 +407,7 @@
                 prodSelect.innerHTML = '<option value="">-- Select Product --</option>';
                 allInventory.forEach(item => {
                     const opt = document.createElement('option');
-                    const mockPrice = 150; // Mock fallback for pos items
+                    const mockPrice = parseFloat(item.price) || 0;
                     const b = branches.find(branch => branch.branch_id === item.branch_id);
                     const bName = b ? b.name : 'Unknown';
                     opt.value = item.inventory_id;
