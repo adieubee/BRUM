@@ -11,20 +11,21 @@ SET FOREIGN_KEY_CHECKS = 1;
 CREATE TABLE `users` (
                          `user_id` int NOT NULL AUTO_INCREMENT,
                          `username` varchar(50) NOT NULL,
+                         `email` varchar(255) NOT NULL,
                          `password_hash` varchar(255) NOT NULL,
                          `role` enum('owner','staff','client') NOT NULL DEFAULT 'client',
                          `name` varchar(100) NOT NULL,
-                         `phone` varchar(20) DEFAULT NULL,
                          `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
                          PRIMARY KEY (`user_id`),
-                         UNIQUE KEY `username` (`username`)
+                         UNIQUE KEY `username` (`username`),
+                         UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-INSERT INTO `users` (`user_id`, `username`, `password_hash`, `role`, `name`, `phone`) VALUES
-                                                                                          (1, 'admin', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'owner', 'Shop Owner', '09170000000'),
-                                                                                          (2, 'staff_malolos', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'staff', 'Barber Marco (Malolos)', '09171111111'),
-                                                                                          (3, 'staff_pulilan', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'staff', 'Barber Lucas (Pulilan)', '09172222222'),
-                                                                                          (4, 'client1', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'client', 'Juan Dela Cruz', '09171234567');
+INSERT INTO `users` (`user_id`, `username`, `email`, `password_hash`, `role`, `name`) VALUES
+                                                                                          (1, 'admin', 'admin@example.com', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'owner', 'Shop Owner'),
+                                                                                          (2, 'staff_malolos', 'staff.malolos@example.com', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'staff', 'Barber Marco (Malolos)'),
+                                                                                          (3, 'staff_pulilan', 'staff.pulilan@example.com', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'staff', 'Barber Lucas (Pulilan)'),
+                                                                                          (4, 'client1', 'client1@example.com', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'client', 'Juan Dela Cruz');
 
 -- 2. Branches Table
 CREATE TABLE `branches` (

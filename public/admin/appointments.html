@@ -160,8 +160,8 @@
                     <input type="text" id="walkinClientName" required style="background-color: #fff;">
                 </div>
                 <div class="input-group">
-                    <label for="walkinClientPhone">Client Phone (Optional)</label>
-                    <input type="tel" id="walkinClientPhone" style="background-color: #fff;" placeholder="e.g. +639123456789">
+                    <label for="walkinClientEmail">Client Email (Optional)</label>
+                    <input type="email" id="walkinClientEmail" style="background-color: #fff;" placeholder="client@example.com">
                 </div>
 
                 <div class="form-row" style="display: flex; gap: 15px;">
@@ -420,7 +420,7 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td data-label="#">${idx + 1}</td>
-                    <td data-label="Client"><strong>${appt.client_name || 'Guest'}</strong><br><small style="color:#999">${appt.client_phone || ''}</small></td>
+                    <td data-label="Client"><strong>${appt.client_name || 'Guest'}</strong><br><small style="color:#999">${appt.client_email || ''}</small></td>
                     <td data-label="Service" style="max-width: 220px; word-break: break-word; white-space: normal; font-size: 0.85rem; line-height: 1.4;">${serviceName.split(', ').join('<br>')} ${paxLabel}</td>
                     <td data-label="Branch">${branchName}</td>
                     <td data-label="Date">${apptDate}</td>
@@ -586,7 +586,7 @@
 
             const payload = {
                 client_name: document.getElementById('walkinClientName').value,
-                client_phone: document.getElementById('walkinClientPhone').value,
+                client_email: document.getElementById('walkinClientEmail').value,
                 branch_id: document.getElementById('walkinBranch').value,
                 service_ids: service_ids,
                 pax: document.getElementById('walkinPax').value,

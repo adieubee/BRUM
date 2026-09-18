@@ -1,4 +1,5 @@
 const { getPool } = require('./_lib/db');
+const { sendEmail, generateBookingConfirmationEmail } = require('./_lib/email');
 
 module.exports = async function handler(req, res) {
     const url = req.url || '';
@@ -37,15 +38,35 @@ module.exports = async function handler(req, res) {
             const serviceIdsStr = ids.join(',');
             const primaryServiceId = ids[0];
 
+            const [[client]] = await pool.query('SELECT name, email FROM users WHERE user_id = ?', [client_id]);
+            const [[branch]] = await pool.query('SELECT address FROM branches WHERE branch_id = ?', [branch_id]);
+            const [serviceRows] = await pool.query(
+                `SELECT name FROM services WHERE service_id IN (${ids.map(() => '?').join(',')})`,
+                ids
+            );
+
             const [result] = await pool.query(
                 `INSERT INTO appointments (client_id, branch_id, service_id, service_ids, pax, staff_id, appointment_date, appointment_time, status, message)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Confirmed', ?)`,
                 [client_id, branch_id, primaryServiceId, serviceIdsStr, paxCount, assignedStaff, date, time, message || null]
             );
 
+            let emailSent = false;
+            if (client?.email) {
+                const email = generateBookingConfirmationEmail({
+                    clientName: client.name,
+                    date,
+                    time,
+                    branchAddress: branch?.address || '',
+                    services: serviceRows.map(service => service.name).join(', ')
+                });
+                emailSent = await sendEmail({ to: client.email, ...email });
+            }
+
             return res.status(201).json({
                 success: true,
                 appointment_id: result.insertId,
+                email_sent: emailSent,
                 message: 'Appointment booked and confirmed successfully.'
             });
         }
@@ -74,7 +95,7 @@ module.exports = async function handler(req, res) {
             if (req.method !== 'GET') return res.status(405).json({ message: 'Method not allowed' });
             const { branch_id } = req.query;
             let query = `
-                SELECT a.*, u.name AS client_name, u.phone AS client_phone,
+                SELECT a.*, u.name AS client_name, u.email AS client_email,
                        s.name AS service_name, s.price AS service_price,
                        b.name AS branch_name
                 FROM appointments a

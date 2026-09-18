@@ -28,12 +28,12 @@ const Auth = {
     },
 
     // B. REGISTER FUNCTION (Async API Call)
-    register: async function (name, username, password, phone) {
+    register: async function (name, username, email, password) {
         try {
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, username, password, phone })
+                body: JSON.stringify({ name, username, email, password })
             });
             const result = await response.json();
 

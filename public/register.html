@@ -55,13 +55,13 @@
                 </div>
 
                 <div class="input-group">
-                    <label for="phone">Phone Number</label>
-                    <input type="tel" id="phone" name="phone" required>
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
                 </div>
 
                 <div class="input-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required>
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required>
                 </div>
 
                 <div class="input-group">
@@ -83,38 +83,24 @@
     </div>
 
     <script src="js/auth.js"></script>
-    <!-- intl-tel-input JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
     <script>
-        const phoneInputField = document.querySelector("#phone");
-        const phoneInput = window.intlTelInput(phoneInputField, {
-            initialCountry: "ph",
-            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js",
-        });
-
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const firstname = document.getElementById('firstname').value.trim();
             const lastname = document.getElementById('lastname').value.trim();
             const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value.trim();
             const errorEl = document.getElementById('register-error');
 
-            if (!firstname || !lastname || !username || !password) {
+            if (!firstname || !lastname || !username || !email || !password) {
                 errorEl.textContent = 'Please fill in all fields.';
                 errorEl.style.display = 'block';
                 return;
             }
 
-            if (!phoneInput.isValidNumber()) {
-                errorEl.textContent = 'Please enter a valid phone number for the selected country.';
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            const phone = phoneInput.getNumber(); // Gets the E.164 formatted number (+639...)
             const fullName = firstname + ' ' + lastname;
-            const result = await Auth.register(fullName, username, password, phone);
+            const result = await Auth.register(fullName, username, email, password);
 
             if (result.success) {
                 console.log('Account created successfully! Welcome to Facial R Us.');
