@@ -5,12 +5,12 @@
     <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skincare & Facial Services | Facial R Us Treatments</title>
+    <title>Barbershop Services | Professional Cuts & Grooming | Barbers R Us</title>
     <meta name="description"
-        content="Explore our wide range of facial treatments, diamond peels, LED therapy, and lash services. Professional skincare tailored for you at Facial R Us.">
+        content="Explore our complete range of barbershop services including haircuts, fades, beard grooming, and hot towel shaves. Expert barbering at Barbers R Us.">
     <meta name="keywords"
-        content="facial services, diamond peel, LED therapy, eyelash extension, facial cleaning, skincare bulacan">
-    <link rel="canonical" href="https://facial-r-us.vercel.app/services.html">
+        content="haircuts, beard grooming, fades, barbershop services, hot towel shave, hair styling, barber">
+    <link rel="canonical" href="https://Barbers R Us.vercel.app/services.html">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
@@ -20,8 +20,8 @@
     <header class="navbar">
         <div class="nav-brand">
             <a href="index.html" class="nav-logo-link">
-                <img src="./assets/ICON.svg" alt="Facial R Us Logo" class="nav-logo">
-                <span class="nav-title">FACIAL R US</span>
+                <img src="./assets/ICON.svg" alt="Barbers R Us Logo" class="nav-logo">
+                <span class="nav-title">Barbers R Us</span>
             </a>
         </div>
 
@@ -43,7 +43,7 @@
         <div class="services-content-wrapper">
             <div class="services-page-header">
                 <h2>OUR SERVICES</h2>
-                <p>Signature Treatments for Your Glow</p>
+                <p>Premium Barbershop Services for Every Style</p>
             </div>
 
             <div id="servicesContainer"
@@ -54,7 +54,7 @@
 
     <footer class="footer">
         <div class="container">
-            <div class="footer-brand">FACIAL R US</div>
+            <div class="footer-brand">Barbers R Us</div>
             <div class="footer-links">
                 <a href="index.html">Home</a>
                 <a href="services.html">Services</a>
@@ -62,7 +62,7 @@
                 <a href="about-us.html">About Us</a>
             </div>
             <div class="footer-divider"></div>
-            <p>&copy; 2026 Facial R Us Management System. All rights reserved.</p>
+            <p>&copy; 2026 Barbers R Us Management System. All rights reserved.</p>
         </div>
     </footer>
 
@@ -78,63 +78,69 @@
             if (!container) return;
             const serviceCategories = [
                 {
-                    title: "Basic Facial Treatments",
-                    icon: "assets/basic-facial.svg",
+                    title: "Classic Haircuts",
+                    icon: "fas fa-cut",
                     items: [
-                        { name: "Facial", price: 550, duration: "45 mins" },
-                        { name: "Facial Whitening", price: 600, duration: "60 mins" },
-                        { name: "Intensive Cleaning", price: 750, duration: "60 mins" },
-                        { name: "Hydra Facial", price: 900, duration: "60 mins" },
-                        { name: "Hydra with Facial Cleaning", price: 1300, duration: "90 mins" }
+                        { name: "Classic Gentleman Cut", price: 350, duration: "30 mins", desc: "Traditional barbershop cut with clean lines and sharp edges" },
+                        { name: "Modern Textured Cut", price: 400, duration: "40 mins", desc: "Contemporary styling with texture and movement" },
+                        { name: "Buzz Cut", price: 250, duration: "15 mins", desc: "Clean, simple buzz with your preferred length" },
+                        { name: "Tapered Sides", price: 350, duration: "30 mins", desc: "Longer on top with precision tapered sides" },
+                        { name: "Kids Haircut", price: 200, duration: "20 mins", desc: "Fun, quick cuts for the little ones" }
                     ]
                 },
                 {
-                    title: "Diamond Peel Treatments",
-                    icon: "assets/diamond-peel.svg",
+                    title: "Fades & Line-Ups",
+                    icon: "fas fa-fan",
                     items: [
-                        { name: "Diamond Peel", price: 600, duration: "45 mins" },
-                        { name: "3 Sessions of Diamond Peel", price: 1000, duration: "3 Sessions" },
-                        { name: "Facial with Diamond Peel", price: 900, duration: "90 mins" }
+                        { name: "Skin Fade with Styling", price: 400, duration: "45 mins", desc: "Clean fade from skin up with professional styling" },
+                        { name: "High Fade", price: 350, duration: "35 mins", desc: "Sharp fade starting from the sides" },
+                        { name: "Low Fade", price: 350, duration: "35 mins", desc: "Subtle fade that blends smoothly" },
+                        { name: "Line-Up/Shape-Up", price: 150, duration: "15 mins", desc: "Clean edges and lines to tighten up your style" },
+                        { name: "Fade with Beard Trim", price: 500, duration: "50 mins", desc: "Full grooming with fade and beard work" }
                     ]
                 },
                 {
-                    title: "LED Light Therapy",
-                    icon: "assets/led-light.svg",
+                    title: "Beard Grooming & Shaves",
+                    icon: "fas fa-moustache",
                     items: [
-                        { name: "LED Light Therapy", price: 600, duration: "30 mins" },
-                        { name: "3 Sessions of LED Light Therapy", price: 1200, duration: "3 Sessions" },
-                        { name: "Facial with LED", price: 1000, duration: "75 mins" }
+                        { name: "Classic Beard Trim & Shape-up", price: 250, duration: "20 mins", desc: "Professional beard trimming with precise shaping" },
+                        { name: "Full Hot Towel Shave", price: 350, duration: "45 mins", desc: "Traditional straight razor shave with hot towel ritual" },
+                        { name: "Beard Sculpting", price: 300, duration: "25 mins", desc: "Advanced beard design and edge definition" },
+                        { name: "Beard & Stache Combo", price: 200, duration: "20 mins", desc: "Mustache and beard detailed work" },
+                        { name: "Beard Wash & Oil Treatment", price: 100, duration: "10 mins", desc: "Premium beard cleanse with conditioning oil" }
                     ]
                 },
                 {
-                    title: "Combination Treatments",
-                    icon: "assets/combination.svg",
+                    title: "Specialty Grooming",
+                    icon: "fas fa-spray-can",
                     items: [
-                        { name: "Facial with Diamond Peel & LED", price: 1300, duration: "120 mins" },
-                        { name: "Diamond Peel with LED Light", price: 1000, duration: "75 mins" }
+                        { name: "Hair Styling with Product", price: 100, duration: "10 mins", desc: "Professional styling with premium pomade or clay" },
+                        { name: "Scalp Massage & Treatment", price: 200, duration: "20 mins", desc: "Relaxing scalp massage with therapeutic treatment" },
+                        { name: "Eyebrow Trim", price: 80, duration: "10 mins", desc: "Clean, precise eyebrow grooming" },
+                        { name: "Nose & Ear Trim", price: 50, duration: "5 mins", desc: "Quick grooming detail work" },
+                        { name: "Full Grooming Package", price: 800, duration: "90 mins", desc: "Complete grooming: haircut, beard trim, facial massage & styling" }
                     ]
                 },
                 {
-                    title: "Skin & Body Treatments",
-                    icon: "assets/skin-body.svg",
+                    title: "Combo & Package Deals",
+                    icon: "fas fa-box",
                     items: [
-                        { name: "Underarm Whitening", price: 500, duration: "30 mins" },
-                        { name: "Back Cleaning", price: 1500, duration: "60 mins", desc: "• Includes 1 free check-up after 1 week" }
+                        { name: "Haircut + Beard Combo", price: 600, duration: "60 mins", desc: "Complete look: professional cut with beard shaping" },
+                        { name: "Fade + Hot Towel Shave", price: 650, duration: "70 mins", desc: "Sharp fade with classic straight razor shave" },
+                        { name: "Ultimate Barbershop Experience", price: 1200, duration: "120 mins", desc: "Everything: fade, beard trim, hot shave, facial, scalp massage & styling" },
+                        { name: "Weekend Special (Haircut Only)", price: 300, duration: "30 mins", desc: "Limited-time special rate for haircuts on weekends" },
+                        { name: "Membership Package (Monthly)", priceStr: "₱3,000/mo", duration: "4 visits", desc: "4 haircuts per month at discounted rates + priority booking" }
                     ]
                 },
                 {
-                    title: "Minor Skin Procedures",
-                    icon: "assets/minor-skin.svg",
+                    title: "Premium Add-Ons",
+                    icon: "fas fa-gem",
                     items: [
-                        { name: "Warts Removal", priceStr: "₱35 / piece", duration: "Varies", desc: "• 50 pcs and above - ₱30 per piece<br>• Includes free cream" }
-                    ]
-                },
-                {
-                    title: "Lash Services",
-                    icon: "assets/lash-services.svg",
-                    items: [
-                        { name: "Curlash", price: 450, duration: "45 mins" },
-                        { name: "Eyelash Extension", price: 550, duration: "90 mins" }
+                        { name: "Premium Beard Oil Application", price: 150, duration: "5 mins", desc: "Luxury beard conditioning with premium imported oils" },
+                        { name: "Hot Towel Facial", price: 200, duration: "15 mins", desc: "Cleansing facial using hot towel treatment" },
+                        { name: "Head Massage", price: 200, duration: "20 mins", desc: "Relaxing head and neck massage to relieve tension" },
+                        { name: "Cologne Application", price: 50, duration: "2 mins", desc: "Finish your look with our signature barbershop cologne" },
+                        { name: "Hair Product Retail", priceStr: "₱200-1000", duration: "N/A", desc: "Professional pomades, clays, and grooming products for home care" }
                     ]
                 }
             ];
@@ -152,7 +158,7 @@
 
                 const catTitle = document.createElement('h2');
                 catTitle.className = 'category-title';
-                catTitle.textContent = category.title;
+                catTitle.innerHTML = `<i class="${category.icon}"></i> ${category.title}`;
 
                 const catLine = document.createElement('div');
                 catLine.className = 'category-line';
@@ -173,7 +179,6 @@
 
                     card.innerHTML = `
                         <div>
-                            <img src="${category.icon}" alt="${category.title} Icon">
                             <h3>${item.name}</h3>
                             <div class="service-item-details">
                                 <p><strong>Price:</strong> ${displayPrice}</p>
@@ -181,7 +186,6 @@
                                 ${displayDesc}
                             </div>
                         </div>
-                        <a href="client/booking.html?service=${encodeURIComponent(item.name)}" class="service-book-btn">Book Now</a>
                     `;
                     grid.appendChild(card);
                 });
@@ -191,53 +195,7 @@
             });
         }
     </script>
+
 </body>
 
 </html>
-
-<!-- t
-===========================
-FRUMS - SERVICES PAGE (services.html)
-===========================
-
-PURPOSE:
-- This page displays all available skincare/facial services offered by Facial R Us.
-- Must match the same clean aesthetic from index.html.
-
-DESIGN: Follow the reference design theme.
-
-PAGE LAYOUT:
-
-1. NAVBAR (Same as index.html)
-   - Logo + FACIAL R US (left)
-   - Links: Services | Branches | About Us (center)
-   - Right button:
-       - If NOT logged in: "Login / Sign Up"
-       - If logged in: "Hi, [Name]"
-
-2. HERO / HEADER SECTION
-   - Simple banner section (smaller than homepage hero)
-   - Heading: "Our Services"
-   - Subtitle: "Signature Treatments for Your Glow"
-
-3. SERVICES LIST SECTION
-   - Dynamically display services from mockServices
-   - Each service card must show:
-       - Service Name
-       - Price (₱)
-       - Duration (minutes)
-       - Optional: "Book Now" button linking to booking.html
-
-4. RESPONSIVE DESIGN
-   - Mobile: 1 column cards
-   - Tablet: 2 columns
-   - Desktop: 3 columns
-
-LOGIC REQUIREMENTS(no need to implement yet):
-- Services should be rendered using JavaScript from mockServices
-- No database yet (prototype only)
-
-TODO FOR MEMBERS:
-- Keep icons simple line-art style
-- Match spacing, rounded corners, and centered headings
--->
