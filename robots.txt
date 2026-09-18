@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://facial-r-us.vercel.app/sitemap.xml
