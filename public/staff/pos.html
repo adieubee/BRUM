@@ -263,7 +263,7 @@
                         const opt = document.createElement('option');
                         // Assume standard ₱150 price per item for this example if pricing not in DB
                         // Or if inventory has a price column, use it. Here we use 150 as default mock.
-                        const mockPrice = 150;
+                        const mockPrice = parseFloat(item.price) || 0;
                         opt.value = item.inventory_id;
                         opt.setAttribute('data-name', item.item_name);
                         opt.setAttribute('data-price', mockPrice);

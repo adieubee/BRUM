@@ -10,15 +10,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         #servicesContainer { display: flex; flex-direction: column; gap: 12px; }
-        .pax-panel { background: #faf6ee; border: 1px solid #e8dcc8; border-radius: 10px; padding: 14px; }
+        .pax-panel { background: #FCF8EF; border: 1px solid #E8D7B4; border-radius: 10px; padding: 14px; }
         .pax-panel-header { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.85rem; color: #8b2d2d; margin-bottom: 10px; }
         .pax-services { display: flex; flex-direction: column; gap: 8px; }
         .service-row { display: flex; gap: 8px; align-items: center; }
         .service-row select { flex: 1; }
         .remove-svc-btn { background: #dc3545; color: white; border: none; border-radius: 6px; width: 30px; height: 30px; cursor: pointer; font-size: 1rem; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0; }
         .remove-svc-btn:hover { background: #a71d2a; }
-        .add-service-btn { background: none; border: 1px dashed #c4a96a; color: #8b6914; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-family: 'Poppins', sans-serif; margin-top: 8px; transition: all 0.2s; }
-        .add-service-btn:hover { background: #f0e8d5; border-color: #8b6914; }
+        .add-service-btn { background: none; border: 1px dashed #C7A655; color: #87630F; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-family: 'Poppins', sans-serif; margin-top: 8px; transition: all 0.2s; }
+        .add-service-btn:hover { background: #F7EEDB; border-color: #87630F; }
         .add-btn:hover { background: #712424 !important; }
     </style>
 </head>
@@ -63,13 +63,13 @@
 
             <div class="admin-filter-bar">
                 <div class="input-group" style="margin-bottom: 0; width: 250px;">
-                    <label for="branchFilter" style="color: #645933;">Filter by Branch</label>
+                    <label for="branchFilter" style="color: #6D5724;">Filter by Branch</label>
                     <select id="branchFilter" class="admin-select" onchange="renderAppointments()">
                         <option value="all">All Branches</option>
                     </select>
                 </div>
                 <div class="input-group" style="margin-bottom: 0; width: 200px;">
-                    <label for="statusFilter" style="color: #645933;">Filter by Status</label>
+                    <label for="statusFilter" style="color: #6D5724;">Filter by Status</label>
                     <select id="statusFilter" class="admin-select" onchange="renderAppointments()">
                         <option value="all">All Statuses</option>
                         <option value="Pending Payment">Pending Payment</option>

@@ -1,36 +1,39 @@
 const bcrypt = require('bcryptjs');
-const { getPool, ensureEmailColumn } = require('./_lib/db');
+const { getPool, ensureSchema } = require('./_lib/db');
 
 module.exports = async function handler(req, res) {
     const url = req.url || '';
     const pool = getPool();
 
-    if (url.includes('/login')) {
-        if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
+    try {
+        await ensureSchema();
 
-        const { username, password } = req.body;
-        if (!username || !password) {
-            return res.status(400).json({ success: false, message: 'Username or email and password are required.' });
-        }
+        if (url.includes('/login')) {
+            if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
 
-        try {
-            await ensureEmailColumn();
-            const [users] = await pool.query('SELECT * FROM users WHERE username = ? OR email = ?', [username, username]);
+            const username = String(req.body?.username || '').trim();
+            const password = String(req.body?.password || '');
+            if (!username || !password) {
+                return res.status(400).json({ success: false, message: 'Username or email and password are required.' });
+            }
 
+            const [users] = await pool.query(
+                'SELECT user_id, username, email, password_hash, role, name FROM users WHERE username = ? OR email = ? LIMIT 1',
+                [username, username.toLowerCase()]
+            );
             if (users.length === 0) {
-                return res.status(401).json({ success: false, message: 'Invalid username or password.' });
+                return res.status(401).json({ success: false, message: 'Invalid username/email or password.' });
             }
 
             const user = users[0];
             const match = await bcrypt.compare(password, user.password_hash);
-
             if (!match) {
-                return res.status(401).json({ success: false, message: 'Invalid username or password.' });
+                return res.status(401).json({ success: false, message: 'Invalid username/email or password.' });
             }
 
             let branch_id = null;
             if (user.role === 'staff') {
-                const [staffRows] = await pool.query('SELECT branch_id FROM staff WHERE user_id = ?', [user.user_id]);
+                const [staffRows] = await pool.query('SELECT branch_id FROM staff WHERE user_id = ? LIMIT 1', [user.user_id]);
                 if (staffRows.length > 0) branch_id = staffRows[0].branch_id;
             }
 
@@ -46,22 +49,27 @@ module.exports = async function handler(req, res) {
                     branch_id
                 }
             });
-        } catch (err) {
-            console.error('Login error:', err);
-            return res.status(500).json({ success: false, message: 'Server error.' });
-        }
-    }
-    else if (url.includes('/register')) {
-        if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
-
-        const { name, username, email, password } = req.body;
-        if (!name || !username || !email || !password) {
-            return res.status(400).json({ success: false, message: 'Name, username, email, and password are required.' });
         }
 
-        try {
-            await ensureEmailColumn();
-            const [existing] = await pool.query('SELECT user_id FROM users WHERE username = ? OR email = ?', [username, email]);
+        if (url.includes('/register')) {
+            if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
+
+            const name = String(req.body?.name || '').trim();
+            const username = String(req.body?.username || '').trim();
+            const email = String(req.body?.email || '').trim().toLowerCase();
+            const password = String(req.body?.password || '');
+
+            if (!name || !username || !email || !password) {
+                return res.status(400).json({ success: false, message: 'Name, username, email, and password are required.' });
+            }
+            if (!/^\S+@\S+\.\S+$/.test(email)) {
+                return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
+            }
+            if (password.length < 3) {
+                return res.status(400).json({ success: false, message: 'Password must be at least 3 characters.' });
+            }
+
+            const [existing] = await pool.query('SELECT user_id FROM users WHERE username = ? OR email = ? LIMIT 1', [username, email]);
             if (existing.length > 0) {
                 return res.status(409).json({ success: false, message: 'Username or email already taken.' });
             }
@@ -74,20 +82,16 @@ module.exports = async function handler(req, res) {
 
             return res.status(201).json({
                 success: true,
-                user: {
-                    id: result.insertId,
-                    username,
-                    email,
-                    name,
-                    role: 'client'
-                }
+                user: { id: result.insertId, username, email, name, role: 'client', branch_id: null }
             });
-        } catch (err) {
-            console.error('Register error:', err);
-            return res.status(500).json({ success: false, message: 'Server error.' });
         }
-    }
-    else {
+
         return res.status(404).json({ success: false, message: 'Auth route not found' });
+    } catch (err) {
+        console.error('Auth API error:', err);
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ success: false, message: 'Username or email already taken.' });
+        }
+        return res.status(500).json({ success: false, message: 'Server error: ' + err.message });
     }
 };

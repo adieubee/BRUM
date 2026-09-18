@@ -160,8 +160,8 @@
                 if (result.success) {
                     statusCard.innerHTML = `
                         <i class="fa-solid fa-circle-check success-icon"></i>
-                        <h2 class="success-title">Payment Successful & Booking Confirmed!</h2>
-                        <p class="success-text">Your down payment has been processed and your appointment is now fully confirmed. We've sent an email confirmation to your registered email address with the details.</p>
+                        <h2 class="success-title">Booking Confirmed!</h2>
+                        <p class="success-text">Your booking and recorded down payment are confirmed. If email is configured, a confirmation will also be sent to your registered email address.</p>
                         <a href="my-appointments.html" class="btn-view">View My Appointments</a>
                     `;
                 } else {
@@ -171,8 +171,8 @@
                 console.error("Payment confirmation error:", error);
                 statusCard.innerHTML = `
                     <i class="fa-solid fa-circle-exclamation success-icon" style="color: #ff9800;"></i>
-                    <h2 class="success-title">Payment Received</h2>
-                    <p class="success-text">Your payment went through, but we experienced a delay updating your booking status. Please check the "My Appointments" page in a few minutes.</p>
+                    <h2 class="success-title">Booking Recorded</h2>
+                    <p class="success-text">Your booking was created, but the confirmation status could not be updated. Please check My Appointments and try again if needed.</p>
                     <a href="my-appointments.html" class="btn-view">View My Appointments</a>
                 `;
             }

@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
     <meta charset="UTF-8">
@@ -8,21 +7,28 @@
     <title>FACIAL R US - Staff Commissions</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .commission-toolbar { display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap; }
+        .commission-toolbar .form-group { margin:0; min-width:180px; }
+        .commission-toolbar label { display:block; margin-bottom:7px; font-size:.78rem; font-weight:700; color:#6D5724; }
+        .commission-rule { background:#fffaf0; border:1px solid #ead7aa; border-left:4px solid #B8892D; border-radius:10px; padding:14px 16px; color:#5d5139; font-size:.82rem; line-height:1.65; }
+        .commission-rule strong { color:#74520f; }
+        .commission-total { font-weight:800; color:#74520f; background:#fff9ea; }
+        .commission-empty { text-align:center; color:#777; padding:28px !important; }
+        .commission-error { text-align:center; color:#8b2d2d; padding:28px !important; }
+        .period-note { margin-top:8px; color:#76684b; font-size:.78rem; }
+        @media (max-width: 760px) { .commission-toolbar .form-group { min-width:100%; } }
+    </style>
 </head>
-
 <body class="admin-body">
-
     <aside class="admin-sidebar">
         <div class="admin-brand">
             <div>
                 <span class="admin-logo-small">FACIAL R US</span>
                 <h2 class="admin-logo-large">Admin Portal</h2>
             </div>
-            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
-                <i class="fas fa-bars"></i>
-            </button>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
         </div>
-
         <ul class="admin-nav">
             <li><a href="dashboard.html">Dashboard</a></li>
             <li><a href="inventory.html">Inventory</a></li>
@@ -32,182 +38,133 @@
             <li><a href="staff.html">Staff</a></li>
             <li><a href="pos.html">POS</a></li>
         </ul>
-
         <button class="admin-logout-btn" onclick="adminLogout()">Log Out</button>
     </aside>
 
     <main class="admin-main">
-
         <header class="admin-header">
             <div class="header-text">
                 <h1>Staff Commissions</h1>
-                <p>Calculate payouts based on base pay, product sales, and services performed.</p>
+                <p>Review staff-days, sales generated, commissions, and total payroll for any period.</p>
             </div>
             <a href="../index.html" class="back-home-btn">Back to Home</a>
         </header>
 
-        <!-- Filters Section -->
-        <section class="admin-table-section" style="margin-top: 20px;">
-            <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label>Start Date</label>
-                    <input type="date" id="startDate" class="form-input">
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label>End Date</label>
-                    <input type="date" id="endDate" class="form-input">
-                </div>
-                <button class="submit-btn" style="width: auto; padding: 10px 20px;" onclick="loadCommissions()">
-                    <i class="fas fa-filter"></i> Apply Filter
-                </button>
-                <div style="margin-left: auto;">
-                    <button class="submit-btn" style="width: auto; padding: 10px 20px; background: #28a745;"
-                        onclick="window.print()">
-                        <i class="fas fa-print"></i> Print Report
-                    </button>
-                </div>
-            </div>
-        </section>
+        <div class="stat-cards">
+            <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-users"></i></div><div><div class="stat-number" id="staffCount">0</div><div class="stat-label">Staff Listed</div></div></div>
+            <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-receipt"></i></div><div><div class="stat-number" id="transactionCount">0</div><div class="stat-label">Transactions</div></div></div>
+            <div class="stat-card"><div class="stat-icon green"><i class="fas fa-peso-sign"></i></div><div><div class="stat-number" id="salesTotal">₱0</div><div class="stat-label">Sales Generated</div></div></div>
+            <div class="stat-card"><div class="stat-icon pink"><i class="fas fa-wallet"></i></div><div><div class="stat-number" id="payoutTotal">₱0</div><div class="stat-label">Total Payout</div></div></div>
+        </div>
 
-        <!-- Commissions Table -->
-        <section class="admin-table-section" style="margin-top: 30px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2 style="font-family: 'Poppins', sans-serif; color: #8b2d2d; font-size: 1.2rem;">
-                    Commission Report
-                </h2>
-                <div style="font-size: 0.85rem; color: #666;">
-                    <em>Base Pay: ₱695/day &nbsp;|&nbsp; Soaps: ₱10 &nbsp;|&nbsp; Products: ₱20 &nbsp;|&nbsp; Selected
-                        Services: ₱50</em>
+        <section class="admin-content-card">
+            <div class="commission-toolbar">
+                <div class="form-group">
+                    <label for="startDate">START DATE</label>
+                    <input type="date" id="startDate" class="admin-select">
                 </div>
+                <div class="form-group">
+                    <label for="endDate">END DATE</label>
+                    <input type="date" id="endDate" class="admin-select">
+                </div>
+                <button class="action-btn" onclick="loadCommissions()"><i class="fas fa-rotate"></i> Apply Period</button>
             </div>
-            <div class="table-responsive"
-                style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <table class="appointments-table" style="width: 100%;">
+            <div class="period-note" id="periodNote"></div>
+
+            <div class="commission-rule" style="margin:22px 0;">
+                <strong>Current payout rules:</strong> base pay ₱695 per staff-day with a recorded POS transaction; product commission ₱10 per soap item and ₱20 per other product item; qualifying Combination/Hydra services add ₱50 each. Staff with no transactions in the selected period remain visible with ₱0 payout.
+            </div>
+
+            <div class="table-responsive">
+                <table class="admin-table">
                     <thead>
                         <tr>
-                            <th>Staff Name</th>
-                            <th>Days Worked</th>
-                            <th>Total Sales Generated</th>
-                            <th>Base Salary</th>
-                            <th>Product Commission</th>
-                            <th>Service Commission</th>
-                            <th style="font-weight: 700; color: #8b2d2d; background: #fff5f5;">Total Payout</th>
+                            <th>Staff</th><th>Branch</th><th>Days</th><th>Transactions</th><th>Sales</th><th>Base Pay</th><th>Product Comm.</th><th>Service Comm.</th><th>Total Payout</th>
                         </tr>
                     </thead>
                     <tbody id="commissionsBody">
-                        <tr>
-                            <td colspan="7">
-                                <div class="loading-spinner-container">
-                                    <div class="spinner"></div>
-                                </div>
-                            </td>
-                        </tr>
+                        <tr><td colspan="9"><div class="loading-spinner-container"><div class="spinner"></div></div></td></tr>
                     </tbody>
                 </table>
             </div>
         </section>
-
     </main>
 
     <script src="../js/auth.js"></script>
     <script src="../js/main.js"></script>
     <script>
+        const money = value => '₱' + Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
         document.addEventListener('DOMContentLoaded', () => {
             const user = Auth.getUser();
             if (!user || user.role !== 'owner') {
-                alert('Access Denied. Owner only.');
                 window.location.href = '../login.html';
                 return;
             }
-
-            // Set default dates to current month
             const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
-            document.getElementById('endDate').value = today.toISOString().split('T')[0];
-
+            const first = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('startDate').value = first.toISOString().slice(0, 10);
+            document.getElementById('endDate').value = today.toISOString().slice(0, 10);
             loadCommissions();
         });
 
         async function loadCommissions() {
             const tbody = document.getElementById('commissionsBody');
-            tbody.innerHTML = '<tr><td colspan="7"><div class="loading-spinner-container"><div class="spinner"></div></div></td></tr>';
-
+            tbody.innerHTML = '<tr><td colspan="9"><div class="loading-spinner-container"><div class="spinner"></div></div></td></tr>';
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
+            if (startDate && endDate && startDate > endDate) {
+                tbody.innerHTML = '<tr><td colspan="9" class="commission-error">Start date cannot be after end date.</td></tr>';
+                return;
+            }
+
+            const params = new URLSearchParams();
+            if (startDate) params.set('start_date', startDate);
+            if (endDate) params.set('end_date', endDate);
+            document.getElementById('periodNote').textContent = startDate && endDate ? `Showing ${startDate} to ${endDate}` : 'Showing all recorded transactions';
 
             try {
-                let url = '/api/finance/commissions';
-                const params = new URLSearchParams();
-                if (startDate) params.append('start_date', startDate);
-                if (endDate) params.append('end_date', endDate);
-                if (params.toString()) url += '?' + params.toString();
-
-                const response = await fetch(url);
+                const response = await fetch('/api/finance/commissions?' + params.toString());
                 const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Unable to load commissions.');
 
-                if (data.success) {
-                    const commissions = data.commissions || [];
+                const rows = data.commissions || [];
+                const totals = rows.reduce((acc, row) => {
+                    acc.transactions += Number(row.transaction_count) || 0;
+                    acc.sales += Number(row.total_sales) || 0;
+                    acc.payout += Number(row.total_payout) || 0;
+                    return acc;
+                }, { transactions: 0, sales: 0, payout: 0 });
 
-                    if (commissions.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #666; padding: 20px;">No transaction data found for this period.</td></tr>';
-                        return;
-                    }
+                document.getElementById('staffCount').textContent = rows.length;
+                document.getElementById('transactionCount').textContent = totals.transactions;
+                document.getElementById('salesTotal').textContent = money(totals.sales);
+                document.getElementById('payoutTotal').textContent = money(totals.payout);
 
-                    // Calculate totals
-                    let gtDays = 0, gtSales = 0, gtBase = 0, gtProdAmt = 0, gtSrvAmt = 0, gtPayout = 0;
-
-                    tbody.innerHTML = commissions.map(c => {
-                        gtDays += c.days_worked;
-                        gtSales += c.total_sales;
-                        gtBase += c.base_pay;
-                        gtProdAmt += c.commission_products;
-                        gtSrvAmt += c.commission_services;
-                        gtPayout += c.total_payout;
-
-                        return `
-                            <tr>
-                                <td data-label="Staff Name"><strong>${c.staff_name}</strong></td>
-                                <td data-label="Days Worked">${c.days_worked}</td>
-                                <td data-label="Total Sales Generated">₱${c.total_sales.toFixed(2)}</td>
-                                <td data-label="Base Salary">₱${c.base_pay.toFixed(2)}</td>
-                                <td data-label="Product Commission">₱${c.commission_products.toFixed(2)}</td>
-                                <td data-label="Service Commission">₱${c.commission_services.toFixed(2)}</td>
-                                <td data-label="Total Payout" style="font-weight: 700; color: #8b2d2d; background: #fff5f5;">
-                                    ₱${c.total_payout.toFixed(2)}
-                                </td>
-                            </tr>
-                        `;
-                    }).join('');
-
-                    // Add grand total row
-                    tbody.innerHTML += `
-                        <tr style="background-color: #f1ebd8; font-weight: bold;">
-                            <td data-label="Staff Name">GRAND TOTAL</td>
-                            <td data-label="Days Worked">${gtDays}</td>
-                            <td data-label="Total Sales Generated">₱${gtSales.toFixed(2)}</td>
-                            <td data-label="Base Salary">₱${gtBase.toFixed(2)}</td>
-                            <td data-label="Product Commission">₱${gtProdAmt.toFixed(2)}</td>
-                            <td data-label="Service Commission">₱${gtSrvAmt.toFixed(2)}</td>
-                            <td data-label="Total Payout" style="color: #8b2d2d;">₱${gtPayout.toFixed(2)}</td>
-                        </tr>
-                    `;
-
-                } else {
-                    tbody.innerHTML = `<tr><td colspan="7" style="color: red; text-align: center;">Error loading data: ${data.message}</td></tr>`;
+                if (!rows.length) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="commission-empty">No staff records found.</td></tr>';
+                    return;
                 }
-            } catch (err) {
-                console.error("Fetch error:", err);
-                tbody.innerHTML = `<tr><td colspan="7" style="color: red; text-align: center;">Connection error.</td></tr>`;
+
+                tbody.innerHTML = rows.map(row => `
+                    <tr>
+                        <td data-label="Staff"><strong>${row.staff_name}</strong></td>
+                        <td data-label="Branch">${row.branch_name || 'Unassigned'}</td>
+                        <td data-label="Days">${row.days_worked}</td>
+                        <td data-label="Transactions">${row.transaction_count}</td>
+                        <td data-label="Sales">${money(row.total_sales)}</td>
+                        <td data-label="Base Pay">${money(row.base_pay)}</td>
+                        <td data-label="Product Comm.">${money(row.commission_products)}</td>
+                        <td data-label="Service Comm.">${money(row.commission_services)}</td>
+                        <td data-label="Total Payout" class="commission-total">${money(row.total_payout)}</td>
+                    </tr>`).join('');
+            } catch (error) {
+                console.error('Commission load error:', error);
+                tbody.innerHTML = `<tr><td colspan="9" class="commission-error">Error loading commissions: ${error.message}</td></tr>`;
             }
         }
 
-        function adminLogout() {
-            if (confirm('Are you sure you want to logout?')) {
-                Auth.logout();
-            }
-        }
+        function adminLogout() { if (confirm('Are you sure you want to logout?')) Auth.logout(); }
     </script>
 </body>
-
 </html>
