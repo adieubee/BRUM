@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbers R Us - LOGIN</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <div class="page-wrapper">
+
+        <div class="brand-section">
+            <a href="index.html" style="text-decoration: none;">
+                <img src="./assets/ICON.svg" alt="Barbers R Us Logo" class="nav-logo">
+                <h1 class="brand-title">Barbers R Us</h1>
+            </a>
+            <p style="color: #f5f5f5; margin-top: 20px; font-size: 0.95rem; font-family: 'Poppins', sans-serif;">
+                Expert Barbering<br>Master Your Look
+            </p>
+        </div>
+
+        <div class="login-card">
+            <h1>Welcome Back</h1>
+            <p class="subtitle">Log in to your account</p>
+
+            <div id="login-error"
+                style="color: #494949; background: #f5f5f5; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none; font-size: 0.9rem; font-family: 'Poppins', sans-serif;">
+            </div>
+
+            <form id="login-form">
+                <div class="input-group">
+                    <label for="username">Username/Phone Number</label>
+                    <input type="text" id="username" name="username">
+                </div>
+
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password">
+                </div>
+
+                <button type="submit" class="submit-btn">LOG IN</button>
+            </form>
+
+            <p class="footer-text">New to Barbers R Us? <a href="register.html">Sign up</a></p>
+
+            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #dedede; text-align: center;">
+                <p style="font-size: 0.78rem; color: #999999; margin-bottom: 8px; font-family: 'Poppins', sans-serif;">Demo Accounts</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;">
+                    <span
+                        style="cursor:pointer; background:#494949; color:white; padding:4px 10px; border-radius:12px; font-size:0.7rem; font-family:'Poppins',sans-serif;"
+                        onclick="fillDemo('admin','123')">Owner / 123</span>
+                    <span
+                        style="cursor:pointer; background:#9e9e9e; color:white; padding:4px 10px; border-radius:12px; font-size:0.7rem; font-family:'Poppins',sans-serif;"
+                        onclick="fillDemo('staff_malolos','123')">Barber / 123</span>
+                    <span
+                        style="cursor:pointer; background:#7e7e7e; color:white; padding:4px 10px; border-radius:12px; font-size:0.7rem; font-family:'Poppins',sans-serif;"
+                        onclick="fillDemo('client1','123')">Customer / 123</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        function fillDemo(u, p) {
+            document.getElementById('username').value = u;
+            document.getElementById('password').value = p;
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const errorEl = document.getElementById('login-error');
+
+            if (!username || !password) {
+                errorEl.textContent = 'Please fill in all fields.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            const result = await Auth.login(username, password);
+
+            if (result.success) {
+                // Check for redirect param (only for clients)
+                const params = new URLSearchParams(window.location.search);
+                const redirect = params.get('redirect');
+
+                switch (result.role) {
+                    case 'owner':
+                        window.location.href = 'admin/dashboard.html';
+                        break;
+                    case 'staff':
+                        window.location.href = 'staff/dashboard.html';
+                        break;
+                    case 'client':
+                    default:
+                        window.location.href = redirect || 'index.html';
+                }
+            } else {
+                errorEl.textContent = result.message;
+                errorEl.style.display = 'block';
+            }
+        });
+    </script>
+
+</body>
+
+</html>
