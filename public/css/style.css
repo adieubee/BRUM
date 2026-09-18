@@ -1,20 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,600;0,700;0,800;1,400;1,700;1,800&display=swap');
 
 @font-face {
-    font-family: 'Brown Sugar';
+    font-family: '#555555 Sugar';
     src: url('../assets/Brown-Sugar-Regular.otf') format('opentype');
     font-weight: normal;
     font-style: normal;
-}
-
-:root {
-    --color-primary: #7A5A16;
-    --color-accent: #C99A2E;
-    --gold: #C99A2E;
-    --gold-dark: #7A5A16;
-    --gold-light: #F3E3B8;
-    --charcoal: #2F2F2F;
-    --cream: #FBF8F1;
 }
 
 /* ===========================
@@ -61,7 +51,7 @@ body.services-body {
 }
 
 .brand-title {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 3.5rem;
     color: #fdfdfd;
     letter-spacing: 3px;
@@ -82,7 +72,7 @@ body.services-body {
 
 .login-card h1,
 .signup-card h1 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     color: #494949;
     font-size: 2.2rem;
     margin-bottom: 5px;
@@ -175,7 +165,7 @@ body.services-body {
    NAVBAR & MAIN LAYOUTS t
    =========================== */
 .navbar {
-    background-color: #B8892D;
+    background-color: #D1B17F;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -201,7 +191,7 @@ body.services-body {
 }
 
 .nav-title {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 2rem;
     color: #ffffff;
     letter-spacing: 2px;
@@ -453,7 +443,7 @@ body.services-body {
 }
 
 .treatments-section h2 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 3rem;
     color: #494949;
     margin-bottom: 20px;
@@ -538,14 +528,17 @@ body.services-body {
 
 .treatment-card img {
     width: 140px;
-    height: auto;
-    object-fit: contain;
+    height: 140px;        /* Changed from auto to fixed height */
+    object-fit: cover;    /* Ensures the image fills the circle without squishing */
+    border-radius: 50%;   /* Makes the images perfect circles */
+    border: 3px solid #fafafa; /* Adds a clean border to pop against the gray */
     position: relative;
     z-index: 2;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
 }
 
 .treatment-card h3 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     color: #ffffff;
     font-size: 1.6rem;
     text-align: center;
@@ -577,7 +570,7 @@ body.services-body {
 }
 
 .why-choose-title {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 3rem;
     color: #ffffff;
     margin-bottom: 50px;
@@ -1042,7 +1035,7 @@ body.services-body {
 }
 
 .testimonials-header h2 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     color: #ffffff;
     font-size: 5rem;
     line-height: 0.9;
@@ -1221,7 +1214,7 @@ body.services-body {
 }
 
 .contact-info h2 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 4.5rem;
     color: #fafafa;
     margin: 0 0 40px 0;
@@ -1391,7 +1384,7 @@ body.services-body {
 }
 
 .category-title {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 2.5rem;
     color: #ffffff;
     margin: 0;
@@ -1466,7 +1459,7 @@ body.services-body {
 }
 
 .services-page-header h2 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 4.5rem;
     margin: 0;
     text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
@@ -1514,7 +1507,7 @@ body.services-body {
 }
 
 .service-item-card h3 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     color: #494949;
     font-size: 1.6rem;
     line-height: 1.2;
@@ -1584,7 +1577,7 @@ body.services-body {
 }
 
 .branch-card h3 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 1.8rem;
     color: #494949;
     margin: 0 0 20px 0;
@@ -1953,11 +1946,35 @@ body.services-body {
 }
 
 /* Custom FRUMS Brand Colors for Icons */
-.stat-card .stat-icon.pink { background: #f7e8ec; color: #8b2d2d; }
-.stat-card .stat-icon.blue { background: #e8eef8; color: #345f93; }
-.stat-card .stat-icon.red { background: #f8e7e7; color: #8b2d2d; }
-.stat-card .stat-icon.green { background: #e8f3e9; color: #2e7d32; }
-.stat-card .stat-icon.orange { background: #f8efd9; color: #9a6b0f; }
+.stat-card .stat-icon.pink {
+    /* Repurposed to Brand #555555 */
+    background: rgba(73, 73, 73, 0.1);
+    color: #494949;
+}
+
+.stat-card .stat-icon.#555555 {
+    /* Repurposed to Brand #555555 */
+    background: rgba(127, 127, 127, 0.15);
+    color: #4A4A4A;
+}
+
+.stat-card .stat-icon.#555555 {
+    /* Warning/Danger */
+    background: #f1f1f1;
+    color: #606060;
+}
+
+.stat-card .stat-icon.#555555 {
+    /* Success */
+    background: #f0f0f0;
+    color: #5d5d5d;
+}
+
+.stat-card .stat-icon.#555555 {
+    /* Repurposed to Dark Olive */
+    background: rgba(88, 88, 88, 0.15);
+    color: #585858;
+}
 
 .stat-card .stat-number {
     font-family: 'Poppins', sans-serif;
@@ -2035,13 +2052,30 @@ body.services-body {
     transition: width 1s ease;
 }
 
-/* Chart Bar Colors */
-.bar-fill.red { background: #8b2d2d; }
-.bar-track.red { background: #f5e4e4; }
-.bar-fill.orange { background: #b88724; }
-.bar-track.orange { background: #f4ead2; }
-.bar-fill.blue { background: #4b6f92; }
-.bar-track.blue { background: #e7eef5; }
+/* Chart Bar Colors adapted to new custom design */
+.bar-fill.#555555 {
+    background: #676767;
+}
+
+.bar-track.#555555 {
+    background: #f4f4f4;
+}
+
+.bar-fill.#555555 {
+    background: #9b9b9b;
+}
+
+.bar-track.#555555 {
+    background: #f6f6f6;
+}
+
+.bar-fill.#555555 {
+    background: #7e7e7e;
+}
+
+.bar-track.#555555 {
+    background: #f4f4f4;
+}
 
 .bar-value {
     font-family: 'Poppins', sans-serif;
@@ -2630,7 +2664,7 @@ body.services-body {
 }
 
 .admin-logo-small {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 1.1rem;
     letter-spacing: 1px;
     display: block;
@@ -2967,7 +3001,7 @@ body.services-body {
 }
 
 .footer-brand {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 2rem;
     margin-bottom: 20px;
     letter-spacing: 1px;
@@ -3419,74 +3453,3 @@ body.services-body {
         margin-bottom: 40px;
     }
 }
-
-/* ===========================
-   2026 GOLD THEME REFINEMENT
-   =========================== */
-.navbar {
-    background: linear-gradient(135deg, #8B661A 0%, #C99A2E 100%);
-    box-shadow: 0 6px 22px rgba(66, 45, 8, 0.20);
-}
-.nav-btn {
-    background: #fffdf8;
-    color: #62470f !important;
-    border: 1px solid rgba(255,255,255,0.65);
-}
-.nav-btn:hover { background: #fff7df; opacity: 1 !important; }
-.submit-btn, .next-btn, .action-btn {
-    background: linear-gradient(135deg, #8B661A 0%, #B8892D 100%);
-    color: #fff;
-}
-.submit-btn:hover, .next-btn:hover, .action-btn:hover {
-    background: linear-gradient(135deg, #74520f 0%, #9d711d 100%);
-    opacity: 1;
-}
-.admin-body { background: #2f2f2f; }
-.admin-sidebar {
-    background: linear-gradient(180deg, #2a2a2a 0%, #383127 100%);
-    border-right: 1px solid rgba(201,154,46,0.18);
-}
-.admin-nav a { color: #f6f0e4; }
-.admin-nav a:hover, .admin-nav a.active {
-    color: #e7bf58;
-    opacity: 1;
-}
-.admin-nav a.active {
-    position: relative;
-}
-.admin-nav a.active::before {
-    content: '';
-    position: absolute;
-    left: -14px;
-    top: 50%;
-    width: 5px;
-    height: 5px;
-    transform: translateY(-50%);
-    border-radius: 50%;
-    background: #e7bf58;
-    box-shadow: 0 0 0 4px rgba(231,191,88,0.12);
-}
-.admin-main { background: #fbf8f1; }
-.admin-content-card, .stat-card, .chart-container {
-    border-color: #eadfca;
-    box-shadow: 0 8px 24px rgba(70, 52, 20, 0.06);
-}
-.admin-select:focus, .input-group input:focus {
-    border-color: #b8892d;
-    box-shadow: 0 0 0 3px rgba(184,137,45,0.10);
-}
-.admin-table th, .appointments-table th {
-    background: #37322a;
-    color: #f9f3e7;
-}
-.user-dropdown-menu { border: 1px solid #eadfca; }
-.user-dropdown-menu a:hover { background: #fbf3df; }
-.login-card, .signup-card {
-    background: #fffdf9;
-    border: 1px solid rgba(201,154,46,0.20);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.18);
-}
-
-.status-badge.in-progress { background: #e8eef8; color: #345f93; }
-.status-badge.completed { background: #e8f3e9; color: #2e7d32; }
-.status-badge.payment, .status-badge.reschedule { background: #f8efd9; color: #87630F; }
