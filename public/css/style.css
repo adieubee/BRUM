@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,600;0,700;0,800;1,400;1,700;1,800&display=swap');
 
 @font-face {
-    font-family: 'Brown Sugar';
+    font-family: '#555555 Sugar';
     src: url('../assets/Brown-Sugar-Regular.otf') format('opentype');
     font-weight: normal;
     font-style: normal;
@@ -11,7 +11,7 @@
    GLOBAL STYLES
    =========================== */
 body {
-    background-color: #a85f5f;
+    background-color: #363636;
     font-family: 'Poppins', sans-serif;
     display: flex;
     justify-content: center;
@@ -23,7 +23,7 @@ body {
 body.services-body {
     display: block;
     background-image: none;
-    background-color: #fcfaf3;
+    background-color: #fafafa;
 }
 
 /* ===========================
@@ -51,7 +51,7 @@ body.services-body {
 }
 
 .brand-title {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 3.5rem;
     color: #fdfdfd;
     letter-spacing: 3px;
@@ -61,7 +61,7 @@ body.services-body {
 
 .login-card,
 .signup-card {
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     padding: 50px 60px;
     border-radius: 12px;
     width: 100%;
@@ -72,8 +72,8 @@ body.services-body {
 
 .login-card h1,
 .signup-card h1 {
-    font-family: 'Brown Sugar', serif;
-    color: #8b2d2d;
+    font-family: '#555555 Sugar', serif;
+    color: #494949;
     font-size: 2.2rem;
     margin-bottom: 5px;
 }
@@ -83,7 +83,7 @@ body.services-body {
     font-style: italic;
     font-weight: 700;
     font-size: 0.9rem;
-    color: #000;
+    color: #000000;
     margin-bottom: 40px;
 }
 
@@ -96,7 +96,7 @@ body.services-body {
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
     font-size: 0.95rem;
-    color: #000;
+    color: #000000;
     display: block;
     margin-bottom: 8px;
 }
@@ -113,11 +113,11 @@ body.services-body {
 }
 
 .input-group input:focus {
-    border-color: #8b8156;
+    border-color: #4A4A4A;
 }
 
 .submit-btn {
-    background-color: #8b8156;
+    background-color: #4A4A4A;
     color: #ffffff;
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
@@ -140,23 +140,23 @@ body.services-body {
     font-family: 'Poppins', sans-serif;
     font-size: 0.75rem;
     font-weight: 700;
-    color: #000;
+    color: #000000;
     margin: 20px 0;
 }
 
 .terms-text a {
-    color: #8b2d2d;
+    color: #494949;
     text-decoration: none;
 }
 
 .footer-text {
     font-family: 'Poppins', sans-serif;
     font-size: 0.85rem;
-    color: #000;
+    color: #000000;
 }
 
 .footer-text a {
-    color: #8b2d2d;
+    color: #494949;
     font-weight: 700;
     text-decoration: none;
 }
@@ -165,7 +165,7 @@ body.services-body {
    NAVBAR & MAIN LAYOUTS t
    =========================== */
 .navbar {
-    background-color: #a46464;
+    background-color: #D1B17F;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -191,7 +191,7 @@ body.services-body {
 }
 
 .nav-title {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 2rem;
     color: #ffffff;
     letter-spacing: 2px;
@@ -218,8 +218,8 @@ body.services-body {
 }
 
 .nav-btn {
-    background-color: #fcfaf3;
-    color: #8b2d2d !important;
+    background-color: #fafafa;
+    color: #494949 !important;
     padding: 10px 20px;
     border-radius: 8px;
     font-weight: 700 !important;
@@ -251,7 +251,7 @@ body.services-body {
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     border-radius: 10px;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     min-width: 220px;
@@ -269,7 +269,7 @@ body.services-body {
     align-items: center;
     gap: 12px;
     padding: 14px 20px;
-    color: #645933 !important;
+    color: #585858 !important;
     font-size: 0.9rem;
     font-weight: 500 !important;
     text-decoration: none;
@@ -278,24 +278,24 @@ body.services-body {
 }
 
 .user-dropdown-menu a:hover {
-    background-color: #f0e8d8;
+    background-color: #e9e9e9;
     opacity: 1;
 }
 
 .user-dropdown-menu a i {
     width: 18px;
     text-align: center;
-    color: #a46464;
+    color: #363636;
     font-size: 0.95rem;
 }
 
 .user-dropdown-menu a:last-child {
-    border-top: 1px solid rgba(100, 89, 51, 0.1);
-    color: #a46464 !important;
+    border-top: 1px solid rgba(88, 88, 88, 0.1);
+    color: #363636 !important;
 }
 
 .user-dropdown-menu a:last-child i {
-    color: #a46464;
+    color: #363636;
 }
 
 @keyframes dropdownFade {
@@ -352,9 +352,9 @@ body.services-body {
     position: absolute;
     inset: 0;
     background: linear-gradient(135deg,
-            rgba(164, 100, 100, 0.75) 0%,
-            rgba(255, 191, 191, 0.55) 50%,
-            rgba(252, 250, 243, 0.40) 100%)
+            rgba(119, 119, 119, 0.75) 0%,
+            rgba(210, 210, 210, 0.55) 50%,
+            rgba(250, 250, 250, 0.40) 100%)
 }
 
 .hero-content {
@@ -388,7 +388,7 @@ body.services-body {
     gap: 8px;
     padding: 1rem 2.5rem;
     background: white;
-    color: #8b2d2d;
+    color: #494949;
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
     font-size: 1rem;
@@ -401,7 +401,7 @@ body.services-body {
 .hero-btn:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
-    background: #fcfaf3;
+    background: #fafafa;
 }
 
 .page-banner {
@@ -437,15 +437,15 @@ body.services-body {
 
 /* Treatments Section */
 .treatments-section {
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     text-align: center;
     padding: 80px 20px;
 }
 
 .treatments-section h2 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 3rem;
-    color: #8b2d2d;
+    color: #494949;
     margin-bottom: 20px;
     letter-spacing: 2px;
 }
@@ -455,7 +455,7 @@ body.services-body {
     font-size: 1.1rem;
     font-style: italic;
     font-weight: 500;
-    color: #8b2d2d;
+    color: #494949;
     max-width: 900px;
     margin: 0 auto;
     line-height: 1.6;
@@ -463,7 +463,7 @@ body.services-body {
 
 .view-all-btn {
     display: inline-block;
-    background-color: #8b8156;
+    background-color: #4A4A4A;
     color: #ffffff;
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
@@ -501,7 +501,7 @@ body.services-body {
 }
 
 .treatment-card {
-    background-color: #bfae62;
+    background-color: #aaaaaa;
     width: 260px;
     height: 380px;
     border-top-left-radius: 150px;
@@ -520,9 +520,9 @@ body.services-body {
 
 .treatment-card:hover {
     transform: translateY(-20px) scale(1.1);
-    box-shadow: 0 35px 60px rgba(139, 45, 45, 0.25), 0 20px 30px rgba(0, 0, 0, 0.15);
-    background-color: #c9b86d;
-    /* Slightly lighter gold on hover */
+    box-shadow: 0 35px 60px rgba(73, 73, 73, 0.25), 0 20px 30px rgba(0, 0, 0, 0.15);
+    background-color: #b5b5b5;
+    /* Slightly lighter #555555 on hover */
     z-index: 10;
 }
 
@@ -535,7 +535,7 @@ body.services-body {
 }
 
 .treatment-card h3 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     color: #ffffff;
     font-size: 1.6rem;
     text-align: center;
@@ -546,7 +546,7 @@ body.services-body {
 
 /* Why Choose Us Section */
 .why-choose-section {
-    background-color: #a46464;
+    background-color: #363636;
     padding: 80px 50px;
     text-align: center;
 }
@@ -567,7 +567,7 @@ body.services-body {
 }
 
 .why-choose-title {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 3rem;
     color: #ffffff;
     margin-bottom: 50px;
@@ -585,7 +585,7 @@ body.services-body {
     align-items: flex-start;
     gap: 16px;
     padding: 24px;
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     transition: all 0.25s ease;
@@ -600,13 +600,13 @@ body.services-body {
 .feature-icon {
     width: 48px;
     height: 48px;
-    background-color: #f5e0e0;
+    background-color: #e6e6e6;
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.2rem;
-    color: #8b2d2d;
+    color: #494949;
     flex-shrink: 0;
 }
 
@@ -614,7 +614,7 @@ body.services-body {
     font-family: 'Poppins', sans-serif;
     font-size: 1rem;
     font-weight: 700;
-    color: #6b2020;
+    color: #363636;
     margin: 0 0 4px 0;
 }
 
@@ -645,7 +645,7 @@ body.services-body {
    =========================== */
 .admin-content-card {
     background-color: #ffffff;
-    border: 2px solid #f0eadd;
+    border: 2px solid #eaeaea;
     border-radius: 20px;
     padding: 30px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
@@ -666,13 +666,13 @@ body.services-body {
     font-family: 'Poppins', sans-serif;
     font-size: 1rem;
     outline: none;
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     color: #4a4a4a;
     cursor: pointer;
 }
 
 .admin-select:focus {
-    border-color: #8b8156;
+    border-color: #4A4A4A;
 }
 
 .admin-table {
@@ -688,8 +688,8 @@ body.services-body {
 }
 
 .admin-table th {
-    background-color: #a46464;
-    /* Maroon Header */
+    background-color: #363636;
+    /* #555555 Header */
     color: #ffffff;
     font-weight: 700;
     font-size: 0.95rem;
@@ -709,7 +709,7 @@ body.services-body {
     color: #4a4a4a;
     font-size: 0.9rem;
     font-weight: 500;
-    border-bottom: 1px solid #f0eadd;
+    border-bottom: 1px solid #eaeaea;
 }
 
 .admin-table tbody tr:nth-child(even) {
@@ -717,27 +717,27 @@ body.services-body {
 }
 
 .admin-table tbody tr:nth-child(odd) {
-    background-color: #fdfaf5;
+    background-color: #fafafa;
     /* Faint cream stripe */
 }
 
 .admin-table tbody tr:hover td {
-    background-color: #fcfaf3;
+    background-color: #fafafa;
 }
 
 /* Highlight Rule for Low Stock */
 .low-stock-row {
-    background-color: #fdf2f2 !important;
-    /* Soft Red Background */
+    background-color: #f5f5f5 !important;
+    /* Soft #555555 Background */
 }
 
 .low-stock-row td {
-    color: #8b2d2d;
-    /* Dark Red Text for emphasis */
+    color: #494949;
+    /* Dark #555555 Text for emphasis */
 }
 
 .action-btn {
-    background-color: #8b8156;
+    background-color: #4A4A4A;
     /* Olive */
     color: #ffffff;
     border: none;
@@ -750,7 +750,7 @@ body.services-body {
 }
 
 .action-btn:hover {
-    background-color: #645933;
+    background-color: #585858;
 }
 
 /* ===========================
@@ -768,21 +768,21 @@ body.services-body {
 
 .pos-section-title {
     font-family: 'Poppins', sans-serif;
-    color: #a46464;
+    color: #363636;
     font-size: 1.2rem;
     font-weight: 800;
     margin-top: 0;
     margin-bottom: 20px;
-    border-bottom: 2px solid #f0eadd;
+    border-bottom: 2px solid #eaeaea;
     padding-bottom: 10px;
 }
 
 .pos-details-box {
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     padding: 15px 20px;
     border-radius: 8px;
     margin-top: 15px;
-    border: 1px solid #f0eadd;
+    border: 1px solid #eaeaea;
 }
 
 .pos-details-box p {
@@ -809,9 +809,9 @@ body.services-body {
     justify-content: space-between;
     font-family: 'Poppins', sans-serif;
     font-size: 0.95rem;
-    color: #333;
+    color: #333333;
     padding: 8px 0;
-    border-bottom: 1px solid #f0eadd;
+    border-bottom: 1px solid #eaeaea;
 }
 
 .pos-summary-row {
@@ -826,18 +826,18 @@ body.services-body {
 .pos-grand-total {
     font-size: 1.4rem;
     font-weight: 800;
-    color: #8b2d2d;
-    border-top: 2px solid #f0eadd;
+    color: #494949;
+    border-top: 2px solid #eaeaea;
     padding-top: 15px;
     margin-top: 15px;
 }
 
 /* Calculator UI */
 .pos-calculator {
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     padding: 20px;
     border-radius: 12px;
-    border: 1px solid #f0eadd;
+    border: 1px solid #eaeaea;
 }
 
 .calc-display input {
@@ -847,19 +847,19 @@ body.services-body {
     font-family: 'Poppins', sans-serif;
     font-weight: 800;
     text-align: right;
-    border: 2px solid #ccc;
+    border: 2px solid #cccccc;
     border-radius: 8px;
     box-sizing: border-box;
     margin-bottom: 15px;
-    background-color: #fff;
-    color: #333;
+    background-color: #ffffff;
+    color: #333333;
 }
 
 .calc-display label {
     font-family: 'Poppins', sans-serif;
     font-size: 0.85rem;
     font-weight: 700;
-    color: #645933;
+    color: #585858;
     display: block;
     margin-bottom: 5px;
 }
@@ -873,26 +873,26 @@ body.services-body {
 
 .calc-numpad button {
     background-color: #ffffff;
-    border: 1px solid #ddd;
+    border: 1px solid #dddddd;
     border-radius: 8px;
     padding: 15px 0;
     font-size: 1.2rem;
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
-    color: #333;
+    color: #333333;
     cursor: pointer;
     transition: background-color 0.2s;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .calc-numpad button:hover {
-    background-color: #f0eadd;
+    background-color: #eaeaea;
 }
 
 .calc-clear {
-    background-color: #fdf2f2 !important;
-    color: #8b2d2d !important;
-    border-color: #f5c6c6 !important;
+    background-color: #f5f5f5 !important;
+    color: #494949 !important;
+    border-color: #d4d4d4 !important;
 }
 
 .pos-change-row {
@@ -901,9 +901,9 @@ body.services-body {
     font-family: 'Poppins', sans-serif;
     font-size: 1.2rem;
     font-weight: 700;
-    color: #333;
+    color: #333333;
     padding: 15px;
-    background-color: #fff;
+    background-color: #ffffff;
     border-radius: 8px;
     border: 1px dashed #a6a6a6;
 }
@@ -913,12 +913,12 @@ body.services-body {
     max-width: 400px;
     padding: 30px;
     text-align: left;
-    background-color: #fff;
+    background-color: #ffffff;
 }
 
 .receipt-header {
     text-align: center;
-    border-bottom: 2px solid #111;
+    border-bottom: 2px solid #111111;
     padding-bottom: 15px;
     margin-bottom: 20px;
 }
@@ -926,7 +926,7 @@ body.services-body {
 .receipt-header p {
     font-family: 'Poppins', sans-serif;
     font-size: 0.8rem;
-    color: #666;
+    color: #666666;
     margin: 5px 0 0 0;
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -939,12 +939,12 @@ body.services-body {
     /* Gives it a printed receipt vibe */
     font-size: 0.95rem;
     margin-bottom: 8px;
-    color: #111;
+    color: #111111;
 }
 
 .receipt-footer {
     text-align: center;
-    border-top: 2px solid #111;
+    border-top: 2px solid #111111;
     padding-top: 15px;
     margin-top: 20px;
 }
@@ -953,7 +953,7 @@ body.services-body {
     font-family: 'Poppins', sans-serif;
     font-style: italic;
     font-size: 0.85rem;
-    color: #666;
+    color: #666666;
     margin: 0;
 }
 
@@ -1032,7 +1032,7 @@ body.services-body {
 }
 
 .testimonials-header h2 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     color: #ffffff;
     font-size: 5rem;
     line-height: 0.9;
@@ -1043,7 +1043,7 @@ body.services-body {
 .arrow-btn-circle {
     width: 80px;
     height: 80px;
-    background-color: #8b8156;
+    background-color: #4A4A4A;
     border-radius: 50%;
     display: flex;
     justify-content: center;
@@ -1054,7 +1054,7 @@ body.services-body {
 }
 
 .testimonial-card {
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     padding: 40px;
     border-radius: 20px;
     min-width: 300px;
@@ -1070,7 +1070,7 @@ body.services-body {
     font-size: 1rem;
     font-weight: 700;
     font-style: italic;
-    color: #000;
+    color: #000000;
     line-height: 1.6;
     text-align: center;
 }
@@ -1080,7 +1080,7 @@ body.services-body {
     font-size: 1.1rem;
     font-weight: 800;
     font-style: italic;
-    color: #000;
+    color: #000000;
     text-align: center;
     margin-top: 20px;
     margin-bottom: 0;
@@ -1091,7 +1091,7 @@ body.services-body {
    =========================== */
 .booking-section {
     position: relative;
-    background-color: #a46464;
+    background-color: #363636;
     min-height: 100vh;
     padding-top: 120px;
     padding-bottom: 50px;
@@ -1106,7 +1106,7 @@ body.services-body {
     bottom: 0;
     width: 55%;
     height: 90%;
-    background-color: #bfae62;
+    background-color: #aaaaaa;
     border-top-left-radius: 100% 100%;
     z-index: 1;
 }
@@ -1124,7 +1124,7 @@ body.services-body {
 }
 
 .booking-card {
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     padding: 50px;
     border-radius: 20px;
     flex: 1.2;
@@ -1139,7 +1139,7 @@ body.services-body {
     font-family: 'Poppins', sans-serif;
     font-weight: 800;
     font-size: 0.95rem;
-    color: #645933;
+    color: #585858;
     display: block;
     margin-bottom: 5px;
 }
@@ -1148,7 +1148,7 @@ body.services-body {
 .line-input-group select {
     width: 100%;
     border: none;
-    border-bottom: 2px solid #645933;
+    border-bottom: 2px solid #585858;
     background: transparent;
     font-family: 'Poppins', sans-serif;
     font-weight: 600;
@@ -1164,7 +1164,7 @@ body.services-body {
 
 .line-input-group input::placeholder,
 .line-input-group select:invalid {
-    color: #a39c82;
+    color: #9b9b9b;
 }
 
 .form-row {
@@ -1187,7 +1187,7 @@ body.services-body {
 }
 
 .next-btn {
-    background-color: #c76b6b;
+    background-color: #878787;
     color: #ffffff;
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
@@ -1201,7 +1201,7 @@ body.services-body {
 }
 
 .next-btn:hover {
-    background-color: #a45656;
+    background-color: #6d6d6d;
 }
 
 .contact-info {
@@ -1211,9 +1211,9 @@ body.services-body {
 }
 
 .contact-info h2 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 4.5rem;
-    color: #fcfaf3;
+    color: #fafafa;
     margin: 0 0 40px 0;
     text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
     letter-spacing: 2px;
@@ -1247,7 +1247,7 @@ body.services-body {
 /* Confirmation Box */
 .confirm-title {
     font-family: 'Poppins', sans-serif;
-    color: #645933;
+    color: #585858;
     font-size: 1.6rem;
     font-weight: 800;
     margin-top: 0;
@@ -1273,7 +1273,7 @@ body.services-body {
 .confirm-details-grid strong,
 .confirm-services-grid strong,
 .confirm-totals strong {
-    color: #645933;
+    color: #585858;
     font-weight: 800;
 }
 
@@ -1304,11 +1304,11 @@ body.services-body {
 }
 
 .qr-box {
-    border: 2px solid #a46464;
+    border: 2px solid #363636;
     padding: 15px;
     text-align: center;
     width: 150px;
-    background-color: #fff;
+    background-color: #ffffff;
 }
 
 .qr-box img {
@@ -1320,7 +1320,7 @@ body.services-body {
 .qr-sub {
     font-family: 'Poppins', sans-serif;
     font-size: 0.5rem;
-    color: #666;
+    color: #666666;
     margin: 0 0 5px 0;
 }
 
@@ -1328,14 +1328,14 @@ body.services-body {
     font-family: 'Poppins', sans-serif;
     font-size: 0.8rem;
     font-weight: 800;
-    color: #0056b3;
+    color: #474747;
     margin: 0;
 }
 
 .upload-box {
     font-family: 'Poppins', sans-serif;
     font-size: 0.8rem;
-    color: #645933;
+    color: #585858;
     flex: 1;
 }
 
@@ -1347,8 +1347,8 @@ body.services-body {
     width: 140px;
     padding: 10px;
     background-color: transparent;
-    border: 2px solid #a46464;
-    color: #a46464;
+    border: 2px solid #363636;
+    color: #363636;
     border-radius: 8px;
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
@@ -1359,7 +1359,7 @@ body.services-body {
 }
 
 .upload-btn:hover {
-    background-color: #a46464;
+    background-color: #363636;
     color: #ffffff;
 }
 
@@ -1381,7 +1381,7 @@ body.services-body {
 }
 
 .category-title {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 2.5rem;
     color: #ffffff;
     margin: 0;
@@ -1397,19 +1397,19 @@ body.services-body {
 .service-note {
     font-family: 'Poppins', sans-serif;
     font-size: 0.85rem;
-    color: #a46464;
+    color: #363636;
     font-weight: 600;
     line-height: 1.4;
     margin-top: 15px;
     padding: 10px;
-    background-color: rgba(139, 45, 45, 0.05);
+    background-color: rgba(73, 73, 73, 0.05);
     border-radius: 6px;
     text-align: left;
 }
 
 .services-page-section {
     position: relative;
-    background-color: #a46464;
+    background-color: #363636;
     min-height: 100vh;
     padding-top: 120px;
     padding-bottom: 80px;
@@ -1425,7 +1425,7 @@ body.services-body {
     top: 0;
     width: 55%;
     height: 100%;
-    background-color: #bfae62;
+    background-color: #aaaaaa;
     border-bottom-right-radius: 70% 100%;
     z-index: 1;
 }
@@ -1436,7 +1436,7 @@ body.services-body {
     top: 0;
     width: 60%;
     height: 100%;
-    background-color: #bfae62;
+    background-color: #aaaaaa;
     border-bottom-left-radius: 70% 100%;
     z-index: 1;
 }
@@ -1456,7 +1456,7 @@ body.services-body {
 }
 
 .services-page-header h2 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 4.5rem;
     margin: 0;
     text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
@@ -1469,7 +1469,7 @@ body.services-body {
     font-style: italic;
     font-weight: 600;
     margin: 10px 0 0 0;
-    color: #fcfaf3;
+    color: #fafafa;
 }
 
 .services-list-grid {
@@ -1481,7 +1481,7 @@ body.services-body {
 }
 
 .service-item-card {
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     border-radius: 20px;
     padding: 40px 30px;
     text-align: center;
@@ -1504,8 +1504,8 @@ body.services-body {
 }
 
 .service-item-card h3 {
-    font-family: 'Brown Sugar', serif;
-    color: #8b2d2d;
+    font-family: '#555555 Sugar', serif;
+    color: #494949;
     font-size: 1.6rem;
     line-height: 1.2;
     margin: 0 0 15px 0;
@@ -1514,7 +1514,7 @@ body.services-body {
 .service-item-details {
     font-family: 'Poppins', sans-serif;
     font-size: 1rem;
-    color: #645933;
+    color: #585858;
     margin-bottom: 25px;
 }
 
@@ -1523,7 +1523,7 @@ body.services-body {
 }
 
 .service-book-btn {
-    background-color: #c76b6b;
+    background-color: #878787;
     color: #ffffff;
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
@@ -1536,7 +1536,7 @@ body.services-body {
 }
 
 .service-book-btn:hover {
-    background-color: #a45656;
+    background-color: #6d6d6d;
 }
 
 .map-container {
@@ -1546,7 +1546,7 @@ body.services-body {
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    border: 4px solid #fcfaf3;
+    border: 4px solid #fafafa;
 }
 
 .branches-grid {
@@ -1558,7 +1558,7 @@ body.services-body {
 }
 
 .branch-card {
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     padding: 35px 30px;
     border-radius: 20px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
@@ -1574,9 +1574,9 @@ body.services-body {
 }
 
 .branch-card h3 {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 1.8rem;
-    color: #8b2d2d;
+    color: #494949;
     margin: 0 0 20px 0;
 }
 
@@ -1595,7 +1595,7 @@ body.services-body {
 .branch-info-row p {
     font-family: 'Poppins', sans-serif;
     font-size: 0.95rem;
-    color: #645933;
+    color: #585858;
     margin: 0;
     line-height: 1.5;
     font-weight: 600;
@@ -1611,7 +1611,7 @@ body.services-body {
 .branch-btn {
     display: block;
     text-align: center;
-    background-color: #c76b6b;
+    background-color: #878787;
     color: #ffffff;
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
@@ -1623,7 +1623,7 @@ body.services-body {
 }
 
 .branch-btn:hover {
-    background-color: #a45656;
+    background-color: #6d6d6d;
 }
 
 .map-btn {
@@ -1631,8 +1631,8 @@ body.services-body {
     width: 100%;
     text-align: center;
     background-color: transparent;
-    color: #a46464;
-    border: 2px solid #a46464;
+    color: #363636;
+    border: 2px solid #363636;
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
     font-size: 1rem;
@@ -1643,7 +1643,7 @@ body.services-body {
 }
 
 .map-btn:hover {
-    background-color: #a46464;
+    background-color: #363636;
     color: #ffffff;
 }
 
@@ -1651,7 +1651,7 @@ body.services-body {
    CLIENT DASHBOARD STYLES
    =========================== */
 .dashboard-page-section {
-    background-color: #a46464;
+    background-color: #363636;
     min-height: 100vh;
     padding-top: 120px;
     padding-bottom: 80px;
@@ -1661,7 +1661,7 @@ body.services-body {
 }
 
 .dashboard-card {
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     width: 90%;
     max-width: 900px;
     border-radius: 40px;
@@ -1671,7 +1671,7 @@ body.services-body {
 
 .dashboard-greeting {
     font-family: 'Poppins', sans-serif;
-    color: #8b2d2d;
+    color: #494949;
     font-size: 2.2rem;
     font-weight: 800;
     margin: 0 0 30px 0;
@@ -1679,7 +1679,7 @@ body.services-body {
 
 /* Profile Pill Layout */
 .profile-pill {
-    border: 3px solid #111;
+    border: 3px solid #111111;
     border-radius: 100px;
     padding: 25px 40px;
     display: flex;
@@ -1705,7 +1705,7 @@ body.services-body {
 
 .profile-info {
     font-family: 'Poppins', sans-serif;
-    color: #8b2d2d;
+    color: #494949;
 }
 
 .profile-info h3 {
@@ -1740,7 +1740,7 @@ body.services-body {
 }
 
 .stat-pill {
-    border: 3px solid #111;
+    border: 3px solid #111111;
     border-radius: 40px;
     padding: 30px 40px;
     font-family: 'Poppins', sans-serif;
@@ -1770,14 +1770,14 @@ body.services-body {
 }
 
 .stat-pill h4 {
-    color: #8b2d2d;
+    color: #494949;
     font-size: 1.4rem;
     font-weight: 800;
     margin: 0;
 }
 
 .history-pill .stat-number {
-    color: #8b8156;
+    color: #4A4A4A;
     font-size: 5rem;
     font-weight: 800;
     margin: 10px 0 0 0;
@@ -1792,12 +1792,12 @@ body.services-body {
     padding: 30px;
     background-color: #ffffff;
     border-radius: 20px;
-    border: 2px solid #f0eadd;
+    border: 2px solid #eaeaea;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 .appointment-card {
-    border-bottom: 1px solid #f0eadd;
+    border-bottom: 1px solid #eaeaea;
     padding: 15px 0;
 }
 
@@ -1814,15 +1814,15 @@ body.services-body {
 }
 
 .status.pending {
-    color: #8b8156;
+    color: #4A4A4A;
     font-weight: 800;
 }
 
 .logout-btn {
     margin-top: 30px;
     background-color: transparent;
-    color: #a46464;
-    border: 2px solid #a46464;
+    color: #363636;
+    border: 2px solid #363636;
     padding: 10px 30px;
     border-radius: 8px;
     font-family: 'Poppins', sans-serif;
@@ -1835,7 +1835,7 @@ body.services-body {
 }
 
 .logout-btn:hover {
-    background-color: #a46464;
+    background-color: #363636;
     color: #ffffff;
 }
 
@@ -1855,7 +1855,7 @@ body.services-body {
 }
 
 .modal-content {
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     padding: 40px;
     border-radius: 20px;
     width: 90%;
@@ -1893,7 +1893,7 @@ body.services-body {
     top: 20px;
     font-size: 28px;
     font-weight: bold;
-    color: #a46464;
+    color: #363636;
     cursor: pointer;
     transition: transform 0.2s;
 }
@@ -1922,12 +1922,12 @@ body.services-body {
     display: flex;
     align-items: flex-start;
     gap: 20px;
-    border: 1px solid rgba(139, 45, 45, 0.08);
+    border: 1px solid rgba(73, 73, 73, 0.08);
     transition: all 0.3s ease;
 }
 
 .stat-card:hover {
-    box-shadow: 0 8px 25px rgba(139, 45, 45, 0.12);
+    box-shadow: 0 8px 25px rgba(73, 73, 73, 0.12);
     transform: translateY(-2px);
 }
 
@@ -1944,40 +1944,40 @@ body.services-body {
 
 /* Custom FRUMS Brand Colors for Icons */
 .stat-card .stat-icon.pink {
-    /* Repurposed to Brand Red */
-    background: rgba(139, 45, 45, 0.1);
-    color: #8b2d2d;
+    /* Repurposed to Brand #555555 */
+    background: rgba(73, 73, 73, 0.1);
+    color: #494949;
 }
 
-.stat-card .stat-icon.orange {
-    /* Repurposed to Brand Gold */
-    background: rgba(139, 129, 86, 0.15);
-    color: #8b8156;
+.stat-card .stat-icon.#555555 {
+    /* Repurposed to Brand #555555 */
+    background: rgba(127, 127, 127, 0.15);
+    color: #4A4A4A;
 }
 
-.stat-card .stat-icon.red {
+.stat-card .stat-icon.#555555 {
     /* Warning/Danger */
-    background: #ffebee;
-    color: #d32f2f;
+    background: #f1f1f1;
+    color: #606060;
 }
 
-.stat-card .stat-icon.green {
+.stat-card .stat-icon.#555555 {
     /* Success */
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: #f0f0f0;
+    color: #5d5d5d;
 }
 
-.stat-card .stat-icon.blue {
+.stat-card .stat-icon.#555555 {
     /* Repurposed to Dark Olive */
-    background: rgba(100, 89, 51, 0.15);
-    color: #645933;
+    background: rgba(88, 88, 88, 0.15);
+    color: #585858;
 }
 
 .stat-card .stat-number {
     font-family: 'Poppins', sans-serif;
     font-size: 2rem;
     font-weight: 800;
-    color: #8b2d2d;
+    color: #494949;
     line-height: 1;
     margin-bottom: 5px;
 }
@@ -1985,7 +1985,7 @@ body.services-body {
 .stat-card .stat-label {
     font-family: 'Poppins', sans-serif;
     font-size: 0.85rem;
-    color: #645933;
+    color: #585858;
     font-weight: 600;
 }
 
@@ -1995,7 +1995,7 @@ body.services-body {
     border-radius: 12px;
     padding: 24px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(139, 45, 45, 0.08);
+    border: 1px solid rgba(73, 73, 73, 0.08);
 }
 
 .chart-title {
@@ -2003,7 +2003,7 @@ body.services-body {
     font-size: 1.1rem;
     font-weight: 700;
     margin-bottom: 24px;
-    color: #8b2d2d;
+    color: #494949;
 }
 
 .bar-chart {
@@ -2050,28 +2050,28 @@ body.services-body {
 }
 
 /* Chart Bar Colors adapted to new custom design */
-.bar-fill.red {
-    background: #b2435f;
+.bar-fill.#555555 {
+    background: #676767;
 }
 
-.bar-track.red {
-    background: #fdf0f2;
+.bar-track.#555555 {
+    background: #f4f4f4;
 }
 
-.bar-fill.orange {
-    background: #ea8c16;
+.bar-fill.#555555 {
+    background: #9b9b9b;
 }
 
-.bar-track.orange {
-    background: #fdf5eb;
+.bar-track.#555555 {
+    background: #f6f6f6;
 }
 
-.bar-fill.blue {
-    background: #398de5;
+.bar-fill.#555555 {
+    background: #7e7e7e;
 }
 
-.bar-track.blue {
-    background: #eef5fd;
+.bar-track.#555555 {
+    background: #f4f4f4;
 }
 
 .bar-value {
@@ -2081,7 +2081,7 @@ body.services-body {
     width: 80px;
     text-align: right;
     flex-shrink: 0;
-    color: #111;
+    color: #111111;
 }
 
 /* ===========================
@@ -2111,7 +2111,7 @@ body.services-body {
 
 .back-link {
     font-family: 'Poppins', sans-serif;
-    color: #a46464;
+    color: #363636;
     text-decoration: none;
     font-weight: 700;
     font-size: 0.95rem;
@@ -2140,12 +2140,12 @@ body.services-body {
 .appointments-table th,
 .appointments-table td {
     padding: 18px 20px;
-    border-bottom: 1px solid #f0eadd;
+    border-bottom: 1px solid #eaeaea;
     white-space: nowrap;
 }
 
 .appointments-table th {
-    background-color: #8b8156;
+    background-color: #4A4A4A;
     color: #ffffff;
     font-weight: 700;
     font-size: 0.95rem;
@@ -2172,23 +2172,23 @@ body.services-body {
 }
 
 .status-badge.confirmed {
-    background-color: #e2f0d9;
-    color: #2b542c;
+    background-color: #e9e9e9;
+    color: #434343;
 }
 
 .status-badge.pending {
-    background-color: #fdf2d0;
-    color: #8a6d3b;
+    background-color: #f1f1f1;
+    color: #707070;
 }
 
 .status-badge.cancelled {
-    background-color: #f2dede;
-    color: #843534;
+    background-color: #e4e4e4;
+    color: #4d4d4d;
 }
 
 /* Action Button */
 .cancel-btn-sm {
-    background-color: #c76b6b;
+    background-color: #878787;
     color: #ffffff;
     border: none;
     padding: 8px 15px;
@@ -2200,7 +2200,7 @@ body.services-body {
 }
 
 .cancel-btn-sm:hover {
-    background-color: #a45656;
+    background-color: #6d6d6d;
 }
 
 .cancel-btn-sm:disabled {
@@ -2212,7 +2212,7 @@ body.services-body {
 }
 
 .reschedule-btn-sm {
-    background-color: #8b8156;
+    background-color: #4A4A4A;
     color: #ffffff;
     border: none;
     padding: 8px 15px;
@@ -2224,7 +2224,7 @@ body.services-body {
 }
 
 .reschedule-btn-sm:hover {
-    background-color: #645933;
+    background-color: #585858;
 }
 
 .reschedule-btn-sm:disabled {
@@ -2301,7 +2301,7 @@ body.services-body {
         display: none;
         flex-direction: column;
         width: 100%;
-        background-color: #a46464;
+        background-color: #363636;
         padding: 15px 0;
         gap: 0;
         border-top: 1px solid rgba(255, 255, 255, 0.15);
@@ -2486,7 +2486,7 @@ body.services-body {
     }
 
     .testimonial-card {
-        background-color: #fcfaf3;
+        background-color: #fafafa;
         padding: 40px;
         border-radius: 20px;
         min-width: 300px;
@@ -2502,7 +2502,7 @@ body.services-body {
         font-size: 1rem;
         font-weight: 700;
         font-style: italic;
-        color: #000;
+        color: #000000;
         line-height: 1.6;
         text-align: center;
     }
@@ -2512,7 +2512,7 @@ body.services-body {
         font-size: 1.1rem;
         font-weight: 800;
         font-style: italic;
-        color: #000;
+        color: #000000;
         text-align: center;
         margin-top: 20px;
         margin-bottom: 0;
@@ -2639,7 +2639,7 @@ body.services-body {
     align-items: stretch;
     justify-content: flex-start;
     height: 100vh;
-    background-color: #a46464;
+    background-color: #363636;
     font-family: 'Poppins', sans-serif;
     overflow: hidden;
 }
@@ -2653,7 +2653,7 @@ body.services-body {
     text-align: left;
     padding: 50px 30px;
     box-sizing: border-box;
-    color: #fcfaf3;
+    color: #fafafa;
 }
 
 .admin-brand {
@@ -2661,12 +2661,12 @@ body.services-body {
 }
 
 .admin-logo-small {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 1.1rem;
     letter-spacing: 1px;
     display: block;
     margin-bottom: 5px;
-    color: #fcfaf3;
+    color: #fafafa;
 }
 
 .admin-logo-large {
@@ -2674,7 +2674,7 @@ body.services-body {
     font-size: 1.6rem;
     font-weight: 800;
     margin: 0;
-    color: #fcfaf3;
+    color: #fafafa;
 }
 
 .mobile-menu-btn {
@@ -2693,7 +2693,7 @@ body.services-body {
 }
 
 .admin-nav a {
-    color: #fcfaf3;
+    color: #fafafa;
     text-decoration: none;
     font-size: 1.05rem;
     font-weight: 400;
@@ -2711,7 +2711,7 @@ body.services-body {
     margin-top: auto;
     align-self: flex-start;
     background-color: #ffffff;
-    color: #a46464;
+    color: #363636;
     border: none;
     padding: 10px 0;
     width: 130px;
@@ -2725,13 +2725,13 @@ body.services-body {
 }
 
 .admin-logout-btn:hover {
-    background-color: #f0eadd;
+    background-color: #eaeaea;
 }
 
 /* Main Content Area (Cream Overlap) */
 .admin-main {
     flex: 1;
-    background-color: #fcfaf3;
+    background-color: #fafafa;
     border-top-left-radius: 40px;
     border-bottom-left-radius: 40px;
     padding: 60px 80px;
@@ -2751,8 +2751,8 @@ body.services-body {
 
 .header-text h1 {
     font-family: 'Poppins', sans-serif;
-    color: #a46464;
-    /* Maroon */
+    color: #363636;
+    /* #555555 */
     font-size: 2.2rem;
     font-weight: 800;
     margin: 0 0 5px 0;
@@ -2768,7 +2768,7 @@ body.services-body {
 }
 
 .back-home-btn {
-    background-color: #8b8156;
+    background-color: #4A4A4A;
     color: #ffffff;
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
@@ -2809,7 +2809,7 @@ body.services-body {
 
 .widget-card h3 {
     font-family: 'Poppins', sans-serif;
-    color: #a46464;
+    color: #363636;
     font-size: 1.1rem;
     font-weight: 700;
     margin: 0 0 15px 0;
@@ -2817,7 +2817,7 @@ body.services-body {
 
 .widget-value {
     font-family: 'Poppins', sans-serif;
-    color: #8b8156;
+    color: #4A4A4A;
     font-size: 4.5rem;
     font-weight: 800;
     line-height: 1;
@@ -2984,8 +2984,8 @@ body.services-body {
    FOOTER
    =========================== */
 .footer {
-    background-color: #a46464;
-    color: #fdf2f2;
+    background-color: #363636;
+    color: #f5f5f5;
     padding: 60px 20px 30px;
     text-align: center;
     position: relative;
@@ -2998,7 +2998,7 @@ body.services-body {
 }
 
 .footer-brand {
-    font-family: 'Brown Sugar', serif;
+    font-family: '#555555 Sugar', serif;
     font-size: 2rem;
     margin-bottom: 20px;
     letter-spacing: 1px;
@@ -3013,7 +3013,7 @@ body.services-body {
 }
 
 .footer-links a {
-    color: #fdf2f2;
+    color: #f5f5f5;
     text-decoration: none;
     font-family: 'Poppins', sans-serif;
     font-size: 1rem;
@@ -3021,19 +3021,19 @@ body.services-body {
 }
 
 .footer-links a:hover {
-    color: #e2c0b0;
+    color: #c8c8c8;
 }
 
 .footer-divider {
     height: 1px;
-    background-color: rgba(253, 242, 242, 0.2);
+    background-color: rgba(245, 245, 245, 0.2);
     margin: 0 auto 30px auto;
     max-width: 600px;
 }
 
 .footer p {
     font-size: 0.9rem;
-    color: rgba(253, 242, 242, 0.8);
+    color: rgba(245, 245, 245, 0.8);
     font-family: 'Poppins', sans-serif;
 }
 
@@ -3051,8 +3051,8 @@ body.services-body {
 .spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid rgba(164, 100, 100, 0.2);
-    border-top-color: #a46464;
+    border: 4px solid rgba(119, 119, 119, 0.2);
+    border-top-color: #363636;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -3214,7 +3214,7 @@ body.services-body {
         display: block;
         background: none;
         border: none;
-        color: #fcfaf3;
+        color: #fafafa;
         font-size: 1.5rem;
         cursor: pointer;
         padding: 5px;
@@ -3225,7 +3225,7 @@ body.services-body {
         flex-direction: column;
         width: 100%;
         margin-top: 15px;
-        background-color: #fcfaf3;
+        background-color: #fafafa;
         border-radius: 10px;
         padding: 10px;
         box-sizing: border-box;
@@ -3238,7 +3238,7 @@ body.services-body {
     }
 
     .admin-nav a {
-        color: #8b2d2d;
+        color: #494949;
         padding: 12px;
         border-radius: 8px;
         text-align: center;
@@ -3248,7 +3248,7 @@ body.services-body {
 
     .admin-nav a:hover,
     .admin-nav a.active {
-        background-color: #f0eadd;
+        background-color: #eaeaea;
         opacity: 1;
         font-weight: 700;
     }
@@ -3257,7 +3257,7 @@ body.services-body {
         display: none;
         width: 100%;
         margin-top: 10px;
-        background-color: #8b2d2d;
+        background-color: #494949;
         color: #ffffff;
         border-radius: 8px;
         padding: 12px;
@@ -3355,12 +3355,12 @@ body.services-body {
 
     .appointments-table tr,
     .admin-table tr {
-        background: #fff;
+        background: #ffffff;
         border-radius: 12px;
         padding: 15px;
         margin-bottom: 15px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        border: 1px solid #f0eadd !important;
+        border: 1px solid #eaeaea !important;
     }
 
     .appointments-table td,
@@ -3370,7 +3370,7 @@ body.services-body {
         align-items: center;
         padding: 8px 0 !important;
         border: none !important;
-        border-bottom: 1px dashed #f0eadd !important;
+        border-bottom: 1px dashed #eaeaea !important;
         white-space: normal !important;
         text-align: right !important;
         font-size: 0.9rem !important;
@@ -3385,7 +3385,7 @@ body.services-body {
     .admin-table td::before {
         content: attr(data-label);
         font-weight: 800;
-        color: #8b8156;
+        color: #4A4A4A;
         text-transform: uppercase;
         font-size: 0.75rem;
         letter-spacing: 0.5px;
@@ -3425,7 +3425,7 @@ body.services-body {
         display: flex;
         justify-content: space-between;
         padding: 10px 0;
-        border-bottom: 1px dashed #f0eadd;
+        border-bottom: 1px dashed #eaeaea;
         font-size: 0.9rem;
     }
 
