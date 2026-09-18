@@ -1945,20 +1945,20 @@ body.services-body {
     flex-shrink: 0;
 }
 
-/* Custom FRUMS Brand Colors for Icons */
+/* Custom BRUMS Brand Colors for Icons */
 .stat-card .stat-icon.pink {
     /* Repurposed to Brand #555555 */
     background: rgba(73, 73, 73, 0.1);
     color: #494949;
 }
 
-.stat-card .stat-icon.#555555 {
+.stat-card .stat-icon.warning {
     /* Repurposed to Brand #555555 */
     background: rgba(127, 127, 127, 0.15);
     color: #4A4A4A;
 }
 
-.stat-card .stat-icon.#555555 {
+.stat-card .stat-icon.warning {
     /* Warning/Danger */
     background: #f1f1f1;
     color: #606060;
@@ -1970,7 +1970,7 @@ body.services-body {
     color: #5d5d5d;
 }
 
-.stat-card .stat-icon.#555555 {
+.stat-card .stat-icon.warning {
     /* Repurposed to Dark Olive */
     background: rgba(88, 88, 88, 0.15);
     color: #585858;
@@ -2053,27 +2053,27 @@ body.services-body {
 }
 
 /* Chart Bar Colors adapted to new custom design */
-.bar-fill.#555555 {
+.bar-fill.warning {
     background: #676767;
 }
 
-.bar-track.#555555 {
+.bar-track.warning {
     background: #f4f4f4;
 }
 
-.bar-fill.#555555 {
+.bar-fill.warning {
     background: #9b9b9b;
 }
 
-.bar-track.#555555 {
+.bar-track.warning {
     background: #f6f6f6;
 }
 
-.bar-fill.#555555 {
+.bar-fill.warning {
     background: #7e7e7e;
 }
 
-.bar-track.#555555 {
+.bar-track.warning {
     background: #f4f4f4;
 }
 
