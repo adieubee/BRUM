@@ -53,7 +53,7 @@
                     <div class="profile-info">
                         <h3 id="dashFullName">John Doe</h3>
                         <p id="dashUsername">@johndoe123</p>
-                        <p id="dashPhone">09123456789</p>
+                        <p id="dashEmail">you@example.com</p>
                     </div>
                 </div>
 
@@ -94,8 +94,8 @@
                             <input type="text" id="editUsername" required>
                         </div>
                         <div class="input-group">
-                            <label for="editPhone">Phone Number</label>
-                            <input type="tel" id="editPhone" required>
+                            <label for="editEmail">Email Address</label>
+                            <input type="email" id="editEmail" required>
                         </div>
                         <button type="submit" class="submit-btn" style="width: 100%;">Save Changes</button>
                     </form>
@@ -119,7 +119,7 @@
             document.getElementById('dashGreetingName').textContent = user.name;
             document.getElementById('dashFullName').textContent = user.name;
             if (user.username) document.getElementById('dashUsername').textContent = '@' + user.username;
-            if (user.phone) document.getElementById('dashPhone').textContent = user.phone;
+            if (user.email) document.getElementById('dashEmail').textContent = user.email;
 
             // Booking history count via API
             try {
@@ -139,7 +139,7 @@
             if (user) {
                 document.getElementById('editName').value = user.name || '';
                 document.getElementById('editUsername').value = user.username || '';
-                document.getElementById('editPhone').value = user.phone || '';
+                document.getElementById('editEmail').value = user.email || '';
             }
             document.getElementById('editModal').style.display = 'flex';
         }
@@ -160,7 +160,7 @@
             const user = Auth.getUser() || {};
             const newName = document.getElementById('editName').value.trim();
             const newUsername = document.getElementById('editUsername').value.trim();
-            const newPhone = document.getElementById('editPhone').value.trim();
+            const newEmail = document.getElementById('editEmail').value.trim();
 
             try {
                 const response = await fetch('/api/users/update', {
@@ -170,7 +170,7 @@
                         user_id: user.id,
                         name: newName,
                         username: newUsername,
-                        phone: newPhone
+                        email: newEmail
                     })
                 });
 
@@ -182,14 +182,14 @@
                         ...user,
                         name: newName,
                         username: newUsername,
-                        phone: newPhone
+                        email: newEmail
                     };
                     localStorage.setItem('currentUser', JSON.stringify(updatedUser));
 
                     document.getElementById('dashGreetingName').textContent = updatedUser.name;
                     document.getElementById('dashFullName').textContent = updatedUser.name;
                     document.getElementById('dashUsername').textContent = '@' + updatedUser.username;
-                    document.getElementById('dashPhone').textContent = updatedUser.phone;
+                    document.getElementById('dashEmail').textContent = updatedUser.email;
 
                     closeEditModal();
                     console.log('Profile updated successfully!');

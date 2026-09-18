@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { getPool } = require('./_lib/db');
+const { getPool, ensureEmailColumn } = require('./_lib/db');
 
 module.exports = async function handler(req, res) {
     const url = req.url || '';
@@ -10,11 +10,12 @@ module.exports = async function handler(req, res) {
 
         const { username, password } = req.body;
         if (!username || !password) {
-            return res.status(400).json({ success: false, message: 'Username and password are required.' });
+            return res.status(400).json({ success: false, message: 'Username or email and password are required.' });
         }
 
         try {
-            const [users] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+            await ensureEmailColumn();
+            const [users] = await pool.query('SELECT * FROM users WHERE username = ? OR email = ?', [username, username]);
 
             if (users.length === 0) {
                 return res.status(401).json({ success: false, message: 'Invalid username or password.' });
@@ -39,9 +40,9 @@ module.exports = async function handler(req, res) {
                 user: {
                     id: user.user_id,
                     username: user.username,
+                    email: user.email,
                     name: user.name,
                     role: user.role,
-                    phone: user.phone,
                     branch_id
                 }
             });
@@ -53,21 +54,22 @@ module.exports = async function handler(req, res) {
     else if (url.includes('/register')) {
         if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
 
-        const { name, username, password, phone } = req.body;
-        if (!name || !username || !password || !phone) {
-            return res.status(400).json({ success: false, message: 'Name, username, password, and phone number are required.' });
+        const { name, username, email, password } = req.body;
+        if (!name || !username || !email || !password) {
+            return res.status(400).json({ success: false, message: 'Name, username, email, and password are required.' });
         }
 
         try {
-            const [existing] = await pool.query('SELECT user_id FROM users WHERE username = ?', [username]);
+            await ensureEmailColumn();
+            const [existing] = await pool.query('SELECT user_id FROM users WHERE username = ? OR email = ?', [username, email]);
             if (existing.length > 0) {
-                return res.status(409).json({ success: false, message: 'Username already taken.' });
+                return res.status(409).json({ success: false, message: 'Username or email already taken.' });
             }
 
             const hash = await bcrypt.hash(password, 10);
             const [result] = await pool.query(
-                'INSERT INTO users (username, password_hash, role, name, phone) VALUES (?, ?, ?, ?, ?)',
-                [username, hash, 'client', name, phone]
+                'INSERT INTO users (username, email, password_hash, role, name) VALUES (?, ?, ?, ?, ?)',
+                [username, email, hash, 'client', name]
             );
 
             return res.status(201).json({
@@ -75,9 +77,9 @@ module.exports = async function handler(req, res) {
                 user: {
                     id: result.insertId,
                     username,
+                    email,
                     name,
-                    role: 'client',
-                    phone
+                    role: 'client'
                 }
             });
         } catch (err) {

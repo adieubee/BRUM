@@ -37,12 +37,12 @@ module.exports = async function handler(req, res) {
         }
         else if (url.includes('/update')) {
             if (req.method !== 'PUT') return res.status(405).json({ message: 'Method not allowed' });
-            const { user_id, name, username, phone, branch_id } = req.body;
+            const { user_id, name, username, email, branch_id } = req.body;
             if (!user_id || !name || !username) {
                 return res.status(400).json({ success: false, message: 'User ID, name, and username are required.' });
             }
 
-            await pool.query('UPDATE users SET name = ?, username = ?, phone = ? WHERE user_id = ?', [name, username, phone || null, user_id]);
+            await pool.query('UPDATE users SET name = ?, username = ?, email = ? WHERE user_id = ?', [name, username, email || null, user_id]);
             if (branch_id) {
                 await pool.query('UPDATE staff SET branch_id = ? WHERE user_id = ?', [branch_id, user_id]);
             }

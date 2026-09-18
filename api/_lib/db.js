@@ -1,6 +1,7 @@
 const mysql = require('mysql2/promise');
 
 let pool;
+let emailColumnReady;
 
 function getPool() {
     if (!pool) {
@@ -17,4 +18,14 @@ function getPool() {
     return pool;
 }
 
-module.exports = { getPool };
+async function ensureEmailColumn() {
+    if (!emailColumnReady) {
+        emailColumnReady = getPool().query(
+            'ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255) NULL AFTER username'
+        );
+    }
+
+    await emailColumnReady;
+}
+
+module.exports = { getPool, ensureEmailColumn };
