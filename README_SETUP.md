@@ -28,4 +28,12 @@ You do not need to wipe your existing `brums` database for this fixed build. On 
 The login page contains buttons for the seeded demo users. The seeded SQL uses the same existing password hash from the supplied project; if you previously changed passwords in your database, use your current database passwords instead.
 
 ## Email
-Booking confirmation emails require `RESEND_API_KEY`. If it is not configured, booking still works; the server simply logs that email sending is unavailable.
+Booking confirmation emails require `RESEND_API_KEY` and a verified `RESEND_FROM_EMAIL` sender address. For a public web app, use a real sending domain such as `no-reply@yourdomain.com` or `booking@yourdomain.com`, and verify that domain in Resend before production use.
+
+Example `.env` values:
+```env
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxx
+RESEND_FROM_EMAIL=no-reply@yourdomain.com
+```
+
+If these values are not configured, booking still works; the server simply logs that email sending is unavailable.

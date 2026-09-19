@@ -656,6 +656,12 @@
             }
         });
 
+        function getSelectedServiceIds() {
+            return Array.from(document.querySelectorAll('.service-select'))
+                .map(sel => String(sel.value || '').trim())
+                .filter(val => val && val !== '0');
+        }
+
         // Global helper: Add another service <select> inside a person's panel
         function addServiceToPanel(btn) {
             const panel = btn.closest('.pax-panel');
@@ -678,6 +684,16 @@
         // Step 1 → Step 2: Show confirmation
         document.getElementById('bookingForm').addEventListener('submit', function (event) {
             event.preventDefault();
+
+            const serviceIds = getSelectedServiceIds();
+            const branchId = document.getElementById('branch').value;
+            const dateValue = document.getElementById('date').value;
+            const timeValue = document.getElementById('time').value;
+
+            if (!branchId || !dateValue || !timeValue || !serviceIds.length) {
+                alert('Please complete branch, service, date, and time before continuing.');
+                return;
+            }
 
             // Validate all services are selected
             const serviceSelects = document.querySelectorAll('.service-select');
@@ -771,6 +787,16 @@
 
         // Step 2 Submit: Show Modal Pop-up
         document.getElementById('proceedPaymentBtn').addEventListener('click', function () {
+            const serviceIds = getSelectedServiceIds();
+            const branchId = document.getElementById('branch').value;
+            const dateValue = document.getElementById('date').value;
+            const timeValue = document.getElementById('time').value;
+
+            if (!branchId || !dateValue || !timeValue || !serviceIds.length) {
+                alert('Please complete branch, service, date, and time before proceeding to payment.');
+                return;
+            }
+
             const serviceSelects = document.querySelectorAll('.service-select');
             let basePriceSum = 0;
             let finalDp = 0;
@@ -801,23 +827,30 @@
             const user = Auth.getUser();
             if (!user) return;
 
+            const serviceIds = getSelectedServiceIds();
+            const branchId = document.getElementById('branch').value;
+            const dateValue = document.getElementById('date').value;
+            const timeValue = document.getElementById('time').value;
+
+            if (!branchId || !dateValue || !timeValue || !serviceIds.length) {
+                document.getElementById('paymentModal').style.display = 'none';
+                alert('Please complete branch, service, date, and time before payment.');
+                return;
+            }
+
             // Show loading state
             document.getElementById('modalContentConfirm').style.display = 'none';
             document.getElementById('modalContentLoading').style.display = 'block';
 
-            // Collect all service_ids (flattened from all panels, filter empty)
-            const serviceSelects = document.querySelectorAll('.service-select');
-            const service_ids = Array.from(serviceSelects).map(sel => sel.value).filter(v => v);
             const pax = parseInt(document.getElementById('people').value);
-
             const payload = {
                 client_id: user.id,
-                branch_id: document.getElementById('branch').value,
-                service_ids: service_ids,
+                branch_id: branchId,
+                service_ids: serviceIds,
                 pax: pax,
                 staff_id: document.getElementById('tech').value || null,
-                date: document.getElementById('date').value,
-                time: document.getElementById('time').value,
+                date: dateValue,
+                time: timeValue,
                 message: document.getElementById('message').value || ''
             };
 

@@ -91,7 +91,8 @@ async function sendAppointmentEmail(pool, appointmentId) {
         date: enriched.appointment_date,
         time: enriched.appointment_time,
         branchAddress: enriched.branch_address,
-        services: enriched.all_service_names || enriched.service_name || ''
+        services: enriched.all_service_names || enriched.service_name || '',
+        bookingUrl: `${process.env.APP_BASE_URL || 'https://facial-r-us.vercel.app'}/client/my-appointments.html`
     });
     return sendEmail({ to: enriched.client_email, ...email });
 }
@@ -268,6 +269,9 @@ module.exports = async function handler(req, res) {
                 return res.status(400).json({ success: false, message: 'A valid appointment, date, time, and status are required.' });
             }
 
+            const [existing] = await pool.query('SELECT status FROM appointments WHERE appointment_id = ? LIMIT 1', [appointment_id]);
+            if (!existing.length) return res.status(404).json({ success: false, message: 'Appointment not found.' });
+
             const [result] = await pool.query(`
                 UPDATE appointments
                 SET appointment_date = ?, appointment_time = ?, status = ?,
@@ -275,6 +279,11 @@ module.exports = async function handler(req, res) {
                 WHERE appointment_id = ?
             `, [appointment_date, timeToHHMMSS(appointment_time), status, status, appointment_id]);
             if (!result.affectedRows) return res.status(404).json({ success: false, message: 'Appointment not found.' });
+
+            if (status === 'Confirmed' && existing[0].status !== 'Confirmed') {
+                await sendAppointmentEmail(pool, appointment_id);
+            }
+
             return res.status(200).json({ success: true, message: 'Appointment updated.' });
         }
 
@@ -320,6 +329,7 @@ module.exports = async function handler(req, res) {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Walk-in appointment', 0, 0, 0)
             `, [clientId, branch_id, ids[0], ids.join(','), Math.max(1, Number.parseInt(pax, 10) || 1), assignedStaff, date, timeToHHMMSS(time)]);
 
+            await sendAppointmentEmail(pool, result.insertId);
             return res.status(201).json({ success: true, appointment_id: result.insertId, message: 'Walk-in appointment created.' });
         }
 
@@ -375,8 +385,16 @@ module.exports = async function handler(req, res) {
                 return res.status(400).json({ success: false, message: 'Invalid appointment or status.' });
             }
 
+            const [existing] = await pool.query('SELECT status FROM appointments WHERE appointment_id = ? LIMIT 1', [appointment_id]);
+            if (!existing.length) return res.status(404).json({ success: false, message: 'Appointment not found.' });
+
             const [result] = await pool.query('UPDATE appointments SET status = ? WHERE appointment_id = ?', [status, appointment_id]);
             if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Appointment not found.' });
+
+            if (status === 'Confirmed' && existing[0].status !== 'Confirmed') {
+                await sendAppointmentEmail(pool, appointment_id);
+            }
+
             return res.status(200).json({ success: true, message: `Status updated to ${status}.` });
         }
 
