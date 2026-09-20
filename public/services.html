@@ -46,6 +46,94 @@
                 <p>Premium Barbershop Services for Every Style</p>
             </div>
 
+            <!-- SEARCH & FILTER SECTION -->
+            <div style="width: 100%; max-width: 1100px; margin: 0 auto 40px auto; position: relative; z-index: 2;">
+                <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.08);">
+                    
+                    <!-- Search Bar -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 700; color: #8b2d2d; display: block; margin-bottom: 8px;">
+                            <i class="fas fa-search"></i> Search Services
+                        </label>
+                        <input type="text" id="serviceSearch" placeholder="Search by service name (e.g., 'fade', 'beard')..."
+                            style="width: 100%; padding: 12px 15px; border: 2px solid #e5ddd5; border-radius: 8px; 
+                                   font-size: 1rem; font-family: 'Poppins', sans-serif; box-sizing: border-box;">
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 700; color: #8b2d2d; display: block; margin-bottom: 8px;">
+                            <i class="fas fa-filter"></i> Filter by Category
+                        </label>
+                        <select id="categoryFilter" 
+                            style="width: 100%; padding: 12px 15px; border: 2px solid #e5ddd5; border-radius: 8px; 
+                                   font-size: 1rem; font-family: 'Poppins', sans-serif; box-sizing: border-box; cursor: pointer;">
+                            <option value="">All Categories</option>
+                            <option value="Classic Haircuts">Classic Haircuts</option>
+                            <option value="Fades & Line-Ups">Fades & Line-Ups</option>
+                            <option value="Beard Grooming & Shaves">Beard Grooming & Shaves</option>
+                            <option value="Specialty Grooming">Specialty Grooming</option>
+                            <option value="Combo & Package Deals">Combo & Package Deals</option>
+                            <option value="Premium Add-Ons">Premium Add-Ons</option>
+                        </select>
+                    </div>
+
+                    <!-- Price Range Filter -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 700; color: #8b2d2d; display: block; margin-bottom: 8px;">
+                            <i class="fas fa-peso-sign"></i> Max Price: ₱<span id="priceValue">3000</span>
+                        </label>
+                        <input type="range" id="priceFilter" min="0" max="3000" value="3000" step="50"
+                            style="width: 100%; cursor: pointer;">
+                        <div style="font-size: 0.85rem; color: #999; margin-top: 5px;">
+                            Drag to filter services by price
+                        </div>
+                    </div>
+
+                    <!-- Duration Filter -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 700; color: #8b2d2d; display: block; margin-bottom: 8px;">
+                            <i class="fas fa-clock"></i> Service Duration
+                        </label>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="duration-filter" data-duration="15" 
+                                style="padding: 8px 16px; border: 2px solid #e5ddd5; border-radius: 6px; 
+                                       background: white; cursor: pointer; font-weight: 600; color: #8b2d2d; transition: all 0.3s;">
+                                ≤ 15 min
+                            </button>
+                            <button class="duration-filter" data-duration="30"
+                                style="padding: 8px 16px; border: 2px solid #e5ddd5; border-radius: 6px; 
+                                       background: white; cursor: pointer; font-weight: 600; color: #8b2d2d; transition: all 0.3s;">
+                                ≤ 30 min
+                            </button>
+                            <button class="duration-filter" data-duration="60"
+                                style="padding: 8px 16px; border: 2px solid #e5ddd5; border-radius: 6px; 
+                                       background: white; cursor: pointer; font-weight: 600; color: #8b2d2d; transition: all 0.3s;">
+                                ≤ 60 min
+                            </button>
+                            <button class="duration-filter" data-duration="999"
+                                style="padding: 8px 16px; border: 2px solid #e5ddd5; border-radius: 6px; 
+                                       background: white; cursor: pointer; font-weight: 600; color: #8b2d2d; transition: all 0.3s;">
+                                All Durations
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Clear Filters Button -->
+                    <button id="clearFilters" 
+                        style="width: 100%; padding: 12px; background: #a46464; color: white; border: none; 
+                               border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all 0.3s;">
+                        <i class="fas fa-redo"></i> Clear All Filters
+                    </button>
+
+                    <!-- Results Count -->
+                    <div id="resultsCount" style="margin-top: 15px; text-align: center; color: #645933; font-weight: 600;">
+                        Showing all services
+                    </div>
+
+                </div>
+            </div>
+
             <div id="servicesContainer"
                 style="width: 100%; max-width: 1100px; margin: 0 auto; position: relative; z-index: 2;">
             </div>
@@ -71,7 +159,132 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             renderCategorizedServices();
+            setupSearchFilters();
         });
+
+        // ========================================
+        // SEARCH & FILTER FUNCTIONALITY
+        // ========================================
+        function setupSearchFilters() {
+            const searchInput = document.getElementById('serviceSearch');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const priceFilter = document.getElementById('priceFilter');
+            const priceValue = document.getElementById('priceValue');
+            const clearBtn = document.getElementById('clearFilters');
+            const durationButtons = document.querySelectorAll('.duration-filter');
+            let selectedDuration = 999;
+
+            // Event listeners
+            searchInput?.addEventListener('input', () => applyFilters());
+            categoryFilter?.addEventListener('change', () => applyFilters());
+            priceFilter?.addEventListener('input', (e) => {
+                priceValue.textContent = e.target.value;
+                applyFilters();
+            });
+            clearBtn?.addEventListener('click', resetFilters);
+
+            // Duration filter buttons
+            durationButtons.forEach((btn, index) => {
+                btn.addEventListener('click', (e) => {
+                    durationButtons.forEach(b => {
+                        b.style.background = 'white';
+                        b.style.color = '#8b2d2d';
+                    });
+                    e.target.style.background = '#8b2d2d';
+                    e.target.style.color = 'white';
+                    selectedDuration = parseInt(e.target.dataset.duration);
+                    applyFilters();
+                });
+                // Set "All Durations" as default selected
+                if (index === durationButtons.length - 1) {
+                    btn.style.background = '#8b2d2d';
+                    btn.style.color = 'white';
+                }
+            });
+
+            // Apply filters function
+            function applyFilters() {
+                const searchTerm = searchInput?.value.toLowerCase() || '';
+                const category = categoryFilter?.value || '';
+                const maxPrice = parseInt(priceFilter?.value || 3000);
+
+                // Get all service cards
+                const serviceCards = document.querySelectorAll('.service-item-card');
+                let visibleCount = 0;
+
+                serviceCards.forEach(card => {
+                    const serviceName = card.querySelector('h3')?.textContent.toLowerCase() || '';
+                    const priceText = card.querySelector('.service-item-details')?.textContent || '';
+                    const price = extractPrice(priceText);
+                    const durationText = card.querySelector('.service-item-details')?.textContent || '';
+                    const duration = extractDuration(durationText);
+
+                    // Get category from parent section
+                    const categorySection = card.closest('.category-section');
+                    const sectionTitle = categorySection?.querySelector('.category-title')?.textContent || '';
+
+                    // Check if service matches all filters
+                    const matchesSearch = serviceName.includes(searchTerm);
+                    const matchesCategory = !category || sectionTitle.includes(category);
+                    const matchesPrice = price <= maxPrice;
+                    const matchesDuration = duration <= selectedDuration;
+
+                    const isVisible = matchesSearch && matchesCategory && matchesPrice && matchesDuration;
+
+                    card.style.display = isVisible ? 'block' : 'none';
+                    if (isVisible) visibleCount++;
+                });
+
+                // Update results count
+                const resultsCount = document.getElementById('resultsCount');
+                if (resultsCount) {
+                    if (visibleCount === 0) {
+                        resultsCount.textContent = '❌ No services match your filters. Try adjusting your search.';
+                        resultsCount.style.color = '#c4956a';
+                    } else {
+                        resultsCount.textContent = `✅ Found ${visibleCount} service(s)`;
+                        resultsCount.style.color = '#6a8b6d';
+                    }
+                }
+            }
+
+            // Helper function to extract price from text
+            function extractPrice(text) {
+                const match = text.match(/₱([\d,]+)/);
+                if (match) {
+                    return parseInt(match[1].replace(/,/g, ''));
+                }
+                return 0;
+            }
+
+            // Helper function to extract duration from text
+            function extractDuration(text) {
+                const match = text.match(/(\d+)\s*mins?/i);
+                if (match) {
+                    return parseInt(match[1]);
+                }
+                return 0;
+            }
+
+            // Reset filters function
+            function resetFilters() {
+                searchInput.value = '';
+                categoryFilter.value = '';
+                priceFilter.value = 3000;
+                priceValue.textContent = '3000';
+                selectedDuration = 999;
+                durationButtons.forEach((b, index) => {
+                    b.style.background = 'white';
+                    b.style.color = '#8b2d2d';
+                    // Set "All Durations" as default
+                    if (index === durationButtons.length - 1) {
+                        b.style.background = '#8b2d2d';
+                        b.style.color = 'white';
+                    }
+                });
+                applyFilters();
+            }
+        }
 
         function renderCategorizedServices() {
             const container = document.getElementById('servicesContainer');
