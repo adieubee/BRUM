@@ -1,4 +1,4 @@
-# BRUMS / Facial R Us - Local Setup
+# BRUMS / Barbers R Us - Local Setup
 
 ## Run locally
 1. Start MySQL and make sure a database named `brums` exists.
