@@ -182,8 +182,8 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const user = Auth.getUser();
             if (!user || user.role === 'client') {
-                console.log('Access Denied. Staff/Owner only.');
-                window.location.href = '../login.html';
+                console.warn('Access denied. Staff/Owner only.');
+                window.location.href = '../login.html?error=admin_access';
                 return;
             }
 

@@ -98,7 +98,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const user = Auth.getUser();
             if (!user || user.role !== 'owner') {
-                window.location.href = '../login.html';
+                window.location.href = user ? '../login.html?error=staff_access' : '../login.html';
                 return;
             }
             const today = new Date();
