@@ -143,7 +143,7 @@
             const user = Auth.getUser();
             if (!user || (user.role !== 'staff' && user.role !== 'owner')) {
                 console.log('Access Denied. Staff/Owner only.');
-                window.location.href = '../login.html';
+                window.location.href = '../login.html?error=staff_access';
                 return;
             }
 
