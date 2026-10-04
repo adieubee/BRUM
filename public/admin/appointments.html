@@ -5,7 +5,7 @@
     <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FACIAL R US - Appointments</title>
+    <title>BARBER R US - Appointments</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -20,6 +20,14 @@
         .add-service-btn { background: none; border: 1px dashed #C7A655; color: #87630F; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-family: 'Poppins', sans-serif; margin-top: 8px; transition: all 0.2s; }
         .add-service-btn:hover { background: #F7EEDB; border-color: #87630F; }
         .add-btn:hover { background: #712424 !important; }
+        .history-btn { background: #2f6f9f; color: white; }
+        .history-modal-content { max-width: 700px; }
+        .history-list { display: flex; flex-direction: column; gap: 12px; max-height: 420px; overflow-y: auto; }
+        .history-item { background: #fffaf2; border: 1px solid #e6d7b2; border-radius: 10px; padding: 14px; }
+        .history-meta { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 8px; font-size: 0.8rem; color: #6b5a2d; }
+        .history-badge { display: inline-block; background: #8b2d2d; color: #fff; border-radius: 999px; padding: 4px 10px; font-weight: 600; font-size: 0.72rem; text-transform: capitalize; }
+        .history-line { margin: 3px 0; color: #3b2d1d; font-size: 0.9rem; }
+        .history-details { margin-top: 8px; color: #6d5724; font-size: 0.8rem; }
     </style>
 </head>
 
@@ -28,7 +36,7 @@
     <aside class="admin-sidebar">
         <div class="admin-brand">
             <div>
-                <span class="admin-logo-small">FACIAL R US</span>
+                <span class="admin-logo-small">BARBER R US</span>
                 <h2 class="admin-logo-large">Admin Portal</h2>
             </div>
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
@@ -145,6 +153,14 @@
 
                 <button type="submit" class="submit-btn" style="width: 100%; margin-top: 15px;">Save Changes</button>
             </form>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content history-modal-content">
+            <span class="close" onclick="closeHistoryModal()">&times;</span>
+            <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 2rem; margin-top: 0;">Booking History</h3>
+            <div id="historyList" class="history-list"></div>
         </div>
     </div>
 
@@ -427,7 +443,8 @@
                     <td data-label="Time">${apptTime}</td>
                     <td data-label="Status"><span class="status-badge ${statusClass}" style="cursor: pointer; transition: opacity 0.2s;" onclick="openEditModal(${appt.appointment_id})" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" title="Click to update status or schedule">${appt.status}</span></td>
                     <td data-label="Action">
-                        <div style="display: flex; gap: 6px; justify-content: center;">
+                        <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
+                            <button class="action-btn history-btn" onclick="openHistoryModal(${appt.appointment_id})" title="View booking history" style="padding: 6px 10px;"><i class="fas fa-clock-rotate-left"></i></button>
                         ${isPending || appt.status === 'Pending Reschedule' ? `
                             <button class="action-btn" onclick="updateStatus(${appt.appointment_id}, 'Confirmed')" title="Confirm" style="padding: 6px 10px;"><i class="fas fa-check"></i></button>
                             <button class="action-btn" style="background: #dc3545; color: white; padding: 6px 10px;" onclick="updateStatus(${appt.appointment_id}, 'Cancelled')" title="Cancel"><i class="fas fa-xmark"></i></button>
@@ -482,6 +499,52 @@
 
         function closeEditModal() {
             document.getElementById('editApptModal').style.display = 'none';
+        }
+
+        async function openHistoryModal(id) {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '<div class="loading-spinner-container"><div class="spinner"></div></div>';
+            document.getElementById('historyModal').style.display = 'flex';
+
+            try {
+                const res = await fetch(`/api/bookings/history?appointment_id=${id}`);
+                const result = await res.json();
+
+                if (!result.success || !Array.isArray(result.history) || !result.history.length) {
+                    historyList.innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">No booking history found.</p>';
+                    return;
+                }
+
+                historyList.innerHTML = result.history.map(item => {
+                    const action = String(item.action || 'updated').replace(/_/g, ' ');
+                    const from = item.previous_status || '—';
+                    const to = item.new_status || '—';
+                    const actor = item.changed_by_name || 'System';
+                    const createdAt = item.created_at ? new Date(item.created_at).toLocaleString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric',
+                        hour: 'numeric', minute: '2-digit'
+                    }) : 'Unknown';
+
+                    return `
+                        <div class="history-item">
+                            <div class="history-meta">
+                                <span class="history-badge">${action}</span>
+                                <span>${createdAt}</span>
+                            </div>
+                            <div class="history-line"><strong>From:</strong> ${from} → <strong>To:</strong> ${to}</div>
+                            <div class="history-line"><strong>By:</strong> ${actor}</div>
+                            <div class="history-details">${item.details || 'No additional details provided.'}</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('History load error:', err);
+                historyList.innerHTML = '<p style="padding: 20px; text-align: center; color: #a94442;">Could not load booking history.</p>';
+            }
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').style.display = 'none';
         }
 
         document.getElementById('editApptForm').addEventListener('submit', async function (e) {

@@ -128,7 +128,28 @@ INSERT INTO `appointments` (
 ) VALUES
 (1, 4, 1, 1, 1, '1', CURDATE(), '10:00:00', 'Confirmed', 1, 'First-time customer cut', 70.00, 0.00, 350.00);
 
--- 7. Finance / POS transactions
+-- 7. Booking history
+CREATE TABLE `booking_history` (
+    `history_id` INT NOT NULL AUTO_INCREMENT,
+    `appointment_id` INT NOT NULL,
+    `action` VARCHAR(50) NOT NULL,
+    `previous_status` VARCHAR(45) NULL,
+    `new_status` VARCHAR(45) NULL,
+    `changed_by` INT NULL,
+    `details` TEXT NULL,
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`history_id`),
+    KEY `idx_booking_history_appointment` (`appointment_id`),
+    KEY `idx_booking_history_changed_by` (`changed_by`),
+    KEY `idx_booking_history_created_at` (`created_at`),
+    CONSTRAINT `fk_booking_history_appointment` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`appointment_id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_booking_history_user` FOREIGN KEY (`changed_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `booking_history` (`appointment_id`, `action`, `previous_status`, `new_status`, `changed_by`, `details`) VALUES
+(1, 'created', NULL, 'Pending Payment', 4, 'Booking created for first-time customer cut');
+
+-- 8. Finance / POS transactions
 CREATE TABLE `finance` (
     `transaction_id` INT NOT NULL AUTO_INCREMENT,
     `appointment_id` INT NULL,

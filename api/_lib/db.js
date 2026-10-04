@@ -63,6 +63,32 @@ async function runSchemaChecks() {
     await addColumnIfMissing('appointments', 'non_warts_price', "DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER warts_dp");
     await addColumnIfMissing('appointments', 'reschedule_requested_at', 'TIMESTAMP NULL DEFAULT NULL AFTER non_warts_price');
 
+    // Booking history keeps a chronological log for appointment lifecycle events.
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS booking_history (
+            history_id INT NOT NULL AUTO_INCREMENT,
+            appointment_id INT NOT NULL,
+            action VARCHAR(50) NOT NULL,
+            previous_status VARCHAR(45) NULL,
+            new_status VARCHAR(45) NULL,
+            changed_by INT NULL,
+            details TEXT NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (history_id),
+            KEY idx_booking_history_appointment (appointment_id),
+            KEY idx_booking_history_changed_by (changed_by),
+            KEY idx_booking_history_created_at (created_at),
+            CONSTRAINT fk_booking_history_appointment FOREIGN KEY (appointment_id) REFERENCES appointments (appointment_id) ON DELETE CASCADE,
+            CONSTRAINT fk_booking_history_user FOREIGN KEY (changed_by) REFERENCES users (user_id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+    await addColumnIfMissing('booking_history', 'action', "VARCHAR(50) NOT NULL DEFAULT 'updated' AFTER appointment_id");
+    await addColumnIfMissing('booking_history', 'previous_status', 'VARCHAR(45) NULL AFTER action');
+    await addColumnIfMissing('booking_history', 'new_status', 'VARCHAR(45) NULL AFTER previous_status');
+    await addColumnIfMissing('booking_history', 'changed_by', 'INT NULL AFTER new_status');
+    await addColumnIfMissing('booking_history', 'details', 'TEXT NULL AFTER changed_by');
+    await addColumnIfMissing('booking_history', 'created_at', 'TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP AFTER details');
+
     // Finance is required by POS, Reports, and Commissions.
     await db.query(`
         CREATE TABLE IF NOT EXISTS finance (

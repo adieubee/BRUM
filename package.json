@@ -1,7 +1,7 @@
 {
   "name": "brums-project",
   "version": "1.1.0",
-  "description": "Facial R Us Management System",
+  "description": "Barber R Us Management System",
   "private": true,
   "scripts": {
     "seed": "node scripts/seed.js"

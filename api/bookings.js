@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { getPool, ensureSchema } = require('./_lib/db');
-const { sendEmail, generateBookingConfirmationEmail } = require('./_lib/email');
+const { sendEmail, generateBookingConfirmationEmail, formatEmailDate, formatEmailTime } = require('./_lib/email');
 
 const VALID_STATUSES = ['Pending Payment', 'Pending Reschedule', 'Confirmed', 'In-Progress', 'Completed', 'Cancelled'];
 
@@ -74,6 +74,22 @@ async function isStaffTimeAvailable(pool, branchId, staffId, date, time, exclude
     return rows.length === 0;
 }
 
+async function logBookingHistory(pool, { appointmentId, action, previousStatus = null, newStatus = null, changedBy = null, details = null }) {
+    if (!appointmentId) return;
+    await pool.query(
+        `INSERT INTO booking_history (appointment_id, action, previous_status, new_status, changed_by, details)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+            appointmentId,
+            String(action || 'updated').slice(0, 50),
+            previousStatus ? String(previousStatus).slice(0, 45) : null,
+            newStatus ? String(newStatus).slice(0, 45) : null,
+            changedBy ?? null,
+            details ? String(details).slice(0, 65535) : null
+        ]
+    );
+}
+
 async function sendAppointmentEmail(pool, appointmentId) {
     const [rows] = await pool.query(`
         SELECT a.*, u.name AS client_name, u.email AS client_email, b.address AS branch_address
@@ -86,15 +102,29 @@ async function sendAppointmentEmail(pool, appointmentId) {
     if (!rows.length || !rows[0].client_email) return false;
 
     const [enriched] = await enrichAppointments(pool, rows);
+    const formattedDate = formatEmailDate(enriched.appointment_date);
+    const formattedTime = formatEmailTime(enriched.appointment_time);
     const email = generateBookingConfirmationEmail({
         clientName: enriched.client_name,
-        date: enriched.appointment_date,
-        time: enriched.appointment_time,
+        date: formattedDate,
+        time: formattedTime,
         branchAddress: enriched.branch_address,
         services: enriched.all_service_names || enriched.service_name || '',
-        bookingUrl: `${process.env.APP_BASE_URL || 'https://facial-r-us.vercel.app'}/client/my-appointments.html`
+        bookingUrl: `${process.env.APP_BASE_URL || 'http://localhost:3000'}/client/my-appointments.html`,
+        message: enriched.message || ''
     });
-    return sendEmail({ to: enriched.client_email, ...email });
+
+    return {
+        to_email: enriched.client_email,
+        client_name: enriched.client_name,
+        date: formattedDate,
+        time: formattedTime,
+        branch_address: enriched.branch_address,
+        services: enriched.all_service_names || enriched.service_name || '',
+        message: enriched.message || '',
+        subject: email.subject,
+        html: email.html
+    };
 }
 
 module.exports = async function handler(req, res) {
@@ -203,6 +233,15 @@ module.exports = async function handler(req, res) {
                 dpPaid, wartsDp, nonWartsPrice
             ]);
 
+            await logBookingHistory(pool, {
+                appointmentId: result.insertId,
+                action: 'created',
+                previousStatus: null,
+                newStatus: 'Pending Payment',
+                changedBy: client_id,
+                details: `Booking created for ${client.name || 'client'}`
+            });
+
             return res.status(201).json({
                 success: true,
                 appointment_id: result.insertId,
@@ -231,8 +270,52 @@ module.exports = async function handler(req, res) {
             );
 
             const newlyConfirmed = beforeRows.filter(row => row.status === 'Pending Payment').map(row => row.appointment_id);
+            for (const id of newlyConfirmed) {
+                await logBookingHistory(pool, {
+                    appointmentId: id,
+                    action: 'payment_confirmed',
+                    previousStatus: 'Pending Payment',
+                    newStatus: 'Confirmed',
+                    changedBy: null,
+                    details: 'Payment confirmation processed'
+                });
+            }
             const emailResults = await Promise.all(newlyConfirmed.map(id => sendAppointmentEmail(pool, id)));
-            return res.status(200).json({ success: true, confirmed_ids: ids, emails_sent: emailResults.filter(Boolean).length });
+            return res.status(200).json({
+                success: true,
+                confirmed_ids: ids,
+                emails_sent: emailResults.filter(Boolean).length,
+                email_details: emailResults[0] || null
+            });
+        }
+
+        // Booking lifecycle history for audits and appointment tracking.
+        if (url.includes('/history')) {
+            if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'Method not allowed' });
+            const { appointment_id, client_id } = req.query || {};
+            if (!appointment_id && !client_id) {
+                return res.status(400).json({ success: false, message: 'appointment_id or client_id is required.' });
+            }
+
+            let query = `
+                SELECT bh.*, u.name AS changed_by_name
+                FROM booking_history bh
+                LEFT JOIN users u ON bh.changed_by = u.user_id
+            `;
+            const params = [];
+            if (appointment_id) {
+                query += ' WHERE bh.appointment_id = ?';
+                params.push(appointment_id);
+            } else {
+                query += `
+                    JOIN appointments a ON bh.appointment_id = a.appointment_id
+                    WHERE a.client_id = ?`;
+                params.push(client_id);
+            }
+            query += ' ORDER BY bh.created_at DESC';
+
+            const [rows] = await pool.query(query, params);
+            return res.status(200).json({ success: true, history: rows });
         }
 
         // Client requests a new schedule; admin/staff can approve by changing Pending Reschedule -> Confirmed.
@@ -258,6 +341,14 @@ module.exports = async function handler(req, res) {
                 SET appointment_date = ?, appointment_time = ?, status = 'Pending Reschedule', reschedule_requested_at = CURRENT_TIMESTAMP
                 WHERE appointment_id = ?
             `, [new_date, timeToHHMMSS(new_time), appointment_id]);
+            await logBookingHistory(pool, {
+                appointmentId: appointment_id,
+                action: 'reschedule_requested',
+                previousStatus: rows[0].status,
+                newStatus: 'Pending Reschedule',
+                changedBy: null,
+                details: `Reschedule requested for ${new_date} at ${new_time}`
+            });
             return res.status(200).json({ success: true, message: 'Reschedule request submitted.' });
         }
 
@@ -279,6 +370,15 @@ module.exports = async function handler(req, res) {
                 WHERE appointment_id = ?
             `, [appointment_date, timeToHHMMSS(appointment_time), status, status, appointment_id]);
             if (!result.affectedRows) return res.status(404).json({ success: false, message: 'Appointment not found.' });
+
+            await logBookingHistory(pool, {
+                appointmentId: appointment_id,
+                action: 'status_updated',
+                previousStatus: existing[0].status,
+                newStatus: status,
+                changedBy: null,
+                details: `Status changed from ${existing[0].status} to ${status}`
+            });
 
             if (status === 'Confirmed' && existing[0].status !== 'Confirmed') {
                 await sendAppointmentEmail(pool, appointment_id);
@@ -329,6 +429,14 @@ module.exports = async function handler(req, res) {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Walk-in appointment', 0, 0, 0)
             `, [clientId, branch_id, ids[0], ids.join(','), Math.max(1, Number.parseInt(pax, 10) || 1), assignedStaff, date, timeToHHMMSS(time)]);
 
+            await logBookingHistory(pool, {
+                appointmentId: result.insertId,
+                action: 'created',
+                previousStatus: null,
+                newStatus: 'Confirmed',
+                changedBy: clientId,
+                details: 'Walk-in appointment created and confirmed'
+            });
             await sendAppointmentEmail(pool, result.insertId);
             return res.status(201).json({ success: true, appointment_id: result.insertId, message: 'Walk-in appointment created.' });
         }
