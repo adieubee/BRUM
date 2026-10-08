@@ -1,4 +1,5 @@
 const { getPool, ensureSchema } = require('./_lib/db');
+const { requireAuth } = require('./_lib/auth');
 
 function stockStatus(quantity) {
     if (quantity < 3) return 'Critical';
@@ -15,6 +16,8 @@ module.exports = async function handler(req, res) {
 
         if (url.includes('/add')) {
             if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
+            const authUser = requireAuth(req, res, ['owner', 'staff']);
+            if (!authUser) return;
 
             const { item_name, unit, price, branch_id } = req.body || {};
             const quantityRaw = req.body?.quantity ?? req.body?.quantitiy;
@@ -22,6 +25,11 @@ module.exports = async function handler(req, res) {
 
             if (!item_name || !unit || !Number.isFinite(quantity) || quantity < 0 || !branch_id) {
                 return res.status(400).json({ success: false, message: 'item_name, unit, quantity, and branch_id are required.' });
+            }
+
+            // Staff can only add items to their own branch
+            if (authUser.role === 'staff' && Number(authUser.branch_id) !== Number(branch_id)) {
+                return res.status(403).json({ success: false, message: 'You can only add inventory items for your own branch.' });
             }
 
             const [result] = await pool.query(
@@ -34,29 +42,77 @@ module.exports = async function handler(req, res) {
 
         if (url.includes('/restock')) {
             if (req.method !== 'PUT') return res.status(405).json({ success: false, message: 'Method not allowed' });
+            const authUser = requireAuth(req, res, ['owner', 'staff']);
+            if (!authUser) return;
 
             const { inventory_id } = req.body || {};
-            const quantityRaw = req.body?.quantity ?? req.body?.quantitiy;
-            const quantity = Number.parseInt(quantityRaw, 10);
+            // Accept 'delta' (positive or negative adjustment) instead of absolute quantity
+            // to prevent race conditions. If 'delta' not provided, fall back to absolute 'quantity'
+            // for backward compatibility, but only accept non-negative absolute values.
+            const hasDelta = req.body?.delta !== undefined;
+            let newQuantity;
 
-            if (!inventory_id || !Number.isFinite(quantity) || quantity < 0) {
-                return res.status(400).json({ success: false, message: 'inventory_id and a non-negative quantity are required.' });
+            if (hasDelta) {
+                const delta = Number.parseInt(req.body.delta, 10);
+                if (!inventory_id || !Number.isFinite(delta)) {
+                    return res.status(400).json({ success: false, message: 'inventory_id and a numeric delta are required.' });
+                }
+
+                // Verify item belongs to this staff's branch
+                if (authUser.role === 'staff' && authUser.branch_id) {
+                    const [itemCheck] = await pool.query('SELECT branch_id FROM inventory WHERE inventory_id = ? LIMIT 1', [inventory_id]);
+                    if (!itemCheck.length) return res.status(404).json({ success: false, message: 'Item not found.' });
+                    if (Number(itemCheck[0].branch_id) !== Number(authUser.branch_id)) {
+                        return res.status(403).json({ success: false, message: 'You can only restock items for your own branch.' });
+                    }
+                }
+
+                const [result] = await pool.query(`
+                    UPDATE inventory
+                    SET quantity = GREATEST(0, quantity + ?),
+                        status = CASE
+                            WHEN GREATEST(0, quantity + ?) < 3 THEN 'Critical'
+                            WHEN GREATEST(0, quantity + ?) < 10 THEN 'Low Stock'
+                            ELSE 'Good'
+                        END
+                    WHERE inventory_id = ?
+                `, [delta, delta, delta, inventory_id]);
+
+                if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Item not found.' });
+                const [updated] = await pool.query('SELECT quantity, status FROM inventory WHERE inventory_id = ?', [inventory_id]);
+                const q = updated[0]?.quantity ?? 0;
+                return res.status(200).json({ success: true, message: `Stock updated to ${q}. Status: ${stockStatus(q)}` });
+            } else {
+                // Absolute restock (owner only, for deliberate stock-setting)
+                if (authUser.role !== 'owner') {
+                    return res.status(403).json({ success: false, message: 'Only owners can set absolute stock levels. Use delta instead.' });
+                }
+                const quantityRaw = req.body?.quantity ?? req.body?.quantitiy;
+                const quantity = Number.parseInt(quantityRaw, 10);
+                if (!inventory_id || !Number.isFinite(quantity) || quantity < 0) {
+                    return res.status(400).json({ success: false, message: 'inventory_id and a non-negative quantity are required.' });
+                }
+                const [result] = await pool.query(
+                    'UPDATE inventory SET quantity = ?, status = ? WHERE inventory_id = ?',
+                    [quantity, stockStatus(quantity), inventory_id]
+                );
+                if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Item not found.' });
+                return res.status(200).json({ success: true, message: `Stock updated to ${quantity}. Status: ${stockStatus(quantity)}` });
             }
-
-            const [result] = await pool.query(
-                'UPDATE inventory SET quantity = ?, status = ? WHERE inventory_id = ?',
-                [quantity, stockStatus(quantity), inventory_id]
-            );
-
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ success: false, message: 'Item not found.' });
-            }
-            return res.status(200).json({ success: true, message: `Stock updated to ${quantity}. Status: ${stockStatus(quantity)}` });
         }
 
+        // GET inventory — authenticated, staff filtered by branch
         if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'Method not allowed' });
+        const authUser = requireAuth(req, res, ['owner', 'staff']);
+        if (!authUser) return;
 
-        const { branch_id } = req.query || {};
+        let { branch_id } = req.query || {};
+
+        // Staff can only see their own branch's inventory
+        if (authUser.role === 'staff' && authUser.branch_id) {
+            branch_id = authUser.branch_id;
+        }
+
         let query = `
             SELECT i.*, b.name AS branch_name
             FROM inventory i

@@ -4,7 +4,7 @@
     <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BARBERS R US - Staff Commissions</title>
+    <title>BARBER R US - Staff Commissions</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -24,7 +24,7 @@
     <aside class="admin-sidebar">
         <div class="admin-brand">
             <div>
-                <span class="admin-logo-small">BARBERS R US</span>
+                <span class="admin-logo-small">BARBER R US</span>
                 <h2 class="admin-logo-large">Admin Portal</h2>
             </div>
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
@@ -72,7 +72,7 @@
             <div class="period-note" id="periodNote"></div>
 
             <div class="commission-rule" style="margin:22px 0;">
-                <strong>Current payout rules:</strong> base pay ₱695 per staff-day with a recorded POS transaction; product commission ₱10 per soap item and ₱20 per other product item; qualifying Combination/Hydra services add ₱50 each. Staff with no transactions in the selected period remain visible with ₱0 payout.
+                <strong>Current payout rules:</strong> base pay ₱695 per staff-day with a recorded POS transaction; product commission ₱10 per soap item and ₱20 per other product item; qualifying Combination/Combo services add ₱50 each. Staff with no transactions in the selected period remain visible with ₱0 payout.
             </div>
 
             <div class="table-responsive">
@@ -98,13 +98,16 @@
         document.addEventListener('DOMContentLoaded', () => {
             const user = Auth.getUser();
             if (!user || user.role !== 'owner') {
-                window.location.href = '../login.html';
+                window.location.href = user ? '../login.html?error=staff_access' : '../login.html';
                 return;
             }
             const today = new Date();
-            const first = new Date(today.getFullYear(), today.getMonth(), 1);
-            document.getElementById('startDate').value = first.toISOString().slice(0, 10);
-            document.getElementById('endDate').value = today.toISOString().slice(0, 10);
+            // Use en-CA locale to get local YYYY-MM-DD without UTC shifting
+            const todayStr = today.toLocaleDateString('en-CA');
+            const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const firstStr = firstOfMonth.toLocaleDateString('en-CA');
+            document.getElementById('startDate').value = firstStr;
+            document.getElementById('endDate').value = todayStr;
             loadCommissions();
         });
 
@@ -124,7 +127,8 @@
             document.getElementById('periodNote').textContent = startDate && endDate ? `Showing ${startDate} to ${endDate}` : 'Showing all recorded transactions';
 
             try {
-                const response = await fetch('/api/finance/commissions?' + params.toString());
+                const response = await Auth.apiFetch('/api/finance/commissions?' + params.toString());
+                if (!response) return;
                 const data = await response.json();
                 if (!response.ok || !data.success) throw new Error(data.message || 'Unable to load commissions.');
 
@@ -146,21 +150,55 @@
                     return;
                 }
 
-                tbody.innerHTML = rows.map(row => `
-                    <tr>
-                        <td data-label="Staff"><strong>${row.staff_name}</strong></td>
-                        <td data-label="Branch">${row.branch_name || 'Unassigned'}</td>
-                        <td data-label="Days">${row.days_worked}</td>
-                        <td data-label="Transactions">${row.transaction_count}</td>
-                        <td data-label="Sales">${money(row.total_sales)}</td>
-                        <td data-label="Base Pay">${money(row.base_pay)}</td>
-                        <td data-label="Product Comm.">${money(row.commission_products)}</td>
-                        <td data-label="Service Comm.">${money(row.commission_services)}</td>
-                        <td data-label="Total Payout" class="commission-total">${money(row.total_payout)}</td>
-                    </tr>`).join('');
+                tbody.innerHTML = '';
+                rows.forEach(row => {
+                    const tr = document.createElement('tr');
+
+                    const staffTd = document.createElement('td');
+                    staffTd.setAttribute('data-label', 'Staff');
+                    const strong = document.createElement('strong');
+                    strong.textContent = row.staff_name;
+                    staffTd.appendChild(strong);
+
+                    const branchTd = document.createElement('td');
+                    branchTd.setAttribute('data-label', 'Branch');
+                    branchTd.textContent = row.branch_name || 'Unassigned';
+
+                    const daysTd = document.createElement('td');
+                    daysTd.setAttribute('data-label', 'Days');
+                    daysTd.textContent = row.days_worked;
+
+                    const txTd = document.createElement('td');
+                    txTd.setAttribute('data-label', 'Transactions');
+                    txTd.textContent = row.transaction_count;
+
+                    const salesTd = document.createElement('td');
+                    salesTd.setAttribute('data-label', 'Sales');
+                    salesTd.textContent = money(row.total_sales);
+
+                    const baseTd = document.createElement('td');
+                    baseTd.setAttribute('data-label', 'Base Pay');
+                    baseTd.textContent = money(row.base_pay);
+
+                    const prodCommTd = document.createElement('td');
+                    prodCommTd.setAttribute('data-label', 'Product Comm.');
+                    prodCommTd.textContent = money(row.commission_products);
+
+                    const svcCommTd = document.createElement('td');
+                    svcCommTd.setAttribute('data-label', 'Service Comm.');
+                    svcCommTd.textContent = money(row.commission_services);
+
+                    const totalTd = document.createElement('td');
+                    totalTd.setAttribute('data-label', 'Total Payout');
+                    totalTd.className = 'commission-total';
+                    totalTd.textContent = money(row.total_payout);
+
+                    [staffTd, branchTd, daysTd, txTd, salesTd, baseTd, prodCommTd, svcCommTd, totalTd].forEach(td => tr.appendChild(td));
+                    tbody.appendChild(tr);
+                });
             } catch (error) {
                 console.error('Commission load error:', error);
-                tbody.innerHTML = `<tr><td colspan="9" class="commission-error">Error loading commissions: ${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="commission-error">Error loading commissions. Please try again.</td></tr>`;
             }
         }
 

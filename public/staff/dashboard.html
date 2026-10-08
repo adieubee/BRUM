@@ -143,22 +143,24 @@
             const user = Auth.getUser();
             if (!user || (user.role !== 'staff' && user.role !== 'owner')) {
                 console.log('Access Denied. Staff/Owner only.');
-                window.location.href = '../login.html';
+                window.location.href = '../login.html?error=staff_access';
                 return;
             }
 
             // Date Header
             document.getElementById('staffName').textContent = user.name;
             document.getElementById('currentDate').textContent =
-                new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' });
 
             // Fetch Branch Info
             try {
-                const bRes = await fetch('/api/branches');
-                const bData = await bRes.json();
-                if (bData.success) {
-                    const branch = bData.branches.find(b => b.branch_id === user.branch_id);
-                    document.getElementById('branchName').textContent = branch ? branch.name : 'All Branches';
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (bRes) {
+                    const bData = await bRes.json();
+                    if (bData.success) {
+                        const branch = (bData.branches || []).find(b => b.branch_id === user.branch_id);
+                        document.getElementById('branchName').textContent = branch ? branch.name : 'All Branches';
+                    }
                 }
             } catch (e) { console.error('Error fetching branch:', e); }
 
@@ -167,43 +169,52 @@
         });
 
         async function loadDashboardData(user) {
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
             let apiSuffix = user.branch_id ? `?branch_id=${user.branch_id}` : '';
 
             try {
                 // Fetch Appointments
-                const apptRes = await fetch(`/api/bookings/branch${apiSuffix}`);
+                const apptRes = await Auth.apiFetch(`/api/bookings/branch${apiSuffix}`);
+                if (!apptRes) return;
                 const apptData = await apptRes.json();
 
                 // Fetch Inventory
-                const invRes = await fetch(`/api/inventory${apiSuffix}`);
+                const invRes = await Auth.apiFetch(`/api/inventory${apiSuffix}`);
+                if (!invRes) return;
                 const invData = await invRes.json();
 
                 if (apptData.success) {
-                    const appointments = apptData.appointments;
+                    const appointments = apptData.appointments || [];
 
                     // Format dates and filter
-                    const todayAppts = appointments.filter(a => a.appointment_date.split('T')[0] === today);
-                    const pendingAppts = appointments.filter(a => a.status === 'Pending Payment');
+                    const todayAppts = appointments.filter(a => (a.appointment_date || '').split('T')[0] === today);
+                    const pendingAppts = appointments.filter(a => a.status && a.status.includes('Pending'));
 
                     document.getElementById('countToday').textContent = todayAppts.length;
                     document.getElementById('countPending').textContent = pendingAppts.length;
 
                     renderTodaySchedule(todayAppts);
+                } else {
+                    document.getElementById('scheduleBody').innerHTML = `<tr><td colspan="5" style="text-align: center; color: #8b2d2d; padding: 20px;">Failed to load schedule.</td></tr>`;
                 }
 
                 if (invData.success) {
-                    const lowStockItems = invData.inventory.filter(i => i.quantity < 10);
+                    const lowStockItems = (invData.inventory || []).filter(i => i.quantity < 10);
                     document.getElementById('countLowStock').textContent = lowStockItems.length;
                 }
 
             } catch (err) {
                 console.error("Dashboard error:", err);
+                const tbody = document.getElementById('scheduleBody');
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #8b2d2d; padding: 20px;">Failed to load schedule.</td></tr>`;
+                }
             }
         }
 
         function renderTodaySchedule(todayAppts) {
             const tbody = document.getElementById('scheduleBody');
+            tbody.innerHTML = '';
 
             // Sort by time
             todayAppts.sort((a, b) => (a.appointment_time || '').localeCompare(b.appointment_time || ''));
@@ -213,51 +224,101 @@
                 return;
             }
 
-            let htmlContent = '';
             todayAppts.forEach(appt => {
+                const tr = document.createElement('tr');
+
+                const tdClient = document.createElement('td');
+                tdClient.setAttribute('data-label', 'Client');
+                const strongClient = document.createElement('strong');
+                strongClient.textContent = appt.client_name || 'Guest';
+                tdClient.appendChild(strongClient);
+
+                const tdService = document.createElement('td');
+                tdService.setAttribute('data-label', 'Service');
+                tdService.style.fontSize = '0.85rem';
+                tdService.style.lineHeight = '1.4';
                 const serviceName = appt.all_service_names || appt.service_name || 'Unknown';
-                const paxLabel = appt.pax > 1 ? ` (${appt.pax} pax)` : '';
+                const serviceParts = serviceName.split(', ');
+                serviceParts.forEach((part, idx) => {
+                    if (idx > 0) tdService.appendChild(document.createElement('br'));
+                    tdService.appendChild(document.createTextNode(part));
+                });
+                if (appt.pax > 1) {
+                    tdService.appendChild(document.createTextNode(` (${appt.pax} pax)`));
+                }
+
+                const tdTime = document.createElement('td');
+                tdTime.setAttribute('data-label', 'Time');
+                tdTime.textContent = appt.appointment_time || '—';
+
+                const tdStatus = document.createElement('td');
+                tdStatus.setAttribute('data-label', 'Status');
+                const badge = document.createElement('span');
+                badge.className = `status-badge ${String(appt.status || '').toLowerCase().replace(/\s+/g, '-')}`;
+                badge.textContent = appt.status;
+                tdStatus.appendChild(badge);
+
+                const tdAction = document.createElement('td');
+                tdAction.setAttribute('data-label', 'Action');
                 const isPending = appt.status === 'Pending Payment';
                 const isConfirmed = appt.status === 'Confirmed';
 
-                htmlContent += `
-                    <tr>
-                        <td data-label="Client"><strong>${appt.client_name || 'Guest'}</strong></td>
-                        <td data-label="Service" style="font-size: 0.85rem; line-height: 1.4;">${serviceName.split(', ').join('<br>')} ${paxLabel}</td>
-                        <td data-label="Time">${appt.appointment_time || '—'}</td>
-                        <td data-label="Status"><span class="status-badge ${appt.status.toLowerCase()}">${appt.status}</span></td>
-                        <td data-label="Action">
-                            ${isPending ? `<button class="action-btn" onclick="updateApptStatus(${appt.appointment_id}, 'Confirmed')">Confirm</button>` : ''}
-                            ${isConfirmed ? `<button class="action-btn" onclick="window.location.href='pos.html?appointment_id=${appt.appointment_id}'">Checkout POS</button>` : ''}
-                            ${isPending ? `<button class="action-btn" style="background:#dc3545;color:white;margin-left:5px;" onclick="updateApptStatus(${appt.appointment_id}, 'Cancelled')">Cancel</button>` : ''}
-                            ${!isPending && !isConfirmed ? '—' : ''}
-                        </td>
-                    </tr>
-                `;
+                if (isPending) {
+                    const btnConfirm = document.createElement('button');
+                    btnConfirm.className = 'action-btn';
+                    btnConfirm.textContent = 'Confirm';
+                    btnConfirm.onclick = () => updateApptStatus(appt.appointment_id, 'Confirmed');
+                    tdAction.appendChild(btnConfirm);
+
+                    const btnCancel = document.createElement('button');
+                    btnCancel.className = 'action-btn';
+                    btnCancel.style.backgroundColor = '#dc3545';
+                    btnCancel.style.color = '#fff';
+                    btnCancel.style.marginLeft = '5px';
+                    btnCancel.textContent = 'Cancel';
+                    btnCancel.onclick = () => updateApptStatus(appt.appointment_id, 'Cancelled');
+                    tdAction.appendChild(btnCancel);
+                } else if (isConfirmed) {
+                    const btnPos = document.createElement('button');
+                    btnPos.className = 'action-btn';
+                    btnPos.textContent = 'Checkout POS';
+                    btnPos.onclick = () => {
+                        window.location.href = `pos.html?appointment_id=${appt.appointment_id}`;
+                    };
+                    tdAction.appendChild(btnPos);
+                } else {
+                    tdAction.textContent = '—';
+                }
+
+                tr.appendChild(tdClient);
+                tr.appendChild(tdService);
+                tr.appendChild(tdTime);
+                tr.appendChild(tdStatus);
+                tr.appendChild(tdAction);
+                tbody.appendChild(tr);
             });
-            tbody.innerHTML = htmlContent;
         }
 
         async function updateApptStatus(id, newStatus) {
             const user = Auth.getUser();
             try {
-                const res = await fetch('/api/bookings/status', {
+                const res = await Auth.apiFetch('/api/bookings/status', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ appointment_id: id, status: newStatus })
                 });
+                if (!res) return;
                 const result = await res.json();
 
                 if (result.success) {
-                    console.log(`Appointment ${newStatus.toLowerCase()} successfully.`);
                     // Refresh data
                     loadDashboardData(user);
                 } else {
-                    console.log('Error: ' + result.message);
+                    alert('Error: ' + result.message);
                 }
             } catch (err) {
                 console.error('Update status error:', err);
-                console.log('Server connection failed.');
+                alert('Server connection failed.');
             }
         }
 

@@ -1,0 +1,40 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Booking confirmation</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; background:#f6f9fb; margin:0; padding:20px; }
+    .card { max-width:600px; margin:0 auto; background:#ffffff; border-radius:8px; padding:24px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+    .brand { color:#1a73e8; font-weight:700; font-size:20px; margin-bottom:8px; }
+    .hero { font-size:18px; color:#111; margin:4px 0 12px; }
+    .meta { color:#444; font-size:14px; line-height:1.5; }
+    .footer { color:#888; font-size:12px; margin-top:18px; }
+    .btn { display:inline-block; background:#1a73e8; color:#fff; padding:10px 16px; border-radius:6px; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">{{companyName}}</div>
+    <div class="hero">Hi {{clientName}},</div>
+
+    <div class="meta">
+      <p>Thanks for booking with {{companyName}}. Your appointment has been confirmed.</p>
+
+      <p><strong>Date:</strong> {{date}}<br>
+      <strong>Time:</strong> {{time}}<br>
+      <strong>Address:</strong> {{branchAddress}}<br>
+      <strong>Service/s:</strong> {{services}}</p>
+
+      <p><strong>Message:</strong> {{message}}</p>
+
+      <p>Please arrive 10-15 minutes early. If you need to reschedule, reply to this email or contact the branch directly.</p>
+
+      <p><a class="btn" href="{{bookingUrl}}">View your booking</a></p>
+    </div>
+
+    <div class="footer">If you did not make this booking, please contact {{companyName}} support.</div>
+  </div>
+</body>
+</html>

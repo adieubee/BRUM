@@ -1,4 +1,5 @@
 const { getPool, ensureSchema } = require('./_lib/db');
+const { requireAuth } = require('./_lib/auth');
 
 function safeProducts(value) {
     if (!value) return [];
@@ -18,9 +19,11 @@ module.exports = async function handler(req, res) {
     try {
         await ensureSchema();
 
-        // --- POST NEW POS TRANSACTION ---
+        // --- POST NEW POS TRANSACTION --- (staff or owner only)
         if (url.includes('/transaction')) {
             if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
+            const authUser = requireAuth(req, res, ['owner', 'staff']);
+            if (!authUser) return;
 
             const {
                 appointment_id, branch_id: requestedBranchId, service_price,
@@ -53,6 +56,12 @@ module.exports = async function handler(req, res) {
                 }
                 const staff = staffRows[0];
 
+                // Staff users can only process transactions for their own branch
+                if (authUser.role === 'staff' && Number(authUser.branch_id) !== Number(staff.branch_id)) {
+                    await connection.rollback();
+                    return res.status(403).json({ success: false, message: 'You can only process transactions for your own branch.' });
+                }
+
                 let appointment = null;
                 let branchId = requestedBranchId ? Number(requestedBranchId) : null;
                 if (appointment_id) {
@@ -76,6 +85,12 @@ module.exports = async function handler(req, res) {
                         return res.status(409).json({ success: false, message: 'Cancelled appointments cannot be checked out.' });
                     }
                     branchId = appointment.branch_id;
+
+                    // Staff can only checkout appointments from their own branch
+                    if (authUser.role === 'staff' && Number(authUser.branch_id) !== Number(branchId)) {
+                        await connection.rollback();
+                        return res.status(403).json({ success: false, message: 'You can only checkout appointments from your own branch.' });
+                    }
                 }
 
                 if (branchId && Number(staff.branch_id) !== Number(branchId)) {
@@ -153,6 +168,7 @@ module.exports = async function handler(req, res) {
                     );
                 }
 
+                // Store the FULL gross amount (including DP already paid) as revenue
                 const [financeResult] = await connection.query(`
                     INSERT INTO finance (
                         appointment_id, branch_id, staff_id, amount, amount_due,
@@ -192,9 +208,12 @@ module.exports = async function handler(req, res) {
             }
         }
 
-        // --- GET COMMISSIONS ---
+        // --- GET COMMISSIONS --- (owner only)
         if (url.includes('/commissions')) {
             if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'Method not allowed' });
+            const authUser = requireAuth(req, res, ['owner']);
+            if (!authUser) return;
+
             const { start_date, end_date } = req.query || {};
 
             const [staffRows] = await pool.query(`
@@ -263,7 +282,7 @@ module.exports = async function handler(req, res) {
                         if (!service) return;
                         const category = String(service.category || '').toLowerCase();
                         const name = String(service.name || '').toLowerCase();
-                        if (category.includes('combination') || category.includes('combo') || name.includes('combo') || name.includes('hydra')) {
+                        if (category.includes('combination') || category.includes('combo') || name.includes('combo')) {
                             stats.commission_services += 50;
                         }
                     });
@@ -291,9 +310,12 @@ module.exports = async function handler(req, res) {
             return res.status(200).json({ success: true, commissions: results });
         }
 
-        // --- GET ALL TRANSACTIONS ---
+        // --- GET ALL TRANSACTIONS --- (owner or staff — staff sees own branch only)
         if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'Method not allowed' });
-        const [rows] = await pool.query(`
+        const authUser = requireAuth(req, res, ['owner', 'staff']);
+        if (!authUser) return;
+
+        let query = `
             SELECT f.*, f.amount AS total_amount,
                    COALESCE(f.branch_id, a.branch_id) AS branch_id,
                    b.name AS branch_name,
@@ -302,8 +324,15 @@ module.exports = async function handler(req, res) {
             LEFT JOIN appointments a ON f.appointment_id = a.appointment_id
             LEFT JOIN branches b ON COALESCE(f.branch_id, a.branch_id) = b.branch_id
             LEFT JOIN users u ON f.staff_id = u.user_id
-            ORDER BY f.created_at DESC
-        `);
+        `;
+        const params = [];
+        if (authUser.role === 'staff' && authUser.branch_id) {
+            query += ' WHERE COALESCE(f.branch_id, a.branch_id) = ?';
+            params.push(authUser.branch_id);
+        }
+        query += ' ORDER BY f.created_at DESC';
+
+        const [rows] = await pool.query(query, params);
         return res.status(200).json({ success: true, transactions: rows });
     } catch (err) {
         console.error('Finance API error:', err);

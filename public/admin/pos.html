@@ -5,7 +5,7 @@
     <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BARBERS R US - Point of Sale</title>
+    <title>BARBER R US - Point of Sale</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -45,7 +45,7 @@
     <aside class="admin-sidebar">
         <div class="admin-brand">
             <div>
-                <span class="admin-logo-small">BARBERS R US</span>
+                <span class="admin-logo-small">BARBER R US</span>
                 <h2 class="admin-logo-large">Admin Portal</h2>
             </div>
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
@@ -165,6 +165,7 @@
                         <button onclick="calcType('C')" class="calc-clear">C</button>
                         <button onclick="calcType('0')">0</button>
                         <button onclick="calcType('00')">00</button>
+                        <button onclick="calcType('.')">.</button>
                     </div>
 
                     <div class="pos-change-row">
@@ -185,7 +186,7 @@
             <span class="close" onclick="closeReceipt()">&times;</span>
             <div class="receipt-header">
                 <img src="../assets/ICON.svg" alt="Logo" style="width: 50px; margin-bottom: 10px;">
-                <h2 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; margin: 0;">BARBERS R US</h2>
+                <h2 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; margin: 0;">BARBER R US</h2>
                 <p>Official Receipt</p>
             </div>
 
@@ -193,7 +194,7 @@
             </div>
 
             <div class="receipt-footer">
-                <p>Thank you for choosing Barbers R Us!</p>
+                <p>Thank you for choosing Barber R Us!</p>
                 <button class="action-btn no-print" onclick="window.print()"
                     style="margin-top: 15px; margin-right: 10px;"><i class="fas fa-print"></i> Print Receipt</button>
                 <button class="action-btn no-print" onclick="closeReceipt()" style="margin-top: 15px;">Close</button>
@@ -233,7 +234,8 @@
 
             try {
                 // Fetch Branches
-                const bRes = await fetch('/api/branches');
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (!bRes) return;
                 const bData = await bRes.json();
                 if (bData.success) {
                     branches = bData.branches;
@@ -244,7 +246,8 @@
                 };
 
                 // Fetch Staff for Commissions Dropdown
-                const sRes = await fetch('/api/users/staff');
+                const sRes = await Auth.apiFetch('/api/users/staff');
+                if (!sRes) return;
                 const sData = await sRes.json();
                 if (sData.success) {
                     allStaff = sData.staff;
@@ -257,8 +260,9 @@
                     });
                 }
 
-                // Fetch confirmed appointments (all branches)
-                const apptRes = await fetch('/api/bookings/branch');
+                // Fetch confirmed appointments
+                const apptRes = await Auth.apiFetch('/api/bookings/branch');
+                if (!apptRes) return;
                 const apptData = await apptRes.json();
 
                 const select = document.getElementById('apptSelect');
@@ -285,7 +289,8 @@
                 }
 
                 // Fetch global inventory
-                const invRes = await fetch('/api/inventory');
+                const invRes = await Auth.apiFetch('/api/inventory');
+                if (!invRes) return;
                 const invData = await invRes.json();
                 if (invData.success) {
                     allInventory = invData.inventory.filter(i => i.quantity > 0);
@@ -535,10 +540,13 @@
         function calcType(val) {
             if (val === 'C') {
                 currentCash = "";
+            } else if (val === '.') {
+                if (!currentCash.includes('.')) currentCash += '.';
             } else {
                 currentCash += val;
             }
-            document.getElementById('cashInput').value = currentCash ? `₱${currentCash}.00` : "";
+            const num = parseFloat(currentCash);
+            document.getElementById('cashInput').value = currentCash ? `₱${currentCash}` : "";
             calculateChange();
         }
 
@@ -596,46 +604,76 @@
             btn.textContent = 'Processing...';
 
             try {
-                const response = await fetch('/api/finance/transaction', {
+                const response = await Auth.apiFetch('/api/finance/transaction', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                if (!response) return;
                 const result = await response.json();
 
                 if (result.success) {
-                    // Build receipt
-                    let receiptHTML = `
-                        <div class="receipt-row"><span><strong>Client:</strong></span> <span>${clientName}</span></div>
-                        <div class="receipt-row"><span><strong>Service:</strong></span> <span>${serviceName}</span></div>
-                        <div class="receipt-row"><span>Service Cost:</span> <span>₱${servicePrice.toFixed(2)}</span></div>
-                        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 10px 0;">
-                    `;
+                    // Build receipt using safe DOM methods (no innerHTML with user data)
+                    const receiptBody = document.getElementById('receiptBody');
+                    receiptBody.innerHTML = '';
+
+                    function addReceiptRow(label, value, style) {
+                        const div = document.createElement('div');
+                        div.className = 'receipt-row';
+                        if (style) div.setAttribute('style', style);
+                        const lbl = document.createElement('span');
+                        lbl.textContent = label;
+                        const val = document.createElement('span');
+                        val.textContent = value;
+                        div.appendChild(lbl);
+                        div.appendChild(val);
+                        receiptBody.appendChild(div);
+                    }
+                    function addHr() {
+                        const hr = document.createElement('hr');
+                        hr.style.cssText = 'border:0;border-top:1px dashed #ccc;margin:10px 0;';
+                        receiptBody.appendChild(hr);
+                    }
+
+                    // Receipt metadata
+                    addReceiptRow('Receipt #:', result.transaction_id);
+                    addReceiptRow('Date:', new Date().toLocaleDateString('en-PH', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}));
+                    addHr();
+                    if (clientName) addReceiptRow('Client:', clientName);
+                    if (serviceName) addReceiptRow('Service:', serviceName);
+                    addReceiptRow('Service Cost:', `₱${servicePrice.toFixed(2)}`);
+                    addHr();
 
                     if (addedProducts.length > 0) {
-                        receiptHTML += `<div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 5px;">Products:</div>`;
+                        const prodLabel = document.createElement('div');
+                        prodLabel.style.cssText = 'font-size:0.8rem;font-weight:bold;margin-bottom:5px;';
+                        prodLabel.textContent = 'Products:';
+                        receiptBody.appendChild(prodLabel);
                         addedProducts.forEach(p => {
-                            receiptHTML += `<div class="receipt-row"><span>${p.item_name} (x${p.quantity})</span> <span>₱${(p.price_each * p.quantity).toFixed(2)}</span></div>`;
+                            addReceiptRow(`${p.item_name} (x${p.quantity})`, `₱${(p.price_each * p.quantity).toFixed(2)}`);
                         });
-                        receiptHTML += `<hr style="border: 0; border-top: 1px dashed #ccc; margin: 10px 0;">`;
+                        addHr();
                     }
 
                     if (dpPaid > 0) {
-                        receiptHTML += `<div class="receipt-row" style="color: #2e7d32;"><span>Down Payment (Online):</span> <span>-₱${dpPaid.toFixed(2)}</span></div>`;
-                        if (dpCredit > 0) {
-                            receiptHTML += `<div class="receipt-row" style="color: #0277bd;"><span>DP Overpayment Credit:</span> <span>₱${dpCredit.toFixed(2)}</span></div>`;
-                        }
-                        receiptHTML += `<hr style="border: 0; border-top: 1px dashed #ccc; margin: 10px 0;">`;
+                        addReceiptRow('Down Payment (Online):', `-₱${dpPaid.toFixed(2)}`, 'color:#2e7d32');
+                        if (dpCredit > 0) addReceiptRow('DP Overpayment Credit:', `₱${dpCredit.toFixed(2)}`, 'color:#0277bd');
+                        addHr();
                     }
 
-                    receiptHTML += `
-                        <div class="receipt-row" style="font-weight: 800; font-size: 1.1rem;"><span>BALANCE DUE:</span> <span>₱${currentTotal.toFixed(2)}</span></div>
-                        <div class="receipt-row"><span>Cash:</span> <span>₱${cash.toFixed(2)}</span></div>
-                        <div class="receipt-row"><span>Change:</span> <span>₱${change.toFixed(2)}</span></div>
-                        <div class="receipt-row" style="margin-top: 10px; font-size: 0.8rem; color: #999;"><span>Processed by:</span> <span>${currentUser.name}</span></div>
-                    `;
+                    addReceiptRow('BALANCE DUE:', `₱${currentTotal.toFixed(2)}`, 'font-weight:800;font-size:1.1rem;');
+                    addReceiptRow('Cash:', `₱${cash.toFixed(2)}`);
+                    addReceiptRow('Change:', `₱${change.toFixed(2)}`);
+                    const staffRow = document.createElement('div');
+                    staffRow.className = 'receipt-row';
+                    staffRow.style.cssText = 'margin-top:10px;font-size:0.8rem;color:#999;';
+                    const staffLbl = document.createElement('span');
+                    staffLbl.textContent = 'Processed by:';
+                    const staffVal = document.createElement('span');
+                    staffVal.textContent = currentUser.name;
+                    staffRow.appendChild(staffLbl);
+                    staffRow.appendChild(staffVal);
+                    receiptBody.appendChild(staffRow);
 
-                    document.getElementById('receiptBody').innerHTML = receiptHTML;
                     document.getElementById('receiptModal').style.display = 'flex';
                 } else {
                     alert('Error: ' + result.message);

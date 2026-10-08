@@ -5,7 +5,7 @@
     <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BARBERS R US - Staff Management</title>
+    <title>BARBER R US - Staff Management</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
@@ -15,7 +15,7 @@
     <aside class="admin-sidebar">
         <div class="admin-brand">
             <div>
-                <span class="admin-logo-small">BARBERS R US</span>
+                <span class="admin-logo-small">BARBER R US</span>
                 <h2 class="admin-logo-large">Admin Portal</h2>
             </div>
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
@@ -168,13 +168,14 @@
             const user = Auth.getUser();
             if (!user || user.role !== 'owner') {
                 console.log('Access Denied. Owner only.');
-                window.location.href = '../login.html';
+                window.location.href = user ? '../login.html?error=staff_access' : '../login.html';
                 return;
             }
 
             try {
                 // Fetch Branches
-                const bRes = await fetch('/api/branches');
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (!bRes) return;
                 const bData = await bRes.json();
 
                 const branchFilter = document.getElementById('branchFilter');
@@ -211,7 +212,8 @@
 
         async function fetchStaff() {
             try {
-                const res = await fetch('/api/users/staff');
+                const res = await Auth.apiFetch('/api/users/staff');
+                if (!res) return;
                 const data = await res.json();
                 if (data.success) {
                     allStaff = data.staff;
@@ -255,22 +257,55 @@
             filteredStaff.forEach((staff, idx) => {
                 const branchName = getBranchName(staff.branch_id);
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td data-label="#">${idx + 1}</td>
-                    <td data-label="Name"><strong>${staff.name}</strong></td>
-                    <td data-label="Username">${staff.username || '—'}</td>
-                    <td data-label="Branch">${branchName}</td>
-                    <td data-label="Role"><span class="status-badge confirmed">Staff</span></td>
-                    <td data-label="Status"><span class="status-badge confirmed">Active</span></td>
-                    <td data-label="Action">
-                        <button class="action-btn" style="background: #B8892D; color: white;" onclick="openEditStaffModal(${staff.id})">
-                            Edit
-                        </button>
-                        <button class="action-btn" style="background: #dc3545; color: white; margin-left: 5px;" onclick="console.log('Deactivation pending database support.')">
-                            Deactivate
-                        </button>
-                    </td>
-                `;
+
+                const idxTd = document.createElement('td');
+                idxTd.setAttribute('data-label', '#');
+                idxTd.textContent = idx + 1;
+
+                const nameTd = document.createElement('td');
+                nameTd.setAttribute('data-label', 'Name');
+                const strong = document.createElement('strong');
+                strong.textContent = staff.name;
+                nameTd.appendChild(strong);
+
+                const usernameTd = document.createElement('td');
+                usernameTd.setAttribute('data-label', 'Username');
+                usernameTd.textContent = staff.username || '—';
+
+                const branchTd = document.createElement('td');
+                branchTd.setAttribute('data-label', 'Branch');
+                branchTd.textContent = branchName;
+
+                const roleTd = document.createElement('td');
+                roleTd.setAttribute('data-label', 'Role');
+                const roleBadge = document.createElement('span');
+                roleBadge.className = 'status-badge confirmed';
+                roleBadge.textContent = 'Staff';
+                roleTd.appendChild(roleBadge);
+
+                const statusTd = document.createElement('td');
+                statusTd.setAttribute('data-label', 'Status');
+                const statusBadge = document.createElement('span');
+                statusBadge.className = 'status-badge confirmed';
+                statusBadge.textContent = 'Active';
+                statusTd.appendChild(statusBadge);
+
+                const actionTd = document.createElement('td');
+                actionTd.setAttribute('data-label', 'Action');
+                const editBtn = document.createElement('button');
+                editBtn.className = 'action-btn';
+                editBtn.style.cssText = 'background:#B8892D;color:white;';
+                editBtn.textContent = 'Edit';
+                editBtn.addEventListener('click', () => openEditStaffModal(staff.id));
+                actionTd.appendChild(editBtn);
+
+                row.appendChild(idxTd);
+                row.appendChild(nameTd);
+                row.appendChild(usernameTd);
+                row.appendChild(branchTd);
+                row.appendChild(roleTd);
+                row.appendChild(statusTd);
+                row.appendChild(actionTd);
                 tableBody.appendChild(row);
             });
         }
@@ -317,20 +352,19 @@
             btn.textContent = 'Saving...';
 
             try {
-                const res = await fetch('/api/users/update', {
+                const res = await Auth.apiFetch('/api/users/update', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id, name, username, branch_id })
                 });
-
+                if (!res) return;
                 const data = await res.json();
 
                 if (data.success) {
-                    console.log('Staff member updated successfully!');
+                    alert('Staff member updated successfully!');
                     closeEditStaffModal();
-                    await fetchStaff(); // reload table
+                    await fetchStaff();
                 } else {
-                    console.log('Error: ' + data.message);
+                    alert('Error: ' + data.message);
                 }
             } catch (err) {
                 console.error("Update staff error:", err);
@@ -354,20 +388,19 @@
             btn.textContent = 'Saving...';
 
             try {
-                const res = await fetch('/api/users/staff', {
+                const res = await Auth.apiFetch('/api/users/staff', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, username, password, branch_id })
                 });
-
+                if (!res) return;
                 const data = await res.json();
 
                 if (data.success) {
-                    console.log('Staff member created successfully!');
+                    alert('Staff member created successfully!');
                     closeAddStaffModal();
-                    await fetchStaff(); // reload table
+                    await fetchStaff();
                 } else {
-                    console.log('Error: ' + data.message);
+                    alert('Error: ' + data.message);
                 }
             } catch (err) {
                 console.error("Create staff error:", err);

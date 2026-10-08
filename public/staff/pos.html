@@ -212,64 +212,67 @@
             currentUser = Auth.getUser();
             if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'owner')) {
                 console.log('Access Denied. Staff/Owner only.');
-                window.location.href = '../login.html';
+                window.location.href = '../login.html?error=staff_access';
                 return;
             }
 
             try {
                 // Fetch Branch Name
-                const bRes = await fetch('/api/branches');
-                const bData = await bRes.json();
-                if (bData.success) {
-                    const branch = bData.branches.find(b => b.branch_id === currentUser.branch_id);
-                    document.getElementById('branchName').textContent = branch ? branch.name : 'All Branches';
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (bRes) {
+                    const bData = await bRes.json();
+                    if (bData.success) {
+                        const branch = (bData.branches || []).find(b => b.branch_id === currentUser.branch_id);
+                        document.getElementById('branchName').textContent = branch ? branch.name : 'All Branches';
+                    }
                 }
 
                 const apiSuffix = currentUser.branch_id ? `?branch_id=${currentUser.branch_id}` : '';
 
                 // Fetch confirmed appointments for this branch
-                const apptRes = await fetch(`/api/bookings/branch${apiSuffix}`);
-                const apptData = await apptRes.json();
+                const apptRes = await Auth.apiFetch(`/api/bookings/branch${apiSuffix}`);
+                if (apptRes) {
+                    const apptData = await apptRes.json();
+                    const select = document.getElementById('apptSelect');
+                    if (apptData.success) {
+                        confirmedAppts = (apptData.appointments || []).filter(a => a.status === 'Confirmed');
 
-                const select = document.getElementById('apptSelect');
-                if (apptData.success) {
-                    confirmedAppts = apptData.appointments.filter(a => a.status === 'Confirmed');
-
-                    if (confirmedAppts.length === 0) {
-                        const opt = document.createElement('option');
-                        opt.value = '';
-                        opt.textContent = 'No confirmed appointments available';
-                        opt.disabled = true;
-                        select.appendChild(opt);
-                    } else {
-                        confirmedAppts.forEach(appt => {
+                        if (confirmedAppts.length === 0) {
                             const opt = document.createElement('option');
-                            opt.value = appt.appointment_id;
-                            const paxTag = appt.pax > 1 ? ` (${appt.pax} pax)` : '';
-                            const svcDisplay = appt.all_service_names || appt.service_name;
-                            opt.textContent = `${appt.client_name || 'Guest'} — ${svcDisplay}${paxTag} (${appt.appointment_date.split('T')[0]})`;
+                            opt.value = '';
+                            opt.textContent = 'No confirmed appointments available';
+                            opt.disabled = true;
                             select.appendChild(opt);
-                        });
+                        } else {
+                            confirmedAppts.forEach(appt => {
+                                const opt = document.createElement('option');
+                                opt.value = appt.appointment_id;
+                                const paxTag = appt.pax > 1 ? ` (${appt.pax} pax)` : '';
+                                const svcDisplay = appt.all_service_names || appt.service_name || 'Service';
+                                opt.textContent = `${appt.client_name || 'Guest'} — ${svcDisplay}${paxTag} (${(appt.appointment_date || '').split('T')[0]})`;
+                                select.appendChild(opt);
+                            });
+                        }
                     }
                 }
 
                 // Fetch branch inventory for products
-                const invRes = await fetch(`/api/inventory${apiSuffix}`);
-                const invData = await invRes.json();
-                if (invData.success) {
-                    branchInventory = invData.inventory.filter(i => i.quantity > 0);
-                    const prodSelect = document.getElementById('productSelect');
-                    branchInventory.forEach(item => {
-                        const opt = document.createElement('option');
-                        // Assume standard ₱150 price per item for this example if pricing not in DB
-                        // Or if inventory has a price column, use it. Here we use 150 as default mock.
-                        const mockPrice = parseFloat(item.price) || 0;
-                        opt.value = item.inventory_id;
-                        opt.setAttribute('data-name', item.item_name);
-                        opt.setAttribute('data-price', mockPrice);
-                        opt.textContent = `${item.item_name} (Qty: ${item.quantity}) - ₱${mockPrice}`;
-                        prodSelect.appendChild(opt);
-                    });
+                const invRes = await Auth.apiFetch(`/api/inventory${apiSuffix}`);
+                if (invRes) {
+                    const invData = await invRes.json();
+                    if (invData.success) {
+                        branchInventory = (invData.inventory || []).filter(i => i.quantity > 0);
+                        const prodSelect = document.getElementById('productSelect');
+                        branchInventory.forEach(item => {
+                            const opt = document.createElement('option');
+                            const mockPrice = parseFloat(item.price) || 0;
+                            opt.value = item.inventory_id;
+                            opt.setAttribute('data-name', item.item_name);
+                            opt.setAttribute('data-price', mockPrice);
+                            opt.textContent = `${item.item_name} (Qty: ${item.quantity}) - ₱${mockPrice}`;
+                            prodSelect.appendChild(opt);
+                        });
+                    }
                 }
 
                 // Check for auto-select from URL
@@ -388,13 +391,27 @@
                 li.style.justifyContent = 'space-between';
                 li.style.alignItems = 'center';
                 li.style.marginBottom = '8px';
-                li.innerHTML = `
-                    <span>${p.item_name} (x${p.quantity})</span> 
-                    <div style="display: flex; align-items: center;">
-                        <span>₱${(p.price_each * p.quantity).toFixed(2)}</span>
-                        <button onclick="removeProduct('${p.inventory_id}')" style="background: #dc3545; color: white; border: none; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; margin-left: 10px; display: inline-flex; align-items: center; justify-content: center; transition: background 0.2s;" onmouseover="this.style.background='#a71d2a'" onmouseout="this.style.background='#dc3545'" title="Remove Item"><i class="fas fa-times"></i></button>
-                    </div>
-                `;
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = `${p.item_name} (x${p.quantity})`;
+
+                const rightDiv = document.createElement('div');
+                rightDiv.style.display = 'flex';
+                rightDiv.style.alignItems = 'center';
+
+                const priceSpan = document.createElement('span');
+                priceSpan.textContent = `₱${(p.price_each * p.quantity).toFixed(2)}`;
+
+                const btn = document.createElement('button');
+                btn.style.cssText = 'background: #dc3545; color: white; border: none; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; margin-left: 10px; display: inline-flex; align-items: center; justify-content: center; transition: background 0.2s;';
+                btn.innerHTML = '<i class="fas fa-times"></i>';
+                btn.title = 'Remove Item';
+                btn.onclick = () => removeProduct(p.inventory_id);
+
+                rightDiv.appendChild(priceSpan);
+                rightDiv.appendChild(btn);
+                li.appendChild(nameSpan);
+                li.appendChild(rightDiv);
                 ul.appendChild(li);
             });
         }
@@ -498,46 +515,84 @@
             btn.textContent = 'Processing...';
 
             try {
-                const response = await fetch('/api/finance/transaction', {
+                const response = await Auth.apiFetch('/api/finance/transaction', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                if (!response) {
+                    btn.disabled = false;
+                    btn.textContent = 'Process Checkout';
+                    return;
+                }
                 const result = await response.json();
 
                 if (result.success) {
-                    // Build receipt
-                    let receiptHTML = `
-                        <div class="receipt-row"><span><strong>Client:</strong></span> <span>${clientName}</span></div>
-                        <div class="receipt-row"><span><strong>Service:</strong></span> <span>${serviceName}</span></div>
-                        <div class="receipt-row"><span>Service Cost:</span> <span>₱${servicePrice.toFixed(2)}</span></div>
-                        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 10px 0;">
-                    `;
+                    // Build receipt using safe DOM elements
+                    const receiptBody = document.getElementById('receiptBody');
+                    receiptBody.innerHTML = '';
+
+                    function addReceiptRow(label, value, style) {
+                        const div = document.createElement('div');
+                        div.className = 'receipt-row';
+                        if (style) div.setAttribute('style', style);
+                        const lbl = document.createElement('span');
+                        lbl.textContent = label;
+                        const val = document.createElement('span');
+                        val.textContent = value;
+                        div.appendChild(lbl);
+                        div.appendChild(val);
+                        receiptBody.appendChild(div);
+                    }
+                    function addHr() {
+                        const hr = document.createElement('hr');
+                        hr.style.cssText = 'border: 0; border-top: 1px dashed #ccc; margin: 10px 0;';
+                        receiptBody.appendChild(hr);
+                    }
+
+                    if (result.transaction_id) {
+                        addReceiptRow('Receipt #:', String(result.transaction_id));
+                        addHr();
+                    }
+                    if (clientName) addReceiptRow('Client:', clientName);
+                    if (serviceName) addReceiptRow('Service:', serviceName);
+                    addReceiptRow('Service Cost:', `₱${servicePrice.toFixed(2)}`);
+                    addHr();
 
                     if (addedProducts.length > 0) {
-                        receiptHTML += `<div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 5px;">Products:</div>`;
+                        const prodLabel = document.createElement('div');
+                        prodLabel.style.cssText = 'font-size: 0.8rem; font-weight: bold; margin-bottom: 5px;';
+                        prodLabel.textContent = 'Products:';
+                        receiptBody.appendChild(prodLabel);
                         addedProducts.forEach(p => {
-                            receiptHTML += `<div class="receipt-row"><span>${p.item_name} (x${p.quantity})</span> <span>₱${(p.price_each * p.quantity).toFixed(2)}</span></div>`;
+                            addReceiptRow(`${p.item_name} (x${p.quantity})`, `₱${(p.price_each * p.quantity).toFixed(2)}`);
                         });
-                        receiptHTML += `<hr style="border: 0; border-top: 1px dashed #ccc; margin: 10px 0;">`;
+                        addHr();
                     }
 
                     if (dpPaid > 0) {
-                        receiptHTML += `<div class="receipt-row" style="color: #2e7d32;"><span>Down Payment (Online):</span> <span>-₱${dpPaid.toFixed(2)}</span></div>`;
+                        addReceiptRow('Down Payment (Online):', `-₱${dpPaid.toFixed(2)}`, 'color: #2e7d32;');
                         if (dpCredit > 0) {
-                            receiptHTML += `<div class="receipt-row" style="color: #0277bd;"><span>DP Overpayment Credit:</span> <span>₱${dpCredit.toFixed(2)}</span></div>`;
+                            addReceiptRow('DP Overpayment Credit:', `₱${dpCredit.toFixed(2)}`, 'color: #0277bd;');
                         }
-                        receiptHTML += `<hr style="border: 0; border-top: 1px dashed #ccc; margin: 10px 0;">`;
+                        addHr();
                     }
 
-                    receiptHTML += `
-                        <div class="receipt-row" style="font-weight: 800; font-size: 1.1rem;"><span>BALANCE DUE:</span> <span>₱${currentTotal.toFixed(2)}</span></div>
-                        <div class="receipt-row"><span>Cash:</span> <span>₱${cash.toFixed(2)}</span></div>
-                        <div class="receipt-row"><span>Change:</span> <span>₱${change.toFixed(2)}</span></div>
-                        <div class="receipt-row" style="margin-top: 10px; font-size: 0.8rem; color: #999;"><span>Processed by:</span> <span>${currentUser.name}</span></div>
-                    `;
+                    const balRow = document.createElement('div');
+                    balRow.className = 'receipt-row';
+                    balRow.style.cssText = 'font-weight: 800; font-size: 1.1rem;';
+                    const balLbl = document.createElement('span');
+                    balLbl.textContent = 'BALANCE DUE:';
+                    const balVal = document.createElement('span');
+                    balVal.textContent = `₱${currentTotal.toFixed(2)}`;
+                    balRow.appendChild(balLbl);
+                    balRow.appendChild(balVal);
+                    receiptBody.appendChild(balRow);
 
-                    document.getElementById('receiptBody').innerHTML = receiptHTML;
+                    addReceiptRow('Cash:', `₱${cash.toFixed(2)}`);
+                    addReceiptRow('Change:', `₱${change.toFixed(2)}`);
+                    addReceiptRow('Processed by:', currentUser.name || 'Staff', 'margin-top: 10px; font-size: 0.8rem; color: #999;');
+
                     document.getElementById('receiptModal').style.display = 'flex';
                 } else {
                     alert('Error: ' + result.message);

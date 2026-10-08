@@ -326,7 +326,7 @@
                         </div>
 
                         <div class="line-input-group">
-                            <label for="tech">Preferred Dermatechnician*</label>
+                            <label for="tech">Preferred Barber*</label>
                             <select id="tech" required>
                                 <option value="" disabled selected>Select Branch First</option>
                             </select>
@@ -349,7 +349,7 @@
                             <p><strong>Name:</strong> <span id="confName"></span></p>
                             <p><strong>Date & Time:</strong> <span id="confDateTime"></span></p>
                             <p><strong># of People:</strong> <span id="confPeople"></span></p>
-                            <p><strong>Preferred Dermatechnician:</strong> <span id="confTech"></span></p>
+                            <p><strong>Preferred Barber:</strong> <span id="confTech"></span></p>
                             <p><strong>Branch:</strong> <span id="confBranch"></span></p>
                             <p><strong>Message:</strong> <span id="confMessage"></span></p>
                         </div>
@@ -558,29 +558,22 @@
                     document.querySelector('.pax-panel-header').style.display = 'none';
                 }
 
-                // Handle picking a branch -> Fetches the staff for that branch
-                branchSelect.addEventListener('change', async (e) => {
-                    techSelect.innerHTML = '<option value="" disabled selected>Loading staff...</option>';
-                    try {
-                        const staffRes = await fetch('/api/users/staff');
-                        const staffData = await staffRes.json();
-                        techSelect.innerHTML = '<option value="" disabled selected>Select Dermatechnician</option>';
+                // Handle picking a branch -> Populates the staff for that branch
+                branchSelect.addEventListener('change', (e) => {
+                    techSelect.innerHTML = '<option value="" disabled selected>Select Barber</option>';
+                    // "No Preference" option
+                    const noPref = document.createElement('option');
+                    noPref.value = '0';
+                    noPref.textContent = 'No Preference';
+                    techSelect.appendChild(noPref);
 
-                        // "No Preference" option
-                        techSelect.innerHTML += '<option value="0">No Preference</option>';
-
-                        if (staffData.success && staffData.staff.length > 0) {
-                            staffData.staff.forEach(staffMem => {
-                                // Filter by branch_id matches branchSelect value
-                                if (String(staffMem.branch_id) === String(e.target.value)) {
-                                    techSelect.innerHTML += `<option value="${staffMem.staff_id}">${staffMem.name}</option>`;
-                                }
-                            });
-                        }
-                    } catch (err) {
-                        console.error("Error loading branch staff:", err);
-                        techSelect.innerHTML = '<option value="" disabled selected>Error loading staff</option>';
-                    }
+                    const branchStaff = (formData.staff || []).filter(s => String(s.branch_id) === String(e.target.value));
+                    branchStaff.forEach(staffMem => {
+                        const opt = document.createElement('option');
+                        opt.value = staffMem.staff_id;
+                        opt.textContent = staffMem.staff_name || staffMem.name;
+                        techSelect.appendChild(opt);
+                    });
                 });
 
                 // Pre-fill from URL params
@@ -656,6 +649,12 @@
             }
         });
 
+        function getSelectedServiceIds() {
+            return Array.from(document.querySelectorAll('.service-select'))
+                .map(sel => String(sel.value || '').trim())
+                .filter(val => val && val !== '0');
+        }
+
         // Global helper: Add another service <select> inside a person's panel
         function addServiceToPanel(btn) {
             const panel = btn.closest('.pax-panel');
@@ -678,6 +677,16 @@
         // Step 1 → Step 2: Show confirmation
         document.getElementById('bookingForm').addEventListener('submit', function (event) {
             event.preventDefault();
+
+            const serviceIds = getSelectedServiceIds();
+            const branchId = document.getElementById('branch').value;
+            const dateValue = document.getElementById('date').value;
+            const timeValue = document.getElementById('time').value;
+
+            if (!branchId || !dateValue || !timeValue || !serviceIds.length) {
+                alert('Please complete branch, service, date, and time before continuing.');
+                return;
+            }
 
             // Validate all services are selected
             const serviceSelects = document.querySelectorAll('.service-select');
@@ -771,6 +780,16 @@
 
         // Step 2 Submit: Show Modal Pop-up
         document.getElementById('proceedPaymentBtn').addEventListener('click', function () {
+            const serviceIds = getSelectedServiceIds();
+            const branchId = document.getElementById('branch').value;
+            const dateValue = document.getElementById('date').value;
+            const timeValue = document.getElementById('time').value;
+
+            if (!branchId || !dateValue || !timeValue || !serviceIds.length) {
+                alert('Please complete branch, service, date, and time before proceeding to payment.');
+                return;
+            }
+
             const serviceSelects = document.querySelectorAll('.service-select');
             let basePriceSum = 0;
             let finalDp = 0;
@@ -801,23 +820,30 @@
             const user = Auth.getUser();
             if (!user) return;
 
+            const serviceIds = getSelectedServiceIds();
+            const branchId = document.getElementById('branch').value;
+            const dateValue = document.getElementById('date').value;
+            const timeValue = document.getElementById('time').value;
+
+            if (!branchId || !dateValue || !timeValue || !serviceIds.length) {
+                document.getElementById('paymentModal').style.display = 'none';
+                alert('Please complete branch, service, date, and time before payment.');
+                return;
+            }
+
             // Show loading state
             document.getElementById('modalContentConfirm').style.display = 'none';
             document.getElementById('modalContentLoading').style.display = 'block';
 
-            // Collect all service_ids (flattened from all panels, filter empty)
-            const serviceSelects = document.querySelectorAll('.service-select');
-            const service_ids = Array.from(serviceSelects).map(sel => sel.value).filter(v => v);
             const pax = parseInt(document.getElementById('people').value);
-
             const payload = {
                 client_id: user.id,
-                branch_id: document.getElementById('branch').value,
-                service_ids: service_ids,
+                branch_id: branchId,
+                service_ids: serviceIds,
                 pax: pax,
                 staff_id: document.getElementById('tech').value || null,
-                date: document.getElementById('date').value,
-                time: document.getElementById('time').value,
+                date: dateValue,
+                time: timeValue,
                 message: document.getElementById('message').value || ''
             };
 

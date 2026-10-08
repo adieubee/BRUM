@@ -5,7 +5,7 @@
     <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BARBERS R US - Admin Portal</title>
+    <title>BARBER R US - Admin Portal</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
@@ -15,7 +15,7 @@
     <aside class="admin-sidebar">
         <div class="admin-brand">
             <div>
-                <span class="admin-logo-small">BARBERS R US</span>
+                <span class="admin-logo-small">BARBER R US</span>
                 <h2 class="admin-logo-large">Admin Portal</h2>
             </div>
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
@@ -182,8 +182,8 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const user = Auth.getUser();
             if (!user || user.role === 'client') {
-                console.log('Access Denied. Staff/Owner only.');
-                window.location.href = '../login.html';
+                console.warn('Access denied. Staff/Owner only.');
+                window.location.href = '../login.html?error=admin_access';
                 return;
             }
 
@@ -198,7 +198,8 @@
             try {
                 // Fetch Branches for naming reference
                 let branches = [];
-                const bRes = await fetch('/api/branches');
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (!bRes) return;
                 const bData = await bRes.json();
                 if (bData.success) {
                     branches = bData.branches;
@@ -209,7 +210,8 @@
                 };
 
                 // Fetch All Appointments
-                const apptRes = await fetch('/api/bookings/branch'); // No branch_id = all
+                const apptRes = await Auth.apiFetch('/api/bookings/branch');
+                if (!apptRes) return;
                 const apptData = await apptRes.json();
 
                 if (apptData.success) {
@@ -217,12 +219,26 @@
 
                     // Local Date YYYY-MM-DD
                     const today = new Date().toLocaleDateString('en-CA');
+
+                    // This-week range (Mon-Sun)
+                    const now = new Date();
+                    const dayOfWeek = now.getDay();
+                    const startOfWeek = new Date(now);
+                    startOfWeek.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                    startOfWeek.setHours(0, 0, 0, 0);
+
                     const todayAppts = appointments.filter(a => {
                         return a.appointment_date && a.appointment_date.split('T')[0] === today;
                     });
-
-                    const pendingAppts = appointments.filter(a => a.status === 'Pending Payment');
-                    const completedAppts = appointments.filter(a => a.status === 'Completed');
+                    const pendingAppts = appointments.filter(a =>
+                        a.status === 'Pending Payment' || a.status === 'Pending Reschedule'
+                    );
+                    const completedAppts = appointments.filter(a => {
+                        if (a.status !== 'Completed') return false;
+                        // Use appointment_date for "this week" filter
+                        const d = a.appointment_date ? new Date(a.appointment_date.split('T')[0]) : null;
+                        return d && d >= startOfWeek;
+                    });
 
                     document.getElementById('countToday').textContent = todayAppts.length;
                     document.getElementById('countPending').textContent = pendingAppts.length;
@@ -232,32 +248,64 @@
                     const tbody = document.getElementById('recentAppointmentsBody');
                     tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner-container"><div class="spinner"></div></div></td></tr>';
                     if (appointments.length > 0) {
-                        // Sort newest first
                         const sorted = [...appointments].sort((a, b) => b.appointment_id - a.appointment_id).slice(0, 5);
-                        tbody.innerHTML = sorted.map(appt => {
+                        tbody.innerHTML = '';
+                        sorted.forEach(appt => {
                             const serviceName = appt.all_service_names || appt.service_name || 'Unknown';
                             const paxLabel = appt.pax > 1 ? ` (${appt.pax} pax)` : '';
                             const branchName = getBranchName(appt.branch_id);
-                            const statusClass = appt.status.toLowerCase();
-                            const formattedDate = appt.appointment_date.split('T')[0];
-                            return `
-                                <tr>
-                                    <td data-label="Client">${appt.client_name || 'Guest'}</td>
-                                    <td data-label="Service" style="font-size: 0.85rem; line-height: 1.4;">${serviceName.split(', ').join('<br>')} ${paxLabel}</td>
-                                    <td data-label="Branch">${branchName}</td>
-                                    <td data-label="Date">${formattedDate}</td>
-                                    <td data-label="Time">${appt.appointment_time || '—'}</td>
-                                    <td data-label="Status"><span class="status-badge ${statusClass}">${appt.status}</span></td>
-                                </tr>
-                            `;
-                        }).join('');
+                            const statusClass = (appt.status || '').toLowerCase().replace(/\s+/g, '-');
+                            const formattedDate = appt.appointment_date ? appt.appointment_date.split('T')[0] : '';
+
+                            const tr = document.createElement('tr');
+
+                            const clientTd = document.createElement('td');
+                            clientTd.setAttribute('data-label', 'Client');
+                            clientTd.textContent = appt.client_name || 'Guest';
+
+                            const svcTd = document.createElement('td');
+                            svcTd.setAttribute('data-label', 'Service');
+                            svcTd.style.cssText = 'font-size:0.85rem;line-height:1.4;';
+                            serviceName.split(', ').forEach((s, i, arr) => {
+                                svcTd.appendChild(document.createTextNode(s + (paxLabel && i === arr.length - 1 ? paxLabel : '')));
+                                if (i < arr.length - 1) svcTd.appendChild(document.createElement('br'));
+                            });
+
+                            const branchTd = document.createElement('td');
+                            branchTd.setAttribute('data-label', 'Branch');
+                            branchTd.textContent = branchName;
+
+                            const dateTd = document.createElement('td');
+                            dateTd.setAttribute('data-label', 'Date');
+                            dateTd.textContent = formattedDate;
+
+                            const timeTd = document.createElement('td');
+                            timeTd.setAttribute('data-label', 'Time');
+                            timeTd.textContent = appt.appointment_time || '—';
+
+                            const statusTd = document.createElement('td');
+                            statusTd.setAttribute('data-label', 'Status');
+                            const badge = document.createElement('span');
+                            badge.className = `status-badge ${statusClass}`;
+                            badge.textContent = appt.status;
+                            statusTd.appendChild(badge);
+
+                            tr.appendChild(clientTd);
+                            tr.appendChild(svcTd);
+                            tr.appendChild(branchTd);
+                            tr.appendChild(dateTd);
+                            tr.appendChild(timeTd);
+                            tr.appendChild(statusTd);
+                            tbody.appendChild(tr);
+                        });
                     } else {
                         tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #999;">No recent appointments found.</td></tr>`;
                     }
                 }
 
                 // Fetch All Inventory
-                const invRes = await fetch('/api/inventory'); // No branch_id = all
+                const invRes = await Auth.apiFetch('/api/inventory');
+                if (!invRes) return;
                 const invData = await invRes.json();
 
                 if (invData.success) {
@@ -266,22 +314,45 @@
 
                     document.getElementById('countLowStock').textContent = lowStockItems.length;
 
-                    // Render low stock items
                     const lowStockBody = document.getElementById('lowStockBody');
                     if (lowStockItems.length > 0) {
-                        lowStockBody.innerHTML = lowStockItems.map(item => {
+                        lowStockBody.innerHTML = '';
+                        lowStockItems.forEach(item => {
                             const branchName = getBranchName(item.branch_id);
-                            const statusClass = item.quantity < 3 ? 'cancelled' : 'pending';
-                            const statusText = item.quantity < 3 ? 'Critical' : 'Low Stock';
-                            return `
-                                <tr>
-                                    <td data-label="Item">${item.item_name}</td>
-                                    <td data-label="Branch">${branchName}</td>
-                                    <td data-label="Stock"><strong style="color: #d9534f;">${item.quantity}</strong></td>
-                                    <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
-                                </tr>
-                            `;
-                        }).join('');
+                            const isCritical = item.quantity < 3;
+                            const statusClass = isCritical ? 'cancelled' : 'pending-payment';
+                            const statusText = isCritical ? 'Critical' : 'Low Stock';
+
+                            const tr = document.createElement('tr');
+
+                            const nameTd = document.createElement('td');
+                            nameTd.setAttribute('data-label', 'Item');
+                            nameTd.textContent = item.item_name;
+
+                            const branchTd = document.createElement('td');
+                            branchTd.setAttribute('data-label', 'Branch');
+                            branchTd.textContent = branchName;
+
+                            const stockTd = document.createElement('td');
+                            stockTd.setAttribute('data-label', 'Stock');
+                            const strong = document.createElement('strong');
+                            strong.style.color = '#d9534f';
+                            strong.textContent = item.quantity;
+                            stockTd.appendChild(strong);
+
+                            const statusTd = document.createElement('td');
+                            statusTd.setAttribute('data-label', 'Status');
+                            const badge = document.createElement('span');
+                            badge.className = `status-badge ${statusClass}`;
+                            badge.textContent = statusText;
+                            statusTd.appendChild(badge);
+
+                            tr.appendChild(nameTd);
+                            tr.appendChild(branchTd);
+                            tr.appendChild(stockTd);
+                            tr.appendChild(statusTd);
+                            lowStockBody.appendChild(tr);
+                        });
                     } else {
                         lowStockBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 15px; color: #999;">All stock levels good.</td></tr>`;
                     }
@@ -289,6 +360,9 @@
 
             } catch (err) {
                 console.error('Error loading dashboard data:', err);
+                // Clear spinners so page doesn't stay frozen
+                document.getElementById('recentAppointmentsBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#a94442;padding:20px;">Failed to load data.</td></tr>';
+                document.getElementById('lowStockBody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#a94442;padding:20px;">Failed to load data.</td></tr>';
             }
         });
 

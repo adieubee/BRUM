@@ -5,7 +5,7 @@
     <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BARBERS R US - Payment Successful</title>
+    <title>BARBER R US - Payment Successful</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -87,8 +87,8 @@
     <header class="navbar">
         <div class="nav-brand">
             <a href="../index.html" class="nav-logo-link">
-                <img src="../assets/ICON.svg" alt="Barbers R Us Logo" class="nav-logo">
-                <span class="nav-title">BARBERS R US</span>
+                <img src="../assets/ICON.svg" alt="Barber R Us Logo" class="nav-logo">
+                <span class="nav-title">BARBER R US</span>
             </a>
         </div>
         <nav class="nav-links">
@@ -110,7 +110,7 @@
     <!-- ═══ FOOTER ═══ -->
     <footer class="footer">
         <div class="container">
-            <div class="footer-brand">BARBERS R US</div>
+            <div class="footer-brand">BARBER R US</div>
             <div class="footer-links">
                 <a href="../index.html">Home</a>
                 <a href="../services.html">Services</a>
@@ -118,13 +118,90 @@
                 <a href="../about-us.html">About Us</a>
             </div>
             <div class="footer-divider"></div>
-            <p>&copy; 2026 BARBERS R Us Management System. All rights reserved.</p>
+            <p>&copy; 2026 Barber R Us Management System. All rights reserved.</p>
         </div>
     </footer>
 
     <script src="../js/auth.js"></script>
     <script src="../js/main.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script>
+        window.EMAILJS_PUBLIC_KEY = '';
+        window.EMAILJS_SERVICE_ID = '';
+        window.EMAILJS_TEMPLATE_ID = '';
+
+        async function loadEmailJsConfig() {
+            try {
+                const response = await fetch('/api/emailjs-config');
+                const data = await response.json();
+                if (!data || !data.success || !data.config) {
+                    return false;
+                }
+
+                window.EMAILJS_PUBLIC_KEY = data.config.publicKey || '';
+                window.EMAILJS_SERVICE_ID = data.config.serviceId || '';
+                window.EMAILJS_TEMPLATE_ID = data.config.templateId || '';
+
+                if (window.emailjs && window.EMAILJS_PUBLIC_KEY) {
+                    emailjs.init({ publicKey: window.EMAILJS_PUBLIC_KEY });
+                }
+
+                return Boolean(window.EMAILJS_PUBLIC_KEY && window.EMAILJS_SERVICE_ID && window.EMAILJS_TEMPLATE_ID);
+            } catch (error) {
+                console.warn('Unable to load EmailJS config:', error);
+                return false;
+            }
+        }
+
+        function formatEmailDateForBrowser(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return value;
+            return new Intl.DateTimeFormat('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            }).format(date);
+        }
+
+        function formatEmailTimeForBrowser(value) {
+            if (!value) return '';
+            const match = String(value).trim().match(/^([0-9]{1,2}):([0-9]{2})(?::([0-9]{2}))?$/);
+            if (!match) return value;
+            const hour24 = Number(match[1]);
+            const minute = match[2];
+            const suffix = hour24 >= 12 ? 'PM' : 'AM';
+            const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+            return `${hour12}:${minute} ${suffix}`;
+        }
+
+        async function sendBookingConfirmationEmail({ toEmail, clientName, date, time, branchAddress, services, bookingUrl, message }) {
+            if (!window.emailjs || !toEmail || !window.EMAILJS_SERVICE_ID || !window.EMAILJS_TEMPLATE_ID) {
+                console.warn('EmailJS is not fully configured. Skipping confirmation email.');
+                return false;
+            }
+
+            try {
+                const templateParams = {
+                    to_email: toEmail,
+                    client_name: clientName,
+                    appointment_date: formatEmailDateForBrowser(date),
+                    appointment_time: formatEmailTimeForBrowser(time),
+                    branch_address: branchAddress,
+                    services: services,
+                    booking_url: bookingUrl,
+                    message: message || 'No additional message provided.',
+                    subject: 'Your Barber R Us appointment is confirmed'
+                };
+
+                await emailjs.send(window.EMAILJS_SERVICE_ID, window.EMAILJS_TEMPLATE_ID, templateParams);
+                return true;
+            } catch (error) {
+                console.error('EmailJS send failed:', error);
+                return false;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             const user = Auth.getUser();
             if (!user) {
@@ -149,19 +226,37 @@
             const ids = idsParam.split(',').filter(id => id.trim() !== '');
 
             try {
-                const response = await fetch('/api/bookings/payment-success', {
+                const response = await Auth.apiFetch('/api/bookings/payment-success', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ids })
                 });
+                if (!response) return;
 
                 const result = await response.json();
 
                 if (result.success) {
+                    const bookingUrl = `${window.location.origin}/client/my-appointments.html`;
+                    const emailState = result.email_details || null;
+                    const emailJsReady = await loadEmailJsConfig();
+
+                    if (emailJsReady && emailState && emailState.to_email) {
+                        await sendBookingConfirmationEmail({
+                            toEmail: emailState.to_email,
+                            clientName: emailState.client_name || user.name || 'there',
+                            date: emailState.date || '',
+                            time: emailState.time || '',
+                            branchAddress: emailState.branch_address || '',
+                            services: emailState.services || '',
+                            bookingUrl,
+                            message: emailState.message || ''
+                        });
+                    }
+
                     statusCard.innerHTML = `
                         <i class="fa-solid fa-circle-check success-icon"></i>
                         <h2 class="success-title">Booking Confirmed!</h2>
-                        <p class="success-text">Your booking and recorded down payment are confirmed. If email is configured, a confirmation will also be sent to your registered email address.</p>
+                        <p class="success-text">Your booking and recorded down payment are confirmed. A confirmation email is sent from the browser when EmailJS is configured.</p>
                         <a href="my-appointments.html" class="btn-view">View My Appointments</a>
                     `;
                 } else {

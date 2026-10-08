@@ -5,7 +5,7 @@
     <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BARBERS R US - My Appointments</title>
+    <title>BARBER R US - My Appointments</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
@@ -15,8 +15,8 @@
     <header class="navbar">
         <div class="nav-brand">
             <a href="../index.html" class="nav-logo-link">
-                <img src="../assets/ICON.svg" alt="Barbers R Us Logo" class="nav-logo">
-                <span class="nav-title">BARBERS R US</span>
+                <img src="../assets/ICON.svg" alt="Barber R Us Logo" class="nav-logo">
+                <span class="nav-title">BARBER R US</span>
             </a>
         </div>
 
@@ -123,10 +123,11 @@
             tableBody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading appointments...</td></tr>";
 
             try {
-                const response = await fetch('/api/bookings/my?client_id=' + user.id);
+                const response = await Auth.apiFetch('/api/bookings/my?client_id=' + user.id);
+                if (!response) return;
                 const data = await response.json();
 
-                if (!data.success || data.appointments.length === 0) {
+                if (!data.success || !data.appointments || data.appointments.length === 0) {
                     tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 30px; color: #a46464;">No appointments found. <a href="booking.html" style="color: #8b2d2d; font-weight: 600;">Book one now!</a></td></tr>`;
                     return;
                 }
@@ -134,18 +135,42 @@
                 tableBody.innerHTML = "";
                 data.appointments.forEach(appt => {
                     const row = document.createElement('tr');
-                    const statusClass = appt.status.toLowerCase();
+                    const statusClass = (appt.status || '').toLowerCase().replace(/\s+/g, '-');
 
                     // Format date nicely (e.g. YYYY-MM-DD)
-                    const apptDate = appt.appointment_date.split('T')[0];
+                    const apptDate = (appt.appointment_date || '').split('T')[0];
+
+                    const tdService = document.createElement('td');
+                    tdService.style.cssText = 'max-width: 220px; word-break: break-word; white-space: normal;';
+                    const strongSvc = document.createElement('strong');
+                    strongSvc.textContent = (appt.all_service_names || appt.service_name || 'Service') + (appt.pax > 1 ? ` (${appt.pax} pax)` : '');
+                    tdService.appendChild(strongSvc);
+
+                    const tdBranch = document.createElement('td');
+                    tdBranch.textContent = appt.branch_name || 'Branch';
+
+                    const tdDate = document.createElement('td');
+                    tdDate.textContent = apptDate || '—';
+
+                    const tdTime = document.createElement('td');
+                    tdTime.textContent = appt.appointment_time || '—';
+
+                    const tdStatus = document.createElement('td');
+                    const badge = document.createElement('span');
+                    badge.className = `status-badge ${statusClass}`;
+                    badge.textContent = appt.status;
+                    tdStatus.appendChild(badge);
+
+                    const tdAction = document.createElement('td');
 
                     // Determine cancellation eligibility
-                    let actionHtml = '—';
                     if (appt.status === 'Pending Payment') {
-                        // Pending Payment can be cancelled anytime
-                        actionHtml = `<button class="cancel-btn-sm" onclick="cancelAppointment(${appt.appointment_id})">Cancel</button>`;
+                        const btn = document.createElement('button');
+                        btn.className = 'cancel-btn-sm';
+                        btn.textContent = 'Cancel';
+                        btn.onclick = () => cancelAppointment(appt.appointment_id);
+                        tdAction.appendChild(btn);
                     } else if (appt.status === 'Confirmed') {
-                        // Apply 72-hour cancellation rule for confirmed appointments
                         const [year, month, day] = apptDate.split('-').map(Number);
                         const [hour, minute] = (appt.appointment_time || '00:00').split(':').map(Number);
                         const apptDateTime = new Date(year, (month || 1) - 1, day || 1, hour || 0, minute || 0);
@@ -153,31 +178,49 @@
                         const diffHours = (apptDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
                         if (diffHours >= 72) {
-                            actionHtml = `
-                                <div style="display: flex; gap: 8px;">
-                                    <button class="cancel-btn-sm" onclick="cancelAppointment(${appt.appointment_id})">Cancel</button>
-                                    <button class="reschedule-btn-sm" onclick="openRescheduleModal(${appt.appointment_id}, ${appt.branch_id}, '${appt.appointment_time}', ${appt.staff_id})">Reschedule</button>
-                                </div>
-                            `;
+                            const div = document.createElement('div');
+                            div.style.cssText = 'display: flex; gap: 8px;';
+
+                            const cancelBtn = document.createElement('button');
+                            cancelBtn.className = 'cancel-btn-sm';
+                            cancelBtn.textContent = 'Cancel';
+                            cancelBtn.onclick = () => cancelAppointment(appt.appointment_id);
+
+                            const reschedBtn = document.createElement('button');
+                            reschedBtn.className = 'reschedule-btn-sm';
+                            reschedBtn.textContent = 'Reschedule';
+                            reschedBtn.onclick = () => openRescheduleModal(appt.appointment_id, appt.branch_id, appt.appointment_time, appt.staff_id);
+
+                            div.appendChild(cancelBtn);
+                            div.appendChild(reschedBtn);
+                            tdAction.appendChild(div);
                         } else if (diffHours > 0) {
-                            actionHtml = `<button class="cancel-btn-sm" disabled title="Cancellations and Rescheduling are only allowed up to 72 hours before your appointment.">Cancel</button>`;
+                            const btn = document.createElement('button');
+                            btn.className = 'cancel-btn-sm';
+                            btn.disabled = true;
+                            btn.title = 'Cancellations and Rescheduling are only allowed up to 72 hours before your appointment.';
+                            btn.textContent = 'Cancel';
+                            tdAction.appendChild(btn);
                         } else {
-                            actionHtml = '—';
+                            tdAction.textContent = '—';
                         }
                     } else if (appt.status === 'Pending Reschedule') {
-                        actionHtml = `<button class="cancel-btn-sm" disabled title="Awaiting staff confirmation for reschedule.">Awaiting Admin Response</button>`;
+                        const btn = document.createElement('button');
+                        btn.className = 'cancel-btn-sm';
+                        btn.disabled = true;
+                        btn.title = 'Awaiting staff confirmation for reschedule.';
+                        btn.textContent = 'Awaiting Admin Response';
+                        tdAction.appendChild(btn);
+                    } else {
+                        tdAction.textContent = '—';
                     }
 
-                    row.innerHTML = `
-                    <td style="max-width: 220px; word-break: break-word; white-space: normal;"><strong>${appt.all_service_names || appt.service_name}${appt.pax > 1 ? ` (${appt.pax} pax)` : ''}</strong></td>
-                    <td>${appt.branch_name}</td>
-                    <td>${apptDate}</td>
-                    <td>${appt.appointment_time}</td>
-                    <td><span class="status-badge ${statusClass}">${appt.status}</span></td>
-                    <td>
-                        ${actionHtml}
-                    </td>
-                `;
+                    row.appendChild(tdService);
+                    row.appendChild(tdBranch);
+                    row.appendChild(tdDate);
+                    row.appendChild(tdTime);
+                    row.appendChild(tdStatus);
+                    row.appendChild(tdAction);
                     tableBody.appendChild(row);
                 });
             } catch (error) {
@@ -189,24 +232,25 @@
         async function cancelAppointment(id) {
             if (confirm("Are you sure you want to cancel this appointment?")) {
                 try {
-                    const response = await fetch('/api/bookings/status', {
+                    const response = await Auth.apiFetch('/api/bookings/status', {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ appointment_id: id, status: 'Cancelled' })
                     });
+                    if (!response) return;
                     const result = await response.json();
                     if (result.success) {
-                        console.log('Appointment cancelled.');
+                        alert('Appointment cancelled.');
                         renderAppointments();
                     } else {
-                        console.log('Error: ' + result.message);
+                        alert('Error: ' + result.message);
                     }
                 } catch (error) {
                     console.error('Cancellation error:', error);
-                    console.log('Server connection failed.');
+                    alert('Server connection failed.');
                 }
             }
-        }
+        }   }
 
         // --- RESCHEDULE LOGIC ---
         function populateTimeDropdown() {
@@ -299,11 +343,12 @@
             submitBtn.textContent = 'Submitting...';
 
             try {
-                const response = await fetch('/api/bookings/request-reschedule', {
+                const response = await Auth.apiFetch('/api/bookings/request-reschedule', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ appointment_id: apptId, new_date: newDate, new_time: newTime })
                 });
+                if (!response) return;
                 const result = await response.json();
                 
                 if (result.success) {
