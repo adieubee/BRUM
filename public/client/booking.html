@@ -5,7 +5,7 @@
     <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BARBER R US - Book Appointment</title>
+    <title>BARBERS R US - Book Appointment</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -238,8 +238,8 @@
     <header class="navbar">
         <div class="nav-brand">
             <a href="../index.html" class="nav-logo-link">
-                <img src="../assets/ICON.svg" alt="Barber R Us Logo" class="nav-logo">
-                <span class="nav-title">BARBER R US</span>
+                <img src="../assets/ICON.svg" alt="Barbers R Us Logo" class="nav-logo">
+                <span class="nav-title">BARBERS R US</span>
             </a>
         </div>
 
@@ -326,7 +326,7 @@
                         </div>
 
                         <div class="line-input-group">
-                            <label for="tech">Preferred Dermatechnician*</label>
+                            <label for="tech">Preferred Barber*</label>
                             <select id="tech" required>
                                 <option value="" disabled selected>Select Branch First</option>
                             </select>
@@ -349,7 +349,7 @@
                             <p><strong>Name:</strong> <span id="confName"></span></p>
                             <p><strong>Date & Time:</strong> <span id="confDateTime"></span></p>
                             <p><strong># of People:</strong> <span id="confPeople"></span></p>
-                            <p><strong>Preferred Dermatechnician:</strong> <span id="confTech"></span></p>
+                            <p><strong>Preferred Barber:</strong> <span id="confTech"></span></p>
                             <p><strong>Branch:</strong> <span id="confBranch"></span></p>
                             <p><strong>Message:</strong> <span id="confMessage"></span></p>
                         </div>
@@ -420,7 +420,7 @@
     <!-- ═══ FOOTER ═══ -->
     <footer class="footer">
         <div class="container">
-            <div class="footer-brand">BARBER R US</div>
+            <div class="footer-brand">BARBERS R US</div>
             <div class="footer-links">
                 <a href="../index.html">Home</a>
                 <a href="../services.html">Services</a>
@@ -428,7 +428,7 @@
                 <a href="../about-us.html">About Us</a>
             </div>
             <div class="footer-divider"></div>
-            <p>&copy; 2026 Barber R Us Management System. All rights reserved.</p>
+            <p>&copy; 2026 Barbers R Us Management System. All rights reserved.</p>
         </div>
     </footer>
 
@@ -564,7 +564,7 @@
                     try {
                         const staffRes = await fetch('/api/users/staff');
                         const staffData = await staffRes.json();
-                        techSelect.innerHTML = '<option value="" disabled selected>Select Dermatechnician</option>';
+                        techSelect.innerHTML = '<option value="" disabled selected>Select Barber</option>';
 
                         // "No Preference" option
                         techSelect.innerHTML += '<option value="0">No Preference</option>';
