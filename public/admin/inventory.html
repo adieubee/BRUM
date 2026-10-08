@@ -171,14 +171,15 @@
 
             try {
                 // Fetch Branches
-                const bRes = await fetch('/api/branches');
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (!bRes) return;
                 const bData = await bRes.json();
 
                 const branchFilter = document.getElementById('branchFilter');
                 branchFilter.innerHTML = '<option value="all">All Branches</option>';
 
                 if (bData.success) {
-                    branches = bData.branches;
+                    branches = bData.branches || [];
 
                     if (user.role === 'staff' && user.branch_id) {
                         const branch = branches.find(b => b.branch_id === user.branch_id);
@@ -194,15 +195,21 @@
                     }
                 }
 
-                // Fetch Global Inventory
-                const invRes = await fetch('/api/inventory');
+                // Fetch Inventory
+                const invRes = await Auth.apiFetch('/api/inventory');
+                if (!invRes) return;
                 const invData = await invRes.json();
 
                 if (invData.success) {
-                    allInventory = invData.inventory;
+                    allInventory = invData.inventory || [];
                 }
             } catch (err) {
                 console.error("Error loading data:", err);
+                const tableBody = document.getElementById('inventoryTableBody');
+                if (tableBody) {
+                    tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px; color: #8b2d2d;">Failed to load inventory.</td></tr>';
+                }
+                return;
             }
 
             renderInventory();
@@ -238,15 +245,43 @@
                 if (item.quantity < 3) statusText = 'Critical';
                 else if (item.quantity < 10) statusText = 'Low Stock';
 
-                row.innerHTML = `
-                <td data-label="Item"><strong>${item.item_name}</strong></td>
-                <td data-label="Branch">${branchName}</td>
-                <td data-label="Stock" style="font-weight: 800; font-size: 1.1rem;">${item.quantity}</td>
-                <td data-label="Status"><span class="status-badge ${statusText === 'Good' ? 'confirmed' : 'cancelled'}">${statusText}</span></td>
-                <td data-label="Action">
-                    <button class="action-btn" onclick="restockItem(${item.inventory_id})">Restock</button>
-                </td>
-                `;
+                const tdItem = document.createElement('td');
+                tdItem.setAttribute('data-label', 'Item');
+                const strong = document.createElement('strong');
+                strong.textContent = item.item_name;
+                tdItem.appendChild(strong);
+
+                const tdBranch = document.createElement('td');
+                tdBranch.setAttribute('data-label', 'Branch');
+                tdBranch.textContent = branchName;
+
+                const tdStock = document.createElement('td');
+                tdStock.setAttribute('data-label', 'Stock');
+                tdStock.style.fontWeight = '800';
+                tdStock.style.fontSize = '1.1rem';
+                tdStock.textContent = item.quantity;
+
+                const tdStatus = document.createElement('td');
+                tdStatus.setAttribute('data-label', 'Status');
+                const badge = document.createElement('span');
+                badge.className = `status-badge ${statusText === 'Good' ? 'confirmed' : 'cancelled'}`;
+                badge.textContent = statusText;
+                tdStatus.appendChild(badge);
+
+                const tdAction = document.createElement('td');
+                tdAction.setAttribute('data-label', 'Action');
+                const btn = document.createElement('button');
+                btn.className = 'action-btn';
+                btn.textContent = 'Restock';
+                btn.onclick = () => restockItem(item.inventory_id);
+                tdAction.appendChild(btn);
+
+                row.appendChild(tdItem);
+                row.appendChild(tdBranch);
+                row.appendChild(tdStock);
+                row.appendChild(tdStatus);
+                row.appendChild(tdAction);
+
                 tableBody.appendChild(row);
             });
         }
@@ -275,17 +310,17 @@
             const item = allInventory.find(i => i.inventory_id === id);
             if (!item) return;
 
-            const newQuantity = item.quantity + amountToAdd;
             try {
-                const res = await fetch('/api/inventory/restock', {
+                const res = await Auth.apiFetch('/api/inventory/restock', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ inventory_id: id, quantity: newQuantity })
+                    body: JSON.stringify({ inventory_id: id, delta: amountToAdd })
                 });
+                if (!res) return;
                 const result = await res.json();
 
                 if (result.success) {
-                    item.quantity = newQuantity; // update locally
+                    item.quantity += amountToAdd; // update locally
                     renderInventory();
                     closeRestockModal();
                 } else {
@@ -298,12 +333,21 @@
         });
 
         function openAddProductModal() {
-            // Populate branch dropdown from fetched branches
+            const user = Auth.getUser();
             const branchSelect = document.getElementById('addBranch');
             branchSelect.innerHTML = '<option value="" disabled selected>Select Branch</option>';
             branches.forEach(b => {
-                branchSelect.innerHTML += `<option value="${b.branch_id}">${b.name}</option>`;
+                const opt = document.createElement('option');
+                opt.value = b.branch_id;
+                opt.textContent = b.name;
+                branchSelect.appendChild(opt);
             });
+            if (user && user.role === 'staff' && user.branch_id) {
+                branchSelect.value = user.branch_id;
+                branchSelect.disabled = true;
+            } else {
+                branchSelect.disabled = false;
+            }
             document.getElementById('addProductModal').style.display = 'flex';
         }
 
@@ -316,30 +360,33 @@
             e.preventDefault();
 
             const payload = {
-                item_name: document.getElementById('addItemName').value,
-                unit: document.getElementById('addUnit').value,
+                item_name: document.getElementById('addItemName').value.trim(),
+                unit: document.getElementById('addUnit').value.trim(),
                 price: parseFloat(document.getElementById('addPrice').value),
                 quantity: parseInt(document.getElementById('addStock').value, 10),
                 branch_id: parseInt(document.getElementById('addBranch').value, 10)
             };
 
             try {
-                const res = await fetch('/api/inventory/add', {
+                const res = await Auth.apiFetch('/api/inventory/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                if (!res) return;
                 const result = await res.json();
 
                 if (result.success) {
                     alert('Product added successfully!');
                     closeAddProductModal();
                     // Refresh inventory
-                    const invRes = await fetch('/api/inventory');
-                    const invData = await invRes.json();
-                    if (invData.success) {
-                        allInventory = invData.inventory;
-                        renderInventory();
+                    const invRes = await Auth.apiFetch('/api/inventory');
+                    if (invRes) {
+                        const invData = await invRes.json();
+                        if (invData.success) {
+                            allInventory = invData.inventory || [];
+                            renderInventory();
+                        }
                     }
                 } else {
                     alert('Error: ' + result.message);

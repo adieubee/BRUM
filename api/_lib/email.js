@@ -1,4 +1,4 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
 
 const APP_BASE_URL = process.env.APP_BASE_URL || 'http://localhost:3000';
@@ -96,8 +96,61 @@ function generateBookingConfirmationEmail({ clientName, date, time, branchAddres
     return { subject, html: finalHtml };
 }
 
+const https = require('https');
+
+async function sendViaEmailJs(templateParams) {
+    const serviceId = process.env.EMAILJS_SERVICE_ID;
+    const templateId = process.env.EMAILJS_TEMPLATE_ID;
+    const userId = process.env.EMAILJS_PUBLIC_KEY;
+    const appBaseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
+
+    if (!serviceId || !templateId || !userId) {
+        console.warn('[EmailJS] Environment variables missing (EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY).');
+        return false;
+    }
+
+    const payload = JSON.stringify({
+        service_id: serviceId,
+        template_id: templateId,
+        user_id: userId,
+        template_params: templateParams
+    });
+
+    return new Promise((resolve) => {
+        const req = https.request('https://api.emailjs.com/api/v1.0/email/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload),
+                'Origin': appBaseUrl
+            }
+        }, (res) => {
+            let resBody = '';
+            res.on('data', chunk => resBody += chunk);
+            res.on('end', () => {
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    console.log(`[EmailJS] Confirmation email successfully sent to ${templateParams.to_email}`);
+                    resolve(true);
+                } else {
+                    console.error(`[EmailJS] Send failed with status ${res.statusCode}:`, resBody);
+                    resolve(false);
+                }
+            });
+        });
+
+        req.on('error', (err) => {
+            console.error('[EmailJS] Network error sending email:', err.message);
+            resolve(false);
+        });
+
+        req.write(payload);
+        req.end();
+    });
+}
+
 module.exports = {
     generateBookingConfirmationEmail,
     formatEmailDate,
-    formatEmailTime
+    formatEmailTime,
+    sendViaEmailJs
 };

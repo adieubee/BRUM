@@ -165,20 +165,26 @@
             }
 
             try {
-                const bRes = await fetch('/api/branches');
-                const bData = await bRes.json();
-                if (bData.success) {
-                    const branchFilter = document.getElementById('branchFilter');
-                    bData.branches.forEach(b => {
-                        const opt = document.createElement('option');
-                        opt.value = b.branch_id;
-                        opt.textContent = b.name;
-                        if (b.branch_id === currentUser.branch_id) {
-                            opt.selected = true;
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (bRes) {
+                    const bData = await bRes.json();
+                    if (bData.success) {
+                        const branchFilter = document.getElementById('branchFilter');
+                        branchFilter.innerHTML = '';
+                        (bData.branches || []).forEach(b => {
+                            const opt = document.createElement('option');
+                            opt.value = b.branch_id;
+                            opt.textContent = b.name;
+                            if (currentUser.branch_id && b.branch_id === currentUser.branch_id) {
+                                opt.selected = true;
+                            }
+                            branchFilter.appendChild(opt);
+                        });
+                        if (currentUser.role === 'staff' && currentUser.branch_id) {
+                            branchFilter.disabled = true;
                         }
-                        branchFilter.appendChild(opt);
-                    });
-                    updateBranchName();
+                        updateBranchName();
+                    }
                 }
             } catch (e) { console.error('Error fetching branch:', e); }
 
@@ -206,7 +212,8 @@
             let apiSuffix = selectedBranch !== 'all' ? `?branch_id=${selectedBranch}` : '';
 
             try {
-                const response = await fetch(`/api/inventory${apiSuffix}`);
+                const response = await Auth.apiFetch(`/api/inventory${apiSuffix}`);
+                if (!response) return;
                 const data = await response.json();
 
                 if (!data.success) {
@@ -214,7 +221,7 @@
                     return;
                 }
 
-                branchInventory = data.inventory;
+                branchInventory = data.inventory || [];
 
                 // Update summary cards
                 document.getElementById('countTotal').textContent = branchInventory.length;
@@ -235,18 +242,52 @@
                     const row = document.createElement('tr');
                     if (item.quantity < 10) row.classList.add('low-stock-row');
 
-                    const canRestock = item.branch_id === currentUser.branch_id || currentUser.role === 'owner';
-                    const actionHtml = canRestock
-                        ? `<button class="action-btn" onclick="restockItem(${item.inventory_id})">Restock</button>`
-                        : `<span style="color: #999; font-size: 0.85rem; font-style: italic;">View Only</span>`;
+                    const tdIdx = document.createElement('td');
+                    tdIdx.setAttribute('data-label', '#');
+                    tdIdx.textContent = String(idx + 1);
 
-                    row.innerHTML = `
-                        <td data-label="#">${idx + 1}</td>
-                        <td data-label="Item"><strong>${item.item_name}</strong></td>
-                        <td data-label="Stock" style="font-weight: 800; font-size: 1.1rem;">${item.quantity}</td>
-                        <td data-label="Status"><span class="status-badge ${statusText === 'Good' ? 'confirmed' : 'cancelled'}">${statusText}</span></td>
-                        <td data-label="Action">${actionHtml}</td>
-                    `;
+                    const tdItem = document.createElement('td');
+                    tdItem.setAttribute('data-label', 'Item');
+                    const strong = document.createElement('strong');
+                    strong.textContent = item.item_name;
+                    tdItem.appendChild(strong);
+
+                    const tdStock = document.createElement('td');
+                    tdStock.setAttribute('data-label', 'Stock');
+                    tdStock.style.fontWeight = '800';
+                    tdStock.style.fontSize = '1.1rem';
+                    tdStock.textContent = String(item.quantity);
+
+                    const tdStatus = document.createElement('td');
+                    tdStatus.setAttribute('data-label', 'Status');
+                    const badge = document.createElement('span');
+                    badge.className = `status-badge ${statusText === 'Good' ? 'confirmed' : 'cancelled'}`;
+                    badge.textContent = statusText;
+                    tdStatus.appendChild(badge);
+
+                    const tdAction = document.createElement('td');
+                    tdAction.setAttribute('data-label', 'Action');
+                    const canRestock = item.branch_id === currentUser.branch_id || currentUser.role === 'owner';
+                    if (canRestock) {
+                        const btn = document.createElement('button');
+                        btn.className = 'action-btn';
+                        btn.textContent = 'Restock';
+                        btn.onclick = () => restockItem(item.inventory_id);
+                        tdAction.appendChild(btn);
+                    } else {
+                        const span = document.createElement('span');
+                        span.style.color = '#999';
+                        span.style.fontSize = '0.85rem';
+                        span.style.fontStyle = 'italic';
+                        span.textContent = 'View Only';
+                        tdAction.appendChild(span);
+                    }
+
+                    row.appendChild(tdIdx);
+                    row.appendChild(tdItem);
+                    row.appendChild(tdStock);
+                    row.appendChild(tdStatus);
+                    row.appendChild(tdAction);
                     tbody.appendChild(row);
                 });
             } catch (error) {
@@ -279,16 +320,17 @@
             const item = branchInventory.find(i => i.inventory_id === id);
             if (!item) return;
 
-            const newQuantity = item.quantity + amountToAdd;
             try {
-                const res = await fetch('/api/inventory/restock', {
+                const res = await Auth.apiFetch('/api/inventory/restock', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ inventory_id: id, quantity: newQuantity })
+                    body: JSON.stringify({ inventory_id: id, delta: amountToAdd })
                 });
+                if (!res) return;
                 const result = await res.json();
 
                 if (result.success) {
+                    item.quantity += amountToAdd;
                     renderInventory();
                     closeRestockModal();
                 } else {
@@ -299,8 +341,9 @@
                 alert('Server connection failed.');
             }
         });
+
         function openAddProductModal() {
-            document.getElementById('addBranch').value = currentUser.branch_id;
+            document.getElementById('addBranch').value = currentUser.branch_id || '';
             document.getElementById('addProductModal').style.display = 'flex';
         }
 
@@ -313,19 +356,20 @@
             e.preventDefault();
 
             const payload = {
-                item_name: document.getElementById('addItemName').value,
-                unit: document.getElementById('addUnit').value,
+                item_name: document.getElementById('addItemName').value.trim(),
+                unit: document.getElementById('addUnit').value.trim(),
                 price: parseFloat(document.getElementById('addPrice').value),
                 quantity: parseInt(document.getElementById('addStock').value, 10),
-                branch_id: parseInt(document.getElementById('addBranch').value, 10)
+                branch_id: parseInt(document.getElementById('addBranch').value || currentUser.branch_id, 10)
             };
 
             try {
-                const res = await fetch('/api/inventory/add', {
+                const res = await Auth.apiFetch('/api/inventory/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                if (!res) return;
                 const result = await res.json();
 
                 if (result.success) {

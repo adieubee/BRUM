@@ -255,7 +255,8 @@
 
             try {
                 // Fetch Branches
-                const bRes = await fetch('/api/branches');
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (!bRes) return;
                 const bData = await bRes.json();
 
                 const branchFilter = document.getElementById('branchFilter');
@@ -284,7 +285,8 @@
                 }
 
                 // Fetch Services
-                const sRes = await fetch('/api/services');
+                const sRes = await Auth.apiFetch('/api/services');
+                if (!sRes) return;
                 const sData = await sRes.json();
                 if (sData.success) {
                     services = sData.services;
@@ -354,7 +356,8 @@
                 }
 
                 // Fetch Staff
-                const staffRes = await fetch('/api/users/staff');
+                const staffRes = await Auth.apiFetch('/api/users/staff');
+                if (!staffRes) return;
                 const staffData = await staffRes.json();
                 if (staffData.success) {
                     staffList = staffData.staff;
@@ -363,7 +366,8 @@
                 }
 
                 // Fetch Appointments
-                const apptRes = await fetch('/api/bookings/branch'); // Fetch all
+                const apptRes = await Auth.apiFetch('/api/bookings/branch');
+                if (!apptRes) return;
                 const apptData = await apptRes.json();
 
                 if (apptData.success) {
@@ -427,61 +431,140 @@
                 const serviceName = appt.all_service_names || appt.service_name || 'Unknown';
                 const paxLabel = appt.pax > 1 ? ` (${appt.pax} pax)` : '';
                 const branchName = getBranchName(appt.branch_id);
-                const statusClass = appt.status.toLowerCase();
+                const statusClass = appt.status.toLowerCase().replace(/\s+/g, '-');
                 const isPending = appt.status === 'Pending Payment';
 
                 const apptDate = appt.appointment_date ? appt.appointment_date.split('T')[0] : '—';
                 const apptTime = appt.appointment_time || '—';
 
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td data-label="#">${idx + 1}</td>
-                    <td data-label="Client"><strong>${appt.client_name || 'Guest'}</strong><br><small style="color:#999">${appt.client_email || ''}</small></td>
-                    <td data-label="Service" style="max-width: 220px; word-break: break-word; white-space: normal; font-size: 0.85rem; line-height: 1.4;">${serviceName.split(', ').join('<br>')} ${paxLabel}</td>
-                    <td data-label="Branch">${branchName}</td>
-                    <td data-label="Date">${apptDate}</td>
-                    <td data-label="Time">${apptTime}</td>
-                    <td data-label="Status"><span class="status-badge ${statusClass}" style="cursor: pointer; transition: opacity 0.2s;" onclick="openEditModal(${appt.appointment_id})" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" title="Click to update status or schedule">${appt.status}</span></td>
-                    <td data-label="Action">
-                        <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
-                            <button class="action-btn history-btn" onclick="openHistoryModal(${appt.appointment_id})" title="View booking history" style="padding: 6px 10px;"><i class="fas fa-clock-rotate-left"></i></button>
-                        ${isPending || appt.status === 'Pending Reschedule' ? `
-                            <button class="action-btn" onclick="updateStatus(${appt.appointment_id}, 'Confirmed')" title="Confirm" style="padding: 6px 10px;"><i class="fas fa-check"></i></button>
-                            <button class="action-btn" style="background: #dc3545; color: white; padding: 6px 10px;" onclick="updateStatus(${appt.appointment_id}, 'Cancelled')" title="Cancel"><i class="fas fa-xmark"></i></button>
-                        ` : appt.status === 'Confirmed' ? `
-                            <button class="action-btn" onclick="window.location.href='pos.html?appointment_id=${appt.appointment_id}'" title="Checkout in POS" style="padding: 6px 10px;"><i class="fas fa-circle-check"></i></button>
-                        ` : '—'}
-                        </div>
-                    </td>
-                `;
+
+                // Build cells safely using textContent to prevent XSS
+                const idxTd = document.createElement('td');
+                idxTd.setAttribute('data-label', '#');
+                idxTd.textContent = idx + 1;
+
+                const clientTd = document.createElement('td');
+                clientTd.setAttribute('data-label', 'Client');
+                const clientStrong = document.createElement('strong');
+                clientStrong.textContent = appt.client_name || 'Guest';
+                const clientBr = document.createElement('br');
+                const clientSmall = document.createElement('small');
+                clientSmall.style.color = '#999';
+                clientSmall.textContent = appt.client_email || '';
+                clientTd.appendChild(clientStrong);
+                clientTd.appendChild(clientBr);
+                clientTd.appendChild(clientSmall);
+
+                const svcTd = document.createElement('td');
+                svcTd.setAttribute('data-label', 'Service');
+                svcTd.style.cssText = 'max-width:220px;word-break:break-word;white-space:normal;font-size:0.85rem;line-height:1.4;';
+                serviceName.split(', ').forEach((s, i, arr) => {
+                    svcTd.appendChild(document.createTextNode(s));
+                    if (i < arr.length - 1) svcTd.appendChild(document.createElement('br'));
+                });
+                if (paxLabel) svcTd.appendChild(document.createTextNode(paxLabel));
+
+                const branchTd = document.createElement('td');
+                branchTd.setAttribute('data-label', 'Branch');
+                branchTd.textContent = branchName;
+
+                const dateTd = document.createElement('td');
+                dateTd.setAttribute('data-label', 'Date');
+                dateTd.textContent = apptDate;
+
+                const timeTd = document.createElement('td');
+                timeTd.setAttribute('data-label', 'Time');
+                timeTd.textContent = apptTime;
+
+                const statusTd = document.createElement('td');
+                statusTd.setAttribute('data-label', 'Status');
+                const statusBadge = document.createElement('span');
+                statusBadge.className = `status-badge ${statusClass}`;
+                statusBadge.style.cssText = 'cursor:pointer;transition:opacity 0.2s;';
+                statusBadge.title = 'Click to update status or schedule';
+                statusBadge.textContent = appt.status;
+                statusBadge.addEventListener('click', () => openEditModal(appt.appointment_id));
+                statusBadge.addEventListener('mouseover', () => statusBadge.style.opacity = '0.8');
+                statusBadge.addEventListener('mouseout', () => statusBadge.style.opacity = '1');
+                statusTd.appendChild(statusBadge);
+
+                const actionTd = document.createElement('td');
+                actionTd.setAttribute('data-label', 'Action');
+                const actionDiv = document.createElement('div');
+                actionDiv.style.cssText = 'display:flex;gap:6px;justify-content:center;flex-wrap:wrap;';
+
+                const histBtn = document.createElement('button');
+                histBtn.className = 'action-btn history-btn';
+                histBtn.title = 'View booking history';
+                histBtn.style.padding = '6px 10px';
+                histBtn.innerHTML = '<i class="fas fa-clock-rotate-left"></i>';
+                histBtn.addEventListener('click', () => openHistoryModal(appt.appointment_id));
+                actionDiv.appendChild(histBtn);
+
+                if (isPending || appt.status === 'Pending Reschedule') {
+                    const confirmBtn = document.createElement('button');
+                    confirmBtn.className = 'action-btn';
+                    confirmBtn.title = 'Confirm';
+                    confirmBtn.style.padding = '6px 10px';
+                    confirmBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    confirmBtn.addEventListener('click', () => {
+                        if (confirm('Confirm this appointment?')) updateStatus(appt.appointment_id, 'Confirmed');
+                    });
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'action-btn';
+                    cancelBtn.style.cssText = 'background:#dc3545;color:white;padding:6px 10px;';
+                    cancelBtn.title = 'Cancel';
+                    cancelBtn.innerHTML = '<i class="fas fa-xmark"></i>';
+                    cancelBtn.addEventListener('click', () => {
+                        if (confirm('Cancel this appointment?')) updateStatus(appt.appointment_id, 'Cancelled');
+                    });
+                    actionDiv.appendChild(confirmBtn);
+                    actionDiv.appendChild(cancelBtn);
+                } else if (appt.status === 'Confirmed') {
+                    const posBtn = document.createElement('button');
+                    posBtn.className = 'action-btn';
+                    posBtn.title = 'Checkout in POS';
+                    posBtn.style.padding = '6px 10px';
+                    posBtn.innerHTML = '<i class="fas fa-circle-check"></i>';
+                    posBtn.addEventListener('click', () => window.location.href = `pos.html?appointment_id=${appt.appointment_id}`);
+                    actionDiv.appendChild(posBtn);
+                } else {
+                    actionDiv.appendChild(document.createTextNode('—'));
+                }
+
+                actionTd.appendChild(actionDiv);
+                row.appendChild(idxTd);
+                row.appendChild(clientTd);
+                row.appendChild(svcTd);
+                row.appendChild(branchTd);
+                row.appendChild(dateTd);
+                row.appendChild(timeTd);
+                row.appendChild(statusTd);
+                row.appendChild(actionTd);
                 tableBody.appendChild(row);
             });
         }
 
         async function updateStatus(id, newStatus) {
             try {
-                const res = await fetch('/api/bookings/status', {
+                const res = await Auth.apiFetch('/api/bookings/status', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ appointment_id: id, status: newStatus })
                 });
+                if (!res) return;
                 const result = await res.json();
 
                 if (result.success) {
-                    console.log(`Appointment ${newStatus.toLowerCase()} successfully.`);
-
-                    // Update locally to avoid refetching
                     const appt = allAppointments.find(a => a.appointment_id === id);
-                    if (appt) {
-                        appt.status = newStatus;
-                    }
+                    if (appt) appt.status = newStatus;
                     renderAppointments();
                 } else {
-                    console.log('Error: ' + result.message);
+                    alert('Error: ' + result.message);
                 }
             } catch (err) {
                 console.error('Update status error:', err);
-                console.log('Server connection failed.');
+                alert('Server connection failed.');
             }
         }
 
@@ -515,7 +598,7 @@
                     return;
                 }
 
-                historyList.innerHTML = result.history.map(item => {
+                result.history.map(item => {
                     const action = String(item.action || 'updated').replace(/_/g, ' ');
                     const from = item.previous_status || '—';
                     const to = item.new_status || '—';
@@ -525,18 +608,37 @@
                         hour: 'numeric', minute: '2-digit'
                     }) : 'Unknown';
 
-                    return `
-                        <div class="history-item">
-                            <div class="history-meta">
-                                <span class="history-badge">${action}</span>
-                                <span>${createdAt}</span>
-                            </div>
-                            <div class="history-line"><strong>From:</strong> ${from} → <strong>To:</strong> ${to}</div>
-                            <div class="history-line"><strong>By:</strong> ${actor}</div>
-                            <div class="history-details">${item.details || 'No additional details provided.'}</div>
-                        </div>
-                    `;
-                }).join('');
+                    const div = document.createElement('div');
+                    div.className = 'history-item';
+
+                    const meta = document.createElement('div');
+                    meta.className = 'history-meta';
+                    const badge = document.createElement('span');
+                    badge.className = 'history-badge';
+                    badge.textContent = action;
+                    const timeSpan = document.createElement('span');
+                    timeSpan.textContent = createdAt;
+                    meta.appendChild(badge);
+                    meta.appendChild(timeSpan);
+
+                    const fromLine = document.createElement('div');
+                    fromLine.className = 'history-line';
+                    fromLine.textContent = `From: ${from} → To: ${to}`;
+
+                    const byLine = document.createElement('div');
+                    byLine.className = 'history-line';
+                    byLine.textContent = `By: ${actor}`;
+
+                    const details = document.createElement('div');
+                    details.className = 'history-details';
+                    details.textContent = item.details || 'No additional details provided.';
+
+                    div.appendChild(meta);
+                    div.appendChild(fromLine);
+                    div.appendChild(byLine);
+                    div.appendChild(details);
+                    return div;
+                }).forEach(el => historyList.appendChild(el));
             } catch (err) {
                 console.error('History load error:', err);
                 historyList.innerHTML = '<p style="padding: 20px; text-align: center; color: #a94442;">Could not load booking history.</p>';
@@ -557,15 +659,15 @@
 
             try {
                 // We will send a PUT request to our update endpoint
-                const res = await fetch('/api/bookings/update', {
+                const res = await Auth.apiFetch('/api/bookings/update', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ appointment_id: id, appointment_date: date, appointment_time: time, status: status })
                 });
+                if (!res) return;
                 const result = await res.json();
 
                 if (result.success) {
-                    console.log('Appointment successfully updated!');
+                    alert('Appointment successfully updated!');
                     closeEditModal();
 
                     // Update locally to avoid refetching
@@ -577,11 +679,11 @@
                     }
                     renderAppointments();
                 } else {
-                    console.log('Error: ' + result.message);
+                    alert('Error: ' + result.message);
                 }
             } catch (err) {
                 console.error('Update appointment error:', err);
-                console.log('Server connection failed.');
+                alert('Server connection failed.');
             }
         });
 
@@ -659,18 +761,18 @@
             };
 
             try {
-                const res = await fetch('/api/bookings/walkin', {
+                const res = await Auth.apiFetch('/api/bookings/walkin', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                if (!res) return;
                 const result = await res.json();
 
                 if (result.success) {
                     alert('Walk-in Appointment Created!');
                     closeWalkinModal();
-                    // Refetch all appointments to display new one
-                    const apptRes = await fetch('/api/bookings/branch');
+                    const apptRes = await Auth.apiFetch('/api/bookings/branch');
+                    if (!apptRes) return;
                     const apptData = await apptRes.json();
                     if (apptData.success) {
                         allAppointments = apptData.appointments;

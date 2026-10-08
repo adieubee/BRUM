@@ -558,29 +558,22 @@
                     document.querySelector('.pax-panel-header').style.display = 'none';
                 }
 
-                // Handle picking a branch -> Fetches the staff for that branch
-                branchSelect.addEventListener('change', async (e) => {
-                    techSelect.innerHTML = '<option value="" disabled selected>Loading staff...</option>';
-                    try {
-                        const staffRes = await fetch('/api/users/staff');
-                        const staffData = await staffRes.json();
-                        techSelect.innerHTML = '<option value="" disabled selected>Select Barber</option>';
+                // Handle picking a branch -> Populates the staff for that branch
+                branchSelect.addEventListener('change', (e) => {
+                    techSelect.innerHTML = '<option value="" disabled selected>Select Barber</option>';
+                    // "No Preference" option
+                    const noPref = document.createElement('option');
+                    noPref.value = '0';
+                    noPref.textContent = 'No Preference';
+                    techSelect.appendChild(noPref);
 
-                        // "No Preference" option
-                        techSelect.innerHTML += '<option value="0">No Preference</option>';
-
-                        if (staffData.success && staffData.staff.length > 0) {
-                            staffData.staff.forEach(staffMem => {
-                                // Filter by branch_id matches branchSelect value
-                                if (String(staffMem.branch_id) === String(e.target.value)) {
-                                    techSelect.innerHTML += `<option value="${staffMem.staff_id}">${staffMem.name}</option>`;
-                                }
-                            });
-                        }
-                    } catch (err) {
-                        console.error("Error loading branch staff:", err);
-                        techSelect.innerHTML = '<option value="" disabled selected>Error loading staff</option>';
-                    }
+                    const branchStaff = (formData.staff || []).filter(s => String(s.branch_id) === String(e.target.value));
+                    branchStaff.forEach(staffMem => {
+                        const opt = document.createElement('option');
+                        opt.value = staffMem.staff_id;
+                        opt.textContent = staffMem.staff_name || staffMem.name;
+                        techSelect.appendChild(opt);
+                    });
                 });
 
                 // Pre-fill from URL params

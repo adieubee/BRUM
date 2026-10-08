@@ -226,11 +226,12 @@
             const ids = idsParam.split(',').filter(id => id.trim() !== '');
 
             try {
-                const response = await fetch('/api/bookings/payment-success', {
+                const response = await Auth.apiFetch('/api/bookings/payment-success', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ids })
                 });
+                if (!response) return;
 
                 const result = await response.json();
 

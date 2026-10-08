@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { getPool, ensureSchema } = require('./_lib/db');
+const { createToken } = require('./_lib/auth');
 
 module.exports = async function handler(req, res) {
     const url = req.url || '';
@@ -37,17 +38,22 @@ module.exports = async function handler(req, res) {
                 if (staffRows.length > 0) branch_id = staffRows[0].branch_id;
             }
 
+            const userObj = {
+                id: user.user_id,
+                username: user.username,
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                branch_id
+            };
+
+            const token = createToken(userObj);
+
             return res.status(200).json({
                 success: true,
+                token,
                 role: user.role,
-                user: {
-                    id: user.user_id,
-                    username: user.username,
-                    email: user.email,
-                    name: user.name,
-                    role: user.role,
-                    branch_id
-                }
+                user: userObj
             });
         }
 
@@ -65,8 +71,8 @@ module.exports = async function handler(req, res) {
             if (!/^\S+@\S+\.\S+$/.test(email)) {
                 return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
             }
-            if (password.length < 3) {
-                return res.status(400).json({ success: false, message: 'Password must be at least 3 characters.' });
+            if (password.length < 8) {
+                return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
             }
 
             const [existing] = await pool.query('SELECT user_id FROM users WHERE username = ? OR email = ? LIMIT 1', [username, email]);
@@ -80,9 +86,13 @@ module.exports = async function handler(req, res) {
                 [username, email, hash, 'client', name]
             );
 
+            const userObj = { id: result.insertId, username, email, name, role: 'client', branch_id: null };
+            const token = createToken(userObj);
+
             return res.status(201).json({
                 success: true,
-                user: { id: result.insertId, username, email, name, role: 'client', branch_id: null }
+                token,
+                user: userObj
             });
         }
 

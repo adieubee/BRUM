@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { getPool, ensureSchema } = require('./_lib/db');
-const { sendEmail, generateBookingConfirmationEmail, formatEmailDate, formatEmailTime } = require('./_lib/email');
+const { generateBookingConfirmationEmail, formatEmailDate, formatEmailTime, sendViaEmailJs } = require('./_lib/email');
+const { requireAuth, getTokenPayload } = require('./_lib/auth');
 
 const VALID_STATUSES = ['Pending Payment', 'Pending Reschedule', 'Confirmed', 'In-Progress', 'Completed', 'Cancelled'];
 
@@ -104,17 +105,24 @@ async function sendAppointmentEmail(pool, appointmentId) {
     const [enriched] = await enrichAppointments(pool, rows);
     const formattedDate = formatEmailDate(enriched.appointment_date);
     const formattedTime = formatEmailTime(enriched.appointment_time);
-    const email = generateBookingConfirmationEmail({
-        clientName: enriched.client_name,
-        date: formattedDate,
-        time: formattedTime,
-        branchAddress: enriched.branch_address,
+    const bookingUrl = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/client/my-appointments.html`;
+
+    const templateParams = {
+        to_email: enriched.client_email,
+        client_name: enriched.client_name || 'Valued Client',
+        appointment_date: formattedDate,
+        appointment_time: formattedTime,
+        branch_address: enriched.branch_address || '',
         services: enriched.all_service_names || enriched.service_name || '',
-        bookingUrl: `${process.env.APP_BASE_URL || 'http://localhost:3000'}/client/my-appointments.html`,
-        message: enriched.message || ''
-    });
+        booking_url: bookingUrl,
+        message: enriched.message || 'No additional message provided.',
+        subject: 'Your Barber R Us appointment is confirmed'
+    };
+
+    const sent = await sendViaEmailJs(templateParams);
 
     return {
+        sent,
         to_email: enriched.client_email,
         client_name: enriched.client_name,
         date: formattedDate,
@@ -122,8 +130,7 @@ async function sendAppointmentEmail(pool, appointmentId) {
         branch_address: enriched.branch_address,
         services: enriched.all_service_names || enriched.service_name || '',
         message: enriched.message || '',
-        subject: email.subject,
-        html: email.html
+        booking_url: bookingUrl
     };
 }
 
@@ -141,7 +148,7 @@ module.exports = async function handler(req, res) {
                 pool.query('SELECT * FROM branches ORDER BY branch_id'),
                 pool.query('SELECT * FROM services ORDER BY category, service_id'),
                 pool.query(`
-                    SELECT s.*, u.name AS staff_name, u.username, u.email, b.name AS branch_name
+                    SELECT s.staff_id, s.branch_id, s.specialization, u.name AS staff_name, b.name AS branch_name
                     FROM staff s
                     JOIN users u ON s.user_id = u.user_id
                     JOIN branches b ON s.branch_id = b.branch_id
@@ -254,14 +261,22 @@ module.exports = async function handler(req, res) {
         // Local demo payment/booking confirmation. Idempotent so refreshing the success page is safe.
         if (url.includes('/payment-success')) {
             if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
+            const authUser = getTokenPayload(req);
             const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : [];
             const ids = rawIds.map(id => Number.parseInt(id, 10)).filter(Number.isFinite);
             if (!ids.length) return res.status(400).json({ success: false, message: 'No appointment IDs were supplied.' });
 
             const placeholders = ids.map(() => '?').join(',');
-            const [beforeRows] = await pool.query(`SELECT appointment_id, status FROM appointments WHERE appointment_id IN (${placeholders})`, ids);
+            const [beforeRows] = await pool.query(`SELECT appointment_id, client_id, status FROM appointments WHERE appointment_id IN (${placeholders})`, ids);
             if (beforeRows.length !== ids.length) {
                 return res.status(404).json({ success: false, message: 'One or more appointments were not found.' });
+            }
+
+            if (authUser && authUser.role === 'client') {
+                const unauthorized = beforeRows.some(row => Number(row.client_id) !== Number(authUser.id));
+                if (unauthorized) {
+                    return res.status(403).json({ success: false, message: 'You can only confirm your own appointments.' });
+                }
             }
 
             await pool.query(
@@ -321,13 +336,21 @@ module.exports = async function handler(req, res) {
         // Client requests a new schedule; admin/staff can approve by changing Pending Reschedule -> Confirmed.
         if (url.includes('/request-reschedule')) {
             if (req.method !== 'PUT') return res.status(405).json({ success: false, message: 'Method not allowed' });
+            const authUser = requireAuth(req, res, ['client', 'owner', 'staff']);
+            if (!authUser) return;
+
             const { appointment_id, new_date, new_time } = req.body || {};
             if (!appointment_id || !new_date || !new_time) {
                 return res.status(400).json({ success: false, message: 'appointment_id, new_date, and new_time are required.' });
             }
 
-            const [rows] = await pool.query('SELECT branch_id, staff_id, status FROM appointments WHERE appointment_id = ? LIMIT 1', [appointment_id]);
+            const [rows] = await pool.query('SELECT branch_id, staff_id, status, client_id FROM appointments WHERE appointment_id = ? LIMIT 1', [appointment_id]);
             if (!rows.length) return res.status(404).json({ success: false, message: 'Appointment not found.' });
+
+            if (authUser.role === 'client' && Number(rows[0].client_id) !== Number(authUser.id)) {
+                return res.status(403).json({ success: false, message: 'You can only reschedule your own appointments.' });
+            }
+
             if (rows[0].status === 'Cancelled' || rows[0].status === 'Completed') {
                 return res.status(409).json({ success: false, message: 'Completed or cancelled appointments cannot be rescheduled.' });
             }
@@ -355,6 +378,8 @@ module.exports = async function handler(req, res) {
         // Admin/staff direct appointment edit.
         if (url.includes('/update')) {
             if (req.method !== 'PUT') return res.status(405).json({ success: false, message: 'Method not allowed' });
+            const authUser = requireAuth(req, res, ['owner', 'staff']);
+            if (!authUser) return;
             const { appointment_id, appointment_date, appointment_time, status } = req.body || {};
             if (!appointment_id || !appointment_date || !appointment_time || !status || !VALID_STATUSES.includes(status)) {
                 return res.status(400).json({ success: false, message: 'A valid appointment, date, time, and status are required.' });
@@ -390,6 +415,8 @@ module.exports = async function handler(req, res) {
         // Admin/staff walk-in creation. Walk-ins get/reuse a client record so the existing FK remains valid.
         if (url.includes('/walkin')) {
             if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
+            const walkAuthUser = requireAuth(req, res, ['owner', 'staff']);
+            if (!walkAuthUser) return;
             const { client_name, client_email, branch_id, service_ids, staff_id, date, time, pax } = req.body || {};
             const ids = normalizeServiceIds(service_ids, null);
             const assignedStaff = staff_id ? Number(staff_id) : null;
@@ -443,8 +470,15 @@ module.exports = async function handler(req, res) {
 
         if (url.includes('/my')) {
             if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'Method not allowed' });
-            const { client_id } = req.query || {};
-            if (!client_id) return res.status(400).json({ success: false, message: 'client_id is required.' });
+            const authUser = requireAuth(req, res, ['client', 'owner', 'staff']);
+            if (!authUser) return;
+
+            let { client_id } = req.query || {};
+            if (authUser.role === 'client') {
+                client_id = authUser.id;
+            } else if (!client_id) {
+                return res.status(400).json({ success: false, message: 'client_id is required.' });
+            }
 
             const [rows] = await pool.query(`
                 SELECT a.*, s.name AS service_name, s.price AS service_price, b.name AS branch_name,
@@ -463,7 +497,15 @@ module.exports = async function handler(req, res) {
 
         if (url.includes('/branch')) {
             if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'Method not allowed' });
-            const { branch_id } = req.query || {};
+            const branchAuthUser = requireAuth(req, res, ['owner', 'staff']);
+            if (!branchAuthUser) return;
+
+            let { branch_id } = req.query || {};
+            // Staff can only see their own branch's appointments
+            if (branchAuthUser.role === 'staff' && branchAuthUser.branch_id) {
+                branch_id = branchAuthUser.branch_id;
+            }
+
             let query = `
                 SELECT a.*, u.name AS client_name, u.email AS client_email,
                        s.name AS service_name, s.price AS service_price,
@@ -488,13 +530,28 @@ module.exports = async function handler(req, res) {
 
         if (url.includes('/status')) {
             if (req.method !== 'PUT') return res.status(405).json({ success: false, message: 'Method not allowed' });
+            const statusAuthUser = requireAuth(req, res, ['owner', 'staff', 'client']);
+            if (!statusAuthUser) return;
             const { appointment_id, status } = req.body || {};
             if (!appointment_id || !status || !VALID_STATUSES.includes(status)) {
                 return res.status(400).json({ success: false, message: 'Invalid appointment or status.' });
             }
 
-            const [existing] = await pool.query('SELECT status FROM appointments WHERE appointment_id = ? LIMIT 1', [appointment_id]);
+            const [existing] = await pool.query('SELECT appointment_id, branch_id, client_id, status FROM appointments WHERE appointment_id = ? LIMIT 1', [appointment_id]);
             if (!existing.length) return res.status(404).json({ success: false, message: 'Appointment not found.' });
+
+            if (statusAuthUser.role === 'client') {
+                if (status !== 'Cancelled') {
+                    return res.status(403).json({ success: false, message: 'Clients can only cancel appointments.' });
+                }
+                if (Number(existing[0].client_id) !== Number(statusAuthUser.id)) {
+                    return res.status(403).json({ success: false, message: 'You can only cancel your own appointments.' });
+                }
+            } else if (statusAuthUser.role === 'staff' && statusAuthUser.branch_id) {
+                if (Number(existing[0].branch_id) !== Number(statusAuthUser.branch_id)) {
+                    return res.status(403).json({ success: false, message: 'You can only update appointments for your own branch.' });
+                }
+            }
 
             const [result] = await pool.query('UPDATE appointments SET status = ? WHERE appointment_id = ?', [status, appointment_id]);
             if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Appointment not found.' });

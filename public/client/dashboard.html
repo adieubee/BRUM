@@ -123,11 +123,13 @@
 
             // Booking history count via API
             try {
-                const response = await fetch(`/api/bookings/my?client_id=${user.id}`);
-                const data = await response.json();
-                if (data.success) {
-                    const historyEl = document.querySelector('.stat-number');
-                    if (historyEl) historyEl.textContent = data.appointments.length;
+                const response = await Auth.apiFetch(`/api/bookings/my?client_id=${user.id}`);
+                if (response) {
+                    const data = await response.json();
+                    if (data.success && data.appointments) {
+                        const historyEl = document.querySelector('.stat-number');
+                        if (historyEl) historyEl.textContent = data.appointments.length;
+                    }
                 }
             } catch (err) {
                 console.error("Error fetching history:", err);
@@ -163,7 +165,7 @@
             const newEmail = document.getElementById('editEmail').value.trim();
 
             try {
-                const response = await fetch('/api/users/update', {
+                const response = await Auth.apiFetch('/api/users/update', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -173,11 +175,12 @@
                         email: newEmail
                     })
                 });
+                if (!response) return;
 
                 const result = await response.json();
 
                 if (result.success) {
-                    // Update LocalStorage session so the browser remembers the new details
+                    // Update session so the browser remembers the new details
                     const updatedUser = {
                         ...user,
                         name: newName,
@@ -192,13 +195,13 @@
                     document.getElementById('dashEmail').textContent = updatedUser.email;
 
                     closeEditModal();
-                    console.log('Profile updated successfully!');
+                    alert('Profile updated successfully!');
                 } else {
-                    console.log('Error: ' + result.message);
+                    alert('Error: ' + result.message);
                 }
             } catch (error) {
                 console.error('Update profile error:', error);
-                console.log('Server connection failed.');
+                alert('Server connection failed.');
             }
         });
     </script>

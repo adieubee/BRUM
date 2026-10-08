@@ -296,91 +296,98 @@
             }
 
             try {
-                const bRes = await fetch('/api/branches');
-                const bData = await bRes.json();
-                if (bData.success) {
-                    const branch = bData.branches.find(b => b.branch_id === currentUser.branch_id);
-                    document.getElementById('branchName').textContent = branch ? branch.name : 'All Branches';
-                    document.getElementById('walkinBranchName').value = branch ? branch.name : 'All Branches';
-                    document.getElementById('walkinBranch').value = currentUser.branch_id || '';
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (bRes) {
+                    const bData = await bRes.json();
+                    if (bData.success) {
+                        const branch = (bData.branches || []).find(b => b.branch_id === currentUser.branch_id);
+                        document.getElementById('branchName').textContent = branch ? branch.name : 'All Branches';
+                        document.getElementById('walkinBranchName').value = branch ? branch.name : 'All Branches';
+                        document.getElementById('walkinBranch').value = currentUser.branch_id || '';
+                    }
                 }
 
                 // Fetch Services
-                const sRes = await fetch('/api/services');
-                const sData = await sRes.json();
-                if (sData.success) {
-                    services = sData.services;
-                    const templateSelect = document.createElement('select');
-                    templateSelect.className = 'service-select admin-select';
-                    templateSelect.style.backgroundColor = '#fff';
-                    templateSelect.required = true;
-                    templateSelect.innerHTML = '<option value="" selected disabled>Select a Service</option>';
+                const sRes = await Auth.apiFetch('/api/services');
+                if (sRes) {
+                    const sData = await sRes.json();
+                    if (sData.success) {
+                        services = sData.services || [];
+                        const templateSelect = document.createElement('select');
+                        templateSelect.className = 'service-select admin-select';
+                        templateSelect.style.backgroundColor = '#fff';
+                        templateSelect.required = true;
+                        templateSelect.innerHTML = '<option value="" selected disabled>Select a Service</option>';
 
-                    const categoryGroups = {};
-                    services.forEach(s => {
-                        const cat = s.category || 'Other Services';
-                        if (!categoryGroups[cat]) categoryGroups[cat] = [];
-                        categoryGroups[cat].push(s);
-                    });
-
-                    for (const category in categoryGroups) {
-                        if (category === 'Other Services') continue;
-                        const optgroup = document.createElement('optgroup');
-                        optgroup.label = category.toUpperCase();
-                        categoryGroups[category].forEach(s => {
-                            const option = document.createElement('option');
-                            option.value = s.service_id;
-                            option.setAttribute('data-name', s.name);
-                            option.setAttribute('data-price', s.price);
-                            if (s.name === 'Warts Removal') {
-                                option.textContent = `WARTS REMOVAL (₱35/pc)`;
-                            } else {
-                                option.textContent = `${s.name.toUpperCase()} - ₱${parseFloat(s.price).toLocaleString()}`;
-                            }
-                            optgroup.appendChild(option);
+                        const categoryGroups = {};
+                        services.forEach(s => {
+                            const cat = s.category || 'Other Services';
+                            if (!categoryGroups[cat]) categoryGroups[cat] = [];
+                            categoryGroups[cat].push(s);
                         });
-                        templateSelect.appendChild(optgroup);
-                    }
-                    window._serviceSelectTemplate = templateSelect;
-                    document.querySelector('.pax-panel .service-select').innerHTML = templateSelect.innerHTML;
 
-                    document.getElementById('walkinPax').addEventListener('change', function () {
-                        const maxPax = parseInt(this.value) || 1;
-                        const container = document.getElementById('servicesContainer');
-                        const currentPanels = container.querySelectorAll('.pax-panel');
-
-                        if (currentPanels.length < maxPax) {
-                            for (let i = currentPanels.length; i < maxPax; i++) {
-                                const panel = document.createElement('div');
-                                panel.className = 'pax-panel';
-                                panel.setAttribute('data-pax', i + 1);
-                                panel.innerHTML = `
-                                    <div class="pax-panel-header">Person ${i + 1}</div>
-                                    <div class="pax-services">
-                                        <select class="service-select admin-select" required style="background-color: #fff;">${window._serviceSelectTemplate.innerHTML}</select>
-                                    </div>
-                                    <button type="button" class="add-service-btn" onclick="addServiceToPanel(this)">+ Add Another Service</button>
-                                `;
-                                container.appendChild(panel);
-                            }
-                        } else if (currentPanels.length > maxPax) {
-                            for (let i = currentPanels.length - 1; i >= maxPax; i--) {
-                                container.removeChild(currentPanels[i]);
-                            }
+                        for (const category in categoryGroups) {
+                            if (category === 'Other Services') continue;
+                            const optgroup = document.createElement('optgroup');
+                            optgroup.label = category.toUpperCase();
+                            categoryGroups[category].forEach(s => {
+                                const option = document.createElement('option');
+                                option.value = s.service_id;
+                                option.setAttribute('data-name', s.name);
+                                option.setAttribute('data-price', s.price);
+                                if (s.name === 'Warts Removal') {
+                                    option.textContent = `WARTS REMOVAL (₱35/pc)`;
+                                } else {
+                                    option.textContent = `${s.name.toUpperCase()} - ₱${parseFloat(s.price).toLocaleString()}`;
+                                }
+                                optgroup.appendChild(option);
+                            });
+                            templateSelect.appendChild(optgroup);
                         }
+                        window._serviceSelectTemplate = templateSelect;
+                        const defaultSelect = document.querySelector('.pax-panel .service-select');
+                        if (defaultSelect) defaultSelect.innerHTML = templateSelect.innerHTML;
 
-                        container.querySelectorAll('.pax-panel-header').forEach(h => {
-                            h.style.display = maxPax === 1 ? 'none' : 'block';
+                        document.getElementById('walkinPax').addEventListener('change', function () {
+                            const maxPax = parseInt(this.value) || 1;
+                            const container = document.getElementById('servicesContainer');
+                            const currentPanels = container.querySelectorAll('.pax-panel');
+
+                            if (currentPanels.length < maxPax) {
+                                for (let i = currentPanels.length; i < maxPax; i++) {
+                                    const panel = document.createElement('div');
+                                    panel.className = 'pax-panel';
+                                    panel.setAttribute('data-pax', i + 1);
+                                    panel.innerHTML = `
+                                        <div class="pax-panel-header">Person ${i + 1}</div>
+                                        <div class="pax-services">
+                                            <select class="service-select admin-select" required style="background-color: #fff;">${window._serviceSelectTemplate.innerHTML}</select>
+                                        </div>
+                                        <button type="button" class="add-service-btn" onclick="addServiceToPanel(this)">+ Add Another Service</button>
+                                    `;
+                                    container.appendChild(panel);
+                                }
+                            } else if (currentPanels.length > maxPax) {
+                                for (let i = currentPanels.length - 1; i >= maxPax; i--) {
+                                    container.removeChild(currentPanels[i]);
+                                }
+                            }
+
+                            container.querySelectorAll('.pax-panel-header').forEach(h => {
+                                h.style.display = maxPax === 1 ? 'none' : 'block';
+                            });
                         });
-                    });
+                    }
                 }
 
                 // Fetch Staff
-                const staffRes = await fetch('/api/users/staff');
-                const staffData = await staffRes.json();
-                if (staffData.success) {
-                    staffList = staffData.staff;
-                    populateStaffDropdown();
+                const staffRes = await Auth.apiFetch('/api/users/staff');
+                if (staffRes) {
+                    const staffData = await staffRes.json();
+                    if (staffData.success) {
+                        staffList = staffData.staff || [];
+                        populateStaffDropdown();
+                    }
                 }
 
             } catch (e) { console.error('Error fetching data:', e); }
@@ -395,7 +402,8 @@
 
             try {
                 let apiSuffix = currentUser.branch_id ? `?branch_id=${currentUser.branch_id}` : '';
-                const response = await fetch(`/api/bookings/branch${apiSuffix}`);
+                const response = await Auth.apiFetch(`/api/bookings/branch${apiSuffix}`);
+                if (!response) return;
                 const data = await response.json();
 
                 if (!data.success) {
@@ -403,8 +411,7 @@
                     return;
                 }
 
-                let appointments = data.appointments;
-
+                let appointments = data.appointments || [];
                 allAppointments = appointments;
 
                 // Filter by status
@@ -413,8 +420,9 @@
                 }
 
                 // Filter by date
-                if (dateFilter.value) {
-                    appointments = appointments.filter(a => a.appointment_date.split('T')[0] === dateFilter.value);
+                const dateFilter = document.getElementById('dateFilter');
+                if (dateFilter && dateFilter.value) {
+                    appointments = appointments.filter(a => (a.appointment_date || '').split('T')[0] === dateFilter.value);
                 }
 
                 // Sort by priority (Pending first), then newest date/time first
@@ -444,30 +452,113 @@
                 tbody.innerHTML = '';
                 appointments.forEach((appt, idx) => {
                     const serviceName = appt.all_service_names || appt.service_name || 'Unknown';
-                    const paxLabel = appt.pax > 1 ? ` (${appt.pax} pax)` : '';
                     const isPending = appt.status === 'Pending Payment';
                     const isConfirmed = appt.status === 'Confirmed';
-                    const apptDate = appt.appointment_date.split('T')[0];
+                    const apptDate = (appt.appointment_date || '').split('T')[0];
 
                     const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td data-label="#">${idx + 1}</td>
-                        <td data-label="Client"><strong>${appt.client_name || 'Guest'}</strong><br><small style="color:#999">${appt.client_email || ''}</small></td>
-                        <td data-label="Service" style="max-width: 220px; word-break: break-word; white-space: normal; font-size: 0.85rem; line-height: 1.4;">${serviceName.split(', ').join('<br>')} ${paxLabel}</td>
-                        <td data-label="Date">${apptDate || '—'}</td>
-                        <td data-label="Time">${appt.appointment_time || '—'}</td>
-                        <td data-label="Status"><span class="status-badge ${appt.status.toLowerCase()}" style="cursor: pointer; transition: opacity 0.2s;" onclick="openEditModal(${appt.appointment_id})" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" title="Click to update status or schedule">${appt.status}</span></td>
-                        <td data-label="Actions">
-                            <div style="display: flex; gap: 6px; justify-content: center;">
-                            ${isPending || appt.status === 'Pending Reschedule' ? `
-                                <button class="action-btn" onclick="updateStatus(${appt.appointment_id}, 'Confirmed')" title="Confirm" style="padding: 6px 10px;"><i class="fas fa-check"></i></button>
-                                <button class="action-btn" style="background: #dc3545; color: white; padding: 6px 10px;" onclick="updateStatus(${appt.appointment_id}, 'Cancelled')" title="Cancel"><i class="fas fa-xmark"></i></button>
-                            ` : isConfirmed ? `
-                                <button class="action-btn" onclick="window.location.href='pos.html?appointment_id=${appt.appointment_id}'" title="Checkout in POS" style="padding: 6px 10px;"><i class="fas fa-circle-check"></i></button>
-                            ` : '—'}
-                            </div>
-                        </td>
-                    `;
+
+                    const tdIdx = document.createElement('td');
+                    tdIdx.setAttribute('data-label', '#');
+                    tdIdx.textContent = String(idx + 1);
+
+                    const tdClient = document.createElement('td');
+                    tdClient.setAttribute('data-label', 'Client');
+                    const strongClient = document.createElement('strong');
+                    strongClient.textContent = appt.client_name || 'Guest';
+                    tdClient.appendChild(strongClient);
+                    if (appt.client_email) {
+                        tdClient.appendChild(document.createElement('br'));
+                        const emailSm = document.createElement('small');
+                        emailSm.style.color = '#999';
+                        emailSm.textContent = appt.client_email;
+                        tdClient.appendChild(emailSm);
+                    }
+
+                    const tdService = document.createElement('td');
+                    tdService.setAttribute('data-label', 'Service');
+                    tdService.style.maxWidth = '220px';
+                    tdService.style.wordBreak = 'break-word';
+                    tdService.style.whiteSpace = 'normal';
+                    tdService.style.fontSize = '0.85rem';
+                    tdService.style.lineHeight = '1.4';
+                    const sParts = serviceName.split(', ');
+                    sParts.forEach((part, i) => {
+                        if (i > 0) tdService.appendChild(document.createElement('br'));
+                        tdService.appendChild(document.createTextNode(part));
+                    });
+                    if (appt.pax > 1) {
+                        tdService.appendChild(document.createTextNode(` (${appt.pax} pax)`));
+                    }
+
+                    const tdDate = document.createElement('td');
+                    tdDate.setAttribute('data-label', 'Date');
+                    tdDate.textContent = apptDate || '—';
+
+                    const tdTime = document.createElement('td');
+                    tdTime.setAttribute('data-label', 'Time');
+                    tdTime.textContent = appt.appointment_time || '—';
+
+                    const tdStatus = document.createElement('td');
+                    tdStatus.setAttribute('data-label', 'Status');
+                    const badge = document.createElement('span');
+                    badge.className = `status-badge ${String(appt.status || '').toLowerCase().replace(/\s+/g, '-')}`;
+                    badge.style.cursor = 'pointer';
+                    badge.style.transition = 'opacity 0.2s';
+                    badge.title = 'Click to update status or schedule';
+                    badge.textContent = appt.status;
+                    badge.onclick = () => openEditModal(appt.appointment_id);
+                    badge.onmouseover = () => { badge.style.opacity = '0.8'; };
+                    badge.onmouseout = () => { badge.style.opacity = '1'; };
+                    tdStatus.appendChild(badge);
+
+                    const tdActions = document.createElement('td');
+                    tdActions.setAttribute('data-label', 'Actions');
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.style.display = 'flex';
+                    actionsDiv.style.gap = '6px';
+                    actionsDiv.style.justifyContent = 'center';
+
+                    if (isPending || appt.status === 'Pending Reschedule') {
+                        const btnConf = document.createElement('button');
+                        btnConf.className = 'action-btn';
+                        btnConf.title = 'Confirm';
+                        btnConf.style.padding = '6px 10px';
+                        btnConf.innerHTML = '<i class="fas fa-check"></i>';
+                        btnConf.onclick = () => updateStatus(appt.appointment_id, 'Confirmed');
+                        actionsDiv.appendChild(btnConf);
+
+                        const btnCanc = document.createElement('button');
+                        btnCanc.className = 'action-btn';
+                        btnCanc.title = 'Cancel';
+                        btnCanc.style.background = '#dc3545';
+                        btnCanc.style.color = 'white';
+                        btnCanc.style.padding = '6px 10px';
+                        btnCanc.innerHTML = '<i class="fas fa-xmark"></i>';
+                        btnCanc.onclick = () => updateStatus(appt.appointment_id, 'Cancelled');
+                        actionsDiv.appendChild(btnCanc);
+                    } else if (isConfirmed) {
+                        const btnPos = document.createElement('button');
+                        btnPos.className = 'action-btn';
+                        btnPos.title = 'Checkout in POS';
+                        btnPos.style.padding = '6px 10px';
+                        btnPos.innerHTML = '<i class="fas fa-circle-check"></i>';
+                        btnPos.onclick = () => {
+                            window.location.href = `pos.html?appointment_id=${appt.appointment_id}`;
+                        };
+                        actionsDiv.appendChild(btnPos);
+                    } else {
+                        actionsDiv.textContent = '—';
+                    }
+                    tdActions.appendChild(actionsDiv);
+
+                    row.appendChild(tdIdx);
+                    row.appendChild(tdClient);
+                    row.appendChild(tdService);
+                    row.appendChild(tdDate);
+                    row.appendChild(tdTime);
+                    row.appendChild(tdStatus);
+                    row.appendChild(tdActions);
                     tbody.appendChild(row);
                 });
             } catch (error) {
@@ -478,11 +569,12 @@
 
         async function updateStatus(id, newStatus) {
             try {
-                const res = await fetch('/api/bookings/status', {
+                const res = await Auth.apiFetch('/api/bookings/status', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ appointment_id: id, status: newStatus })
                 });
+                if (!res) return;
                 const result = await res.json();
                 if (result.success) {
                     renderAppointments();
@@ -520,24 +612,24 @@
             const status = document.getElementById('editStatus').value;
 
             try {
-                // We will send a PUT request to our update endpoint
-                const res = await fetch('/api/bookings/update', {
+                const res = await Auth.apiFetch('/api/bookings/update', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ appointment_id: id, appointment_date: date, appointment_time: time, status: status })
                 });
+                if (!res) return;
                 const result = await res.json();
 
                 if (result.success) {
-                    console.log('Appointment successfully updated!');
+                    alert('Appointment successfully updated!');
                     closeEditModal();
                     renderAppointments();
                 } else {
-                    console.log('Error: ' + result.message);
+                    alert('Error: ' + result.message);
                 }
             } catch (err) {
                 console.error('Update appointment error:', err);
-                console.log('Server connection failed.');
+                alert('Server connection failed.');
             }
         });
 
@@ -608,8 +700,8 @@
             const service_ids = Array.from(serviceSelects).map(sel => sel.value).filter(v => v);
 
             const payload = {
-                client_name: document.getElementById('walkinClientName').value,
-                client_email: document.getElementById('walkinClientEmail').value,
+                client_name: document.getElementById('walkinClientName').value.trim(),
+                client_email: document.getElementById('walkinClientEmail').value.trim(),
                 branch_id: document.getElementById('walkinBranch').value,
                 service_ids: service_ids,
                 pax: document.getElementById('walkinPax').value,
@@ -619,11 +711,12 @@
             };
 
             try {
-                const res = await fetch('/api/bookings/walkin', {
+                const res = await Auth.apiFetch('/api/bookings/walkin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                if (!res) return;
                 const result = await res.json();
 
                 if (result.success) {

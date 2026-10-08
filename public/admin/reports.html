@@ -149,19 +149,22 @@
 
             try {
                 // 1. Fetch branches
-                const bRes = await fetch('/api/branches');
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (!bRes) return;
                 const bData = await bRes.json();
-                let branches = bData.success ? bData.branches : [];
+                let branches = bData.success ? (bData.branches || []) : [];
 
                 // 2. Fetch finance transactions for revenue & completed count
-                const fRes = await fetch('/api/finance');
+                const fRes = await Auth.apiFetch('/api/finance');
+                if (!fRes) return;
                 const fData = await fRes.json();
-                let transactions = fData.success ? fData.transactions : [];
+                let transactions = fData.success ? (fData.transactions || []) : [];
 
                 // 3. Fetch bookings for cancelled count
-                const aRes = await fetch('/api/bookings/branch');
+                const aRes = await Auth.apiFetch('/api/bookings/branch');
+                if (!aRes) return;
                 const aData = await aRes.json();
-                let appointments = aData.success ? aData.appointments : [];
+                let appointments = aData.success ? (aData.appointments || []) : [];
 
                 // Initialize report object per branch
                 const reportMap = {};
@@ -187,10 +190,6 @@
                     if (a.status === 'Cancelled' && reportMap[a.branch_id]) {
                         reportMap[a.branch_id].cancelled += 1;
                     }
-                    if (a.status === 'Completed' && reportMap[a.branch_id]) {
-                        // We could count completions here instead of finance, 
-                        // but finance maps 1:1 with actual paid transactions constraint.
-                    }
                 });
 
                 const tbody = document.getElementById('reportTableBody');
@@ -214,13 +213,42 @@
 
                     // Table Rows
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td data-label="Branch" style="font-weight: 700;">${stats.name}</td>
-                        <td data-label="Completed" style="text-align: center;">${stats.completed}</td>
-                        <td data-label="Cancelled" style="text-align: center;">${stats.cancelled}</td>
-                        <td data-label="Revenue" style="text-align: right;"><strong style="color: green;">₱${stats.revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-                        <td data-label="Avg Ticket" style="text-align: right; color: #6D5724; font-weight: 600;">₱${avgTicket.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    `;
+
+                    const tdBranch = document.createElement('td');
+                    tdBranch.setAttribute('data-label', 'Branch');
+                    tdBranch.style.fontWeight = '700';
+                    tdBranch.textContent = stats.name;
+
+                    const tdCompleted = document.createElement('td');
+                    tdCompleted.setAttribute('data-label', 'Completed');
+                    tdCompleted.style.textAlign = 'center';
+                    tdCompleted.textContent = stats.completed;
+
+                    const tdCancelled = document.createElement('td');
+                    tdCancelled.setAttribute('data-label', 'Cancelled');
+                    tdCancelled.style.textAlign = 'center';
+                    tdCancelled.textContent = stats.cancelled;
+
+                    const tdRev = document.createElement('td');
+                    tdRev.setAttribute('data-label', 'Revenue');
+                    tdRev.style.textAlign = 'right';
+                    const strongRev = document.createElement('strong');
+                    strongRev.style.color = 'green';
+                    strongRev.textContent = '₱' + stats.revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    tdRev.appendChild(strongRev);
+
+                    const tdAvg = document.createElement('td');
+                    tdAvg.setAttribute('data-label', 'Avg Ticket');
+                    tdAvg.style.textAlign = 'right';
+                    tdAvg.style.color = '#6D5724';
+                    tdAvg.style.fontWeight = '600';
+                    tdAvg.textContent = '₱' + avgTicket.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                    tr.appendChild(tdBranch);
+                    tr.appendChild(tdCompleted);
+                    tr.appendChild(tdCancelled);
+                    tr.appendChild(tdRev);
+                    tr.appendChild(tdAvg);
                     tbody.appendChild(tr);
                 });
 
@@ -257,15 +285,28 @@
 
                     const shortName = stats.name.replace(' Branch', '');
 
-                    revBars.innerHTML += `
-                        <div class="bar-row">
-                            <div class="bar-label">${shortName}</div>
-                            <div class="bar-track ${colorClass}">
-                                <div class="bar-fill ${colorClass}" style="width: ${widthPercent}%;"></div>
-                            </div>
-                            <div class="bar-value">₱${stats.revenue.toLocaleString('en-US')}</div>
-                        </div>
-                    `;
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'bar-row';
+
+                    const lbl = document.createElement('div');
+                    lbl.className = 'bar-label';
+                    lbl.textContent = shortName;
+
+                    const track = document.createElement('div');
+                    track.className = `bar-track ${colorClass}`;
+                    const fill = document.createElement('div');
+                    fill.className = `bar-fill ${colorClass}`;
+                    fill.style.width = `${widthPercent}%`;
+                    track.appendChild(fill);
+
+                    const val = document.createElement('div');
+                    val.className = 'bar-value';
+                    val.textContent = '₱' + stats.revenue.toLocaleString('en-US');
+
+                    rowDiv.appendChild(lbl);
+                    rowDiv.appendChild(track);
+                    rowDiv.appendChild(val);
+                    revBars.appendChild(rowDiv);
                 });
 
                 // Top Services Bars
@@ -289,20 +330,36 @@
                     const colorClass = colorClasses[colorIndex % colorClasses.length];
                     colorIndex++;
 
-                    srvBars.innerHTML += `
-                        <div class="bar-row">
-                            <div class="bar-label">${srv.name}</div>
-                            <div class="bar-track ${colorClass}">
-                                <div class="bar-fill ${colorClass}" style="width: ${widthPercent}%;"></div>
-                            </div>
-                            <div class="bar-value">${srv.count}</div>
-                        </div>
-                    `;
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'bar-row';
+
+                    const lbl = document.createElement('div');
+                    lbl.className = 'bar-label';
+                    lbl.textContent = srv.name;
+
+                    const track = document.createElement('div');
+                    track.className = `bar-track ${colorClass}`;
+                    const fill = document.createElement('div');
+                    fill.className = `bar-fill ${colorClass}`;
+                    fill.style.width = `${widthPercent}%`;
+                    track.appendChild(fill);
+
+                    const val = document.createElement('div');
+                    val.className = 'bar-value';
+                    val.textContent = String(srv.count);
+
+                    rowDiv.appendChild(lbl);
+                    rowDiv.appendChild(track);
+                    rowDiv.appendChild(val);
+                    srvBars.appendChild(rowDiv);
                 });
 
             } catch (err) {
                 console.error("Error building report:", err);
                 document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="5" style="color: red; text-align: center;">Error loading reporting data.</td></tr>`;
+                document.getElementById('revenueBars').innerHTML = `<p style="padding: 20px; color: #999;">Unable to load revenue chart.</p>`;
+                document.getElementById('servicesBars').innerHTML = `<p style="padding: 20px; color: #999;">Unable to load services chart.</p>`;
+            }
             }
         });
 
