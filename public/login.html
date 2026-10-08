@@ -5,7 +5,7 @@
     <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FACIAL R US - LOGIN</title>
+    <title>BARBERS R US - LOGIN</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 
@@ -15,8 +15,8 @@
 
         <div class="brand-section">
             <a href="index.html" style="text-decoration: none;">
-                <img src="./assets/ICON.svg" alt="Facial R Us Logo" class="nav-logo">
-                <h1 class="brand-title">FACIAL R US</h1>
+                <img src="./assets/ICON.svg" alt="BARBERS R US Logo" class="nav-logo">
+                <h1 class="brand-title">BARBERS R US</h1>
             </a>
         </div>
 
@@ -42,7 +42,7 @@
                 <button type="submit" class="submit-btn">LOG IN</button>
             </form>
 
-            <p class="footer-text">New to Facial R Us? <a href="register.html">Sign up</a></p>
+            <p class="footer-text">New to Barbers R Us? <a href="register.html">Sign up</a></p>
 
             <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5ddd5; text-align: center;">
                 <p style="font-size: 0.78rem; color: #999; margin-bottom: 8px; font-family: 'Poppins', sans-serif;">Demo
@@ -70,11 +70,21 @@
             document.getElementById('password').value = p;
         }
 
+        const loginError = document.getElementById('login-error');
+        const loginParams = new URLSearchParams(window.location.search);
+        if (loginParams.get('error') === 'admin_access') {
+            loginError.textContent = 'Access denied. Client accounts cannot access the admin dashboard. Please use an owner or staff account.';
+            loginError.style.display = 'block';
+        } else if (loginParams.get('error') === 'staff_access') {
+            loginError.textContent = 'Access denied. This page is only available to owner accounts. Please use the staff dashboard or an owner account.';
+            loginError.style.display = 'block';
+        }
+
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
-            const errorEl = document.getElementById('login-error');
+            const errorEl = loginError;
 
             if (!username || !password) {
                 errorEl.textContent = 'Please fill in all fields.';
