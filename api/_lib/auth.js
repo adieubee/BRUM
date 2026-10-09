@@ -70,6 +70,7 @@ function getTokenPayload(req) {
  */
 function requireAuth(req, res, allowedRoles = []) {
     const payload = getTokenPayload(req);
+    console.log(payload)
     if (!payload) {
         res.status(401).json({ success: false, message: 'Authentication required.' });
         return null;

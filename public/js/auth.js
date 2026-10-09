@@ -89,21 +89,46 @@ const Auth = {
     // G. Convenience: authenticated fetch wrapper
     apiFetch: async function (url, options = {}) {
         const headers = this.authHeaders(options.headers || {});
-        const response = await fetch(url, { ...options, headers });
-        // If token expired/invalid, redirect to login
-        if (response.status === 401) {
-            this.logout();
-            return null;
+        try {
+            const response = await fetch(url, { ...options, headers });
+
+            // Only trigger a full logout if the core token verification/session check fails.
+            // Do NOT log out when regular operational endpoints (like booking, branches, services)
+            // fail or return 401/403, as that might be a route/permission or role error.
+            if (response.status === 401) {
+                const isAuthCheckEndpoint = url.includes('/api/auth/verify') ||
+                    url.includes('/api/auth/me') ||
+                    url.includes('/api/auth/validate');
+
+                if (isAuthCheckEndpoint) {
+                    console.warn('Session expired. Logging out.');
+                    this.logout();
+                    return null;
+                }
+
+                console.warn(`Request to ${url} returned 401, but keeping user session intact.`);
+            }
+
+            return response;
+        } catch (error) {
+            console.error(`apiFetch failed for ${url}:`, error);
+            throw error;
         }
-        return response;
     },
 
     // H. PROTECT PAGE
     requireLogin: function () {
         const user = this.getUser();
-        if (!user || !this.getToken()) {
-            console.log('You must login first!');
-            window.location.href = '../login.html';
+        const token = this.getToken();
+
+        if (!user || !token) {
+            console.warn('You must login first!');
+            const path = window.location.pathname;
+            if (path.includes('/client/') || path.includes('/admin/') || path.includes('/staff/')) {
+                window.location.href = '../login.html';
+            } else {
+                window.location.href = 'login.html';
+            }
         }
     }
 };
