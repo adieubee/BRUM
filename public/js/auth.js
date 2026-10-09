@@ -75,14 +75,22 @@ const Auth = {
 
     // E. Get the auth token
     getToken: function () {
-        return localStorage.getItem('authToken') || '';
+        // Accept the raw token and older values that may already include "Bearer ".
+        return (localStorage.getItem('authToken') || '')
+            .trim()
+            .replace(/^Bearer\s+/i, '');
     },
 
     // F. Build authenticated fetch headers (merges with any extra headers provided)
     authHeaders: function (extra = {}) {
         const token = this.getToken();
         const headers = { 'Content-Type': 'application/json', ...extra };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        // Header names are case-insensitive, but normalize the key so a stale
+        // lower-case Authorization header cannot override the current login token.
+        delete headers.authorization;
+        delete headers.Authorization;
+        if (token) headers.Authorization = `Bearer ${token}`;
         return headers;
     },
 

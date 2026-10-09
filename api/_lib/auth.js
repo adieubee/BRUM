@@ -25,6 +25,11 @@ function verify(token) {
     if (parts.length !== 2) return null;
     const [data, sig] = parts;
     try {
+        // The signature must be recomputed from the token payload using the same
+        // secret used by createToken(). An undefined expected signature rejects
+        // every token and makes all protected endpoints return 401.
+        const expected = crypto.createHmac('sha256', SECRET).update(data).digest('hex');
+        if (!/^[a-f0-9]{64}$/i.test(sig)) return null;
         const sigBuf = Buffer.from(sig, 'hex');
         const expBuf = Buffer.from(expected, 'hex');
         if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) return null;
@@ -56,9 +61,12 @@ function createToken(user) {
  * Returns the payload or null.
  */
 function getTokenPayload(req) {
-    const auth = req.headers && req.headers['authorization'];
-    if (!auth || !auth.startsWith('Bearer ')) return null;
-    return verify(auth.slice(7));
+    const headers = req.headers || {};
+    const auth = headers.authorization || headers.Authorization;
+    if (typeof auth !== 'string') return null;
+    const match = auth.trim().match(/^Bearer\s+(.+)$/i);
+    if (!match) return null;
+    return verify(match[1].trim());
 }
 
 /**
