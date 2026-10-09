@@ -71,8 +71,10 @@
     <div id="rescheduleModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeRescheduleModal()">&times;</span>
-            <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 1.8rem; margin-top: 0;">Reschedule Appointment</h3>
-            <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">Please note that rescheduling requests are subject to approval by our staff.</p>
+            <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 1.8rem; margin-top: 0;">Reschedule
+                Appointment</h3>
+            <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">Please note that rescheduling requests are
+                subject to approval by our staff.</p>
 
             <form id="rescheduleForm">
                 <input type="hidden" id="rescheduleApptId">
@@ -93,9 +95,11 @@
                     </div>
                 </div>
 
-                <div style="background-color: #fdf5e6; padding: 15px; border-radius: 8px; border-left: 4px solid #C7A655; margin-top: 20px;">
+                <div
+                    style="background-color: #fdf5e6; padding: 15px; border-radius: 8px; border-left: 4px solid #C7A655; margin-top: 20px;">
                     <p style="margin: 0; font-size: 0.85rem; color: #6D5724;">
-                        <i class="fas fa-info-circle"></i> Once submitted, your appointment status will change to <strong>Pending Reschedule</strong> until our team confirms the new date and time.
+                        <i class="fas fa-info-circle"></i> Once submitted, your appointment status will change to
+                        <strong>Pending Reschedule</strong> until our team confirms the new date and time.
                     </p>
                 </div>
 
@@ -250,7 +254,7 @@
                     alert('Server connection failed.');
                 }
             }
-        }   }
+        }
 
         // --- RESCHEDULE LOGIC ---
         function populateTimeDropdown() {
@@ -326,10 +330,10 @@
             document.getElementById('rescheduleModal').style.display = 'none';
         }
 
-        document.getElementById('rescheduleForm').addEventListener('submit', async function(e) {
+        document.getElementById('rescheduleForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const submitBtn = this.querySelector('button[type="submit"]');
-            
+
             const apptId = document.getElementById('rescheduleApptId').value;
             const newDate = document.getElementById('rescheduleDate').value;
             const newTime = document.getElementById('rescheduleTime').value;
@@ -350,7 +354,7 @@
                 });
                 if (!response) return;
                 const result = await response.json();
-                
+
                 if (result.success) {
                     alert('Reschedule request submitted successfully!');
                     closeRescheduleModal();
