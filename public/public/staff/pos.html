@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BARBERS R US - Point of Sale</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #receiptModal,
+            #receiptModal * {
+                visibility: visible;
+            }
+
+            #receiptModal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                display: block !important;
+            }
+
+            .modal-content {
+                box-shadow: none;
+                border: none;
+            }
+
+            .close,
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="admin-body">
+
+    <aside class="admin-sidebar">
+        <div class="admin-brand">
+            <div>
+                <span class="admin-logo-small">BARBERS R US</span>
+                <h2 class="admin-logo-large">Staff Portal</h2>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <ul class="admin-nav" id="adminNav">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="appointments.html">Appointments</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="pos.html" class="active">POS</a></li>
+        </ul>
+
+        <button class="admin-logout-btn" onclick="staffLogout()">Log Out</button>
+    </aside>
+
+    <main class="admin-main">
+
+        <header class="admin-header">
+            <div class="header-text">
+                <h1>Point of Sale</h1>
+                <p>Process payments for <strong id="branchName">Loading...</strong></p>
+            </div>
+            <a href="dashboard.html" class="back-home-btn">Back to Dashboard</a>
+        </header>
+
+        <div class="pos-layout">
+
+            <!-- Left Panel: Appointment & Products -->
+            <div class="admin-content-card pos-panel">
+                <h3 class="pos-section-title">1. Select Appointment</h3>
+                <div class="input-group">
+                    <select id="apptSelect" class="admin-select" onchange="loadAppointmentDetails()">
+                        <option value="">-- Choose Confirmed Appointment --</option>
+                    </select>
+                </div>
+
+                <div id="apptDetails" class="pos-details-box" style="display: none;">
+                    <p><strong>Client:</strong> <span id="clientName"></span></p>
+                    <p><strong>Service:</strong> <span id="serviceName"></span></p>
+                    <p><strong>Base Price:</strong> ₱<span id="servicePrice"></span></p>
+
+                    <div id="wartsInputContainer"
+                        style="display: none; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc;">
+                        <label for="wartsCount" style="font-weight: bold; color: #a46464;">Number of Warts
+                            Removed:</label>
+                        <input type="number" id="wartsCount" min="1" value="1" oninput="updateWartsPrice()"
+                            style="width: 80px; padding: 5px; margin-left: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <p id="wartsCalculationText" style="margin: 5px 0 0; font-size: 0.85rem; color: #777;">1 piece x
+                            ₱35 = ₱35</p>
+                    </div>
+                </div>
+
+                <h3 class="pos-section-title" style="margin-top: 30px;">2. Add Products (Optional)</h3>
+                <div class="pos-add-product-row">
+                    <select id="productSelect" class="admin-select">
+                        <option value="">-- Select Product --</option>
+                    </select>
+                    <button class="action-btn" onclick="addProduct()">Add</button>
+                </div>
+
+                <ul id="productList" class="pos-product-list">
+                </ul>
+            </div>
+
+            <!-- Right Panel: Summary & Calculator -->
+            <div class="admin-content-card pos-panel">
+                <h3 class="pos-section-title">Order Summary</h3>
+
+                <div class="pos-summary-row">
+                    <span>Service Total:</span>
+                    <span>₱<span id="sumService">0.00</span></span>
+                </div>
+                <div class="pos-summary-row">
+                    <span>Products Total:</span>
+                    <span>₱<span id="sumProducts">0.00</span></span>
+                </div>
+                <div class="pos-summary-row" id="dpRow" style="display: none; color: #2e7d32;">
+                    <span>Down Payment (Paid):</span>
+                    <span>-₱<span id="sumDp">0.00</span></span>
+                </div>
+                <div class="pos-summary-row" id="dpCreditRow" style="display: none; color: #0277bd;">
+                    <span>DP Overpayment Credit:</span>
+                    <span>₱<span id="sumDpCredit">0.00</span></span>
+                </div>
+                <div class="pos-summary-row pos-grand-total">
+                    <span>Amount Due:</span>
+                    <span>₱<span id="sumTotal">0.00</span></span>
+                </div>
+
+                <h3 class="pos-section-title" style="margin-top: 30px;">Payment Calculator</h3>
+                <div class="pos-calculator">
+                    <div class="calc-display">
+                        <label>Cash Received</label>
+                        <input type="text" id="cashInput" readonly placeholder="₱0.00">
+                    </div>
+
+                    <div class="calc-numpad">
+                        <button onclick="calcType('1')">1</button>
+                        <button onclick="calcType('2')">2</button>
+                        <button onclick="calcType('3')">3</button>
+                        <button onclick="calcType('4')">4</button>
+                        <button onclick="calcType('5')">5</button>
+                        <button onclick="calcType('6')">6</button>
+                        <button onclick="calcType('7')">7</button>
+                        <button onclick="calcType('8')">8</button>
+                        <button onclick="calcType('9')">9</button>
+                        <button onclick="calcType('C')" class="calc-clear">C</button>
+                        <button onclick="calcType('0')">0</button>
+                        <button onclick="calcType('00')">00</button>
+                    </div>
+
+                    <div class="pos-change-row">
+                        <span>Change Due:</span>
+                        <span id="changeDue" style="color: #a46464; font-weight: 800;">₱0.00</span>
+                    </div>
+
+                    <button class="submit-btn" style="width: 100%; margin-top: 20px;"
+                        onclick="processCheckout()">Process Checkout</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Receipt Modal -->
+    <div id="receiptModal" class="modal">
+        <div class="modal-content receipt-content">
+            <span class="close" onclick="closeReceipt()">&times;</span>
+            <div class="receipt-header">
+                <img src="../assets/ICON.svg" alt="Logo" style="width: 50px; margin-bottom: 10px;">
+                <h2 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; margin: 0;">BARBERS R US</h2>
+                <p>Official Receipt</p>
+            </div>
+
+            <div class="receipt-body" id="receiptBody">
+            </div>
+
+            <div class="receipt-footer">
+                <p>Thank you for choosing Barbers R Us!</p>
+                <button class="action-btn no-print" onclick="window.print()"
+                    style="margin-top: 15px; margin-right: 10px;"><i class="fas fa-print"></i> Print Receipt</button>
+                <button class="action-btn no-print" onclick="closeReceipt()" style="margin-top: 15px;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        let currentTotal = 0;
+        let servicePrice = 0;
+        let productsTotal = 0;
+        let currentCash = "";
+        let addedProducts = [];
+        let currentUser = null;
+        let confirmedAppts = [];
+        let dpPaid = 0;
+        let dpCredit = 0;
+        let branchInventory = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            currentUser = Auth.getUser();
+            if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'owner')) {
+                console.log('Access Denied. Staff/Owner only.');
+                window.location.href = '../login.html?error=staff_access';
+                return;
+            }
+
+            try {
+                // Fetch Branch Name
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (bRes) {
+                    const bData = await bRes.json();
+                    if (bData.success) {
+                        const branch = (bData.branches || []).find(b => b.branch_id === currentUser.branch_id);
+                        document.getElementById('branchName').textContent = branch ? branch.name : 'All Branches';
+                    }
+                }
+
+                const apiSuffix = currentUser.branch_id ? `?branch_id=${currentUser.branch_id}` : '';
+
+                // Fetch confirmed appointments for this branch
+                const apptRes = await Auth.apiFetch(`/api/bookings/branch${apiSuffix}`);
+                if (apptRes) {
+                    const apptData = await apptRes.json();
+                    const select = document.getElementById('apptSelect');
+                    if (apptData.success) {
+                        confirmedAppts = (apptData.appointments || []).filter(a => a.status === 'Confirmed');
+
+                        if (confirmedAppts.length === 0) {
+                            const opt = document.createElement('option');
+                            opt.value = '';
+                            opt.textContent = 'No confirmed appointments available';
+                            opt.disabled = true;
+                            select.appendChild(opt);
+                        } else {
+                            confirmedAppts.forEach(appt => {
+                                const opt = document.createElement('option');
+                                opt.value = appt.appointment_id;
+                                const paxTag = appt.pax > 1 ? ` (${appt.pax} pax)` : '';
+                                const svcDisplay = appt.all_service_names || appt.service_name || 'Service';
+                                opt.textContent = `${appt.client_name || 'Guest'} — ${svcDisplay}${paxTag} (${(appt.appointment_date || '').split('T')[0]})`;
+                                select.appendChild(opt);
+                            });
+                        }
+                    }
+                }
+
+                // Fetch branch inventory for products
+                const invRes = await Auth.apiFetch(`/api/inventory${apiSuffix}`);
+                if (invRes) {
+                    const invData = await invRes.json();
+                    if (invData.success) {
+                        branchInventory = (invData.inventory || []).filter(i => i.quantity > 0);
+                        const prodSelect = document.getElementById('productSelect');
+                        branchInventory.forEach(item => {
+                            const opt = document.createElement('option');
+                            const mockPrice = parseFloat(item.price) || 0;
+                            opt.value = item.inventory_id;
+                            opt.setAttribute('data-name', item.item_name);
+                            opt.setAttribute('data-price', mockPrice);
+                            opt.textContent = `${item.item_name} (Qty: ${item.quantity}) - ₱${mockPrice}`;
+                            prodSelect.appendChild(opt);
+                        });
+                    }
+                }
+
+                // Check for auto-select from URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const autoSelectId = urlParams.get('appointment_id');
+                if (autoSelectId) {
+                    const selectElement = document.getElementById('apptSelect');
+                    const optionExists = Array.from(selectElement.options).some(opt => opt.value === autoSelectId);
+                    if (optionExists) {
+                        selectElement.value = autoSelectId;
+                        loadAppointmentDetails();
+                    }
+                }
+
+            } catch (err) {
+                console.error("Initialization error:", err);
+            }
+        });
+
+        function loadAppointmentDetails() {
+            const selectVal = document.getElementById('apptSelect').value;
+            const appt = confirmedAppts.find(a => a.appointment_id == selectVal);
+
+            if (appt) {
+                const serviceName = appt.all_service_names || appt.service_name || 'Unknown';
+                const price = parseFloat(appt.total_service_price || appt.service_price) || 0;
+
+                document.getElementById('apptDetails').style.display = 'block';
+                document.getElementById('clientName').textContent = appt.client_name || 'Guest';
+                document.getElementById('serviceName').textContent = serviceName + (appt.pax > 1 ? ` (${appt.pax} pax)` : '');
+                document.getElementById('servicePrice').textContent = price.toFixed(2);
+
+                // Track original base price
+                servicePrice = price;
+
+                // Store the actual DP paid during booking
+                window._apptDpPaid = parseFloat(appt.dp_paid) || 0;
+                // Store warts-specific DP and non-warts price for correct credit calculation
+                window._wartsDp = parseFloat(appt.warts_dp) || 0;
+                window._nonWartsPrice = parseFloat(appt.non_warts_price) || 0;
+
+                // Handle dynamic warts logic
+                const wartsContainer = document.getElementById('wartsInputContainer');
+                if (serviceName.toLowerCase().includes('warts removal')) {
+                    wartsContainer.style.display = 'block';
+                    document.getElementById('wartsCount').value = 1;
+                    updateWartsPrice();
+                } else {
+                    wartsContainer.style.display = 'none';
+                    updateTotals();
+                }
+
+            } else {
+                document.getElementById('apptDetails').style.display = 'none';
+                document.getElementById('wartsInputContainer').style.display = 'none';
+                servicePrice = 0;
+                updateTotals();
+            }
+        }
+
+        function updateWartsPrice() {
+            const count = parseInt(document.getElementById('wartsCount').value) || 1;
+            const rate = count >= 50 ? 30 : 35;
+            const wartsCost = count * rate;
+            // Preserve non-warts service prices for multi-service bookings
+            servicePrice = (window._nonWartsPrice || 0) + wartsCost;
+            window._wartsActualCost = wartsCost;
+
+            document.getElementById('servicePrice').textContent = servicePrice.toFixed(2);
+            document.getElementById('wartsCalculationText').textContent = `${count} piece(s) x ₱${rate} = ₱${servicePrice.toFixed(2)}`;
+            updateTotals();
+        }
+
+        function addProduct() {
+            const select = document.getElementById('productSelect');
+            if (!select.value) return;
+
+            const opt = select.options[select.selectedIndex];
+            const price = parseFloat(opt.getAttribute('data-price'));
+            const name = opt.getAttribute('data-name');
+            const inventory_id = select.value;
+
+            // Simple merging logic
+            const existing = addedProducts.find(p => p.inventory_id === inventory_id);
+            if (existing) {
+                existing.quantity += 1;
+                existing.price_each = price;
+            } else {
+                addedProducts.push({ inventory_id, item_name: name, quantity: 1, price_each: price });
+            }
+
+            productsTotal += price;
+
+            renderProductList();
+            updateTotals();
+            select.value = "";
+        }
+
+        function removeProduct(inventory_id) {
+            const index = addedProducts.findIndex(p => p.inventory_id === inventory_id);
+            if (index > -1) {
+                const product = addedProducts[index];
+                productsTotal -= (parseFloat(product.price_each) * parseInt(product.quantity));
+                addedProducts.splice(index, 1);
+                renderProductList();
+                updateTotals();
+            }
+        }
+
+        function renderProductList() {
+            const ul = document.getElementById('productList');
+            ul.innerHTML = '';
+            addedProducts.forEach(p => {
+                const li = document.createElement('li');
+                li.style.display = 'flex';
+                li.style.justifyContent = 'space-between';
+                li.style.alignItems = 'center';
+                li.style.marginBottom = '8px';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = `${p.item_name} (x${p.quantity})`;
+
+                const rightDiv = document.createElement('div');
+                rightDiv.style.display = 'flex';
+                rightDiv.style.alignItems = 'center';
+
+                const priceSpan = document.createElement('span');
+                priceSpan.textContent = `₱${(p.price_each * p.quantity).toFixed(2)}`;
+
+                const btn = document.createElement('button');
+                btn.style.cssText = 'background: #dc3545; color: white; border: none; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; margin-left: 10px; display: inline-flex; align-items: center; justify-content: center; transition: background 0.2s;';
+                btn.innerHTML = '<i class="fas fa-times"></i>';
+                btn.title = 'Remove Item';
+                btn.onclick = () => removeProduct(p.inventory_id);
+
+                rightDiv.appendChild(priceSpan);
+                rightDiv.appendChild(btn);
+                li.appendChild(nameSpan);
+                li.appendChild(rightDiv);
+                ul.appendChild(li);
+            });
+        }
+
+        function updateTotals() {
+            // Use the actual DP paid during booking (stored in DB)
+            dpPaid = window._apptDpPaid || 0;
+
+            const grossTotal = servicePrice + productsTotal;
+
+            // Calculate DP credit ONLY from the warts DP portion (not from regular 20% DP)
+            const wartsDp = window._wartsDp || 0;
+            const wartsActualCost = window._wartsActualCost || 0;
+            if (wartsDp > 0 && wartsDp > wartsActualCost) {
+                dpCredit = wartsDp - wartsActualCost;
+            } else {
+                dpCredit = 0;
+            }
+
+            // Amount Due = gross total minus the DP already paid
+            currentTotal = Math.max(0, grossTotal - dpPaid);
+
+            document.getElementById('sumService').textContent = servicePrice.toFixed(2);
+            document.getElementById('sumProducts').textContent = productsTotal.toFixed(2);
+
+            // Show/hide DP rows
+            const dpRow = document.getElementById('dpRow');
+            const dpCreditRow = document.getElementById('dpCreditRow');
+
+            if (dpPaid > 0 && servicePrice > 0) {
+                dpRow.style.display = 'flex';
+                document.getElementById('sumDp').textContent = dpPaid.toFixed(2);
+            } else {
+                dpRow.style.display = 'none';
+            }
+
+            if (dpCredit > 0) {
+                dpCreditRow.style.display = 'flex';
+                document.getElementById('sumDpCredit').textContent = dpCredit.toFixed(2);
+            } else {
+                dpCreditRow.style.display = 'none';
+            }
+
+            document.getElementById('sumTotal').textContent = currentTotal.toFixed(2);
+            calculateChange();
+        }
+
+        function calcType(val) {
+            if (val === 'C') {
+                currentCash = "";
+            } else {
+                currentCash += val;
+            }
+            document.getElementById('cashInput').value = currentCash ? `₱${currentCash}.00` : "";
+            calculateChange();
+        }
+
+        function calculateChange() {
+            const cash = parseFloat(currentCash) || 0;
+            // dpCredit from DP overpayment acts like extra cash
+            let change = (cash + dpCredit) - currentTotal;
+            if (change < 0 || (currentTotal === 0 && dpCredit === 0)) change = 0;
+            document.getElementById('changeDue').textContent = `₱${change.toFixed(2)}`;
+        }
+
+        async function processCheckout() {
+            const hasService = servicePrice > 0;
+            const hasProducts = productsTotal > 0;
+            if (!hasService && !hasProducts) {
+                alert("Please select an appointment or add a product first.");
+                return;
+            }
+            const cash = parseFloat(currentCash) || 0;
+            if (cash < currentTotal) {
+                alert("Insufficient cash provided! Please enter the cash received using the numpad.");
+                return;
+            }
+
+            const change = (cash + dpCredit) - currentTotal;
+            const clientName = document.getElementById('clientName').textContent;
+            const serviceName = document.getElementById('serviceName').textContent;
+            const appointment_id = document.getElementById('apptSelect').value;
+
+            const payload = {
+                branch_id: currentUser.branch_id,
+                appointment_id: appointment_id || null,
+                staff_id: parseInt(currentUser.id) || null,
+                client_name: clientName,
+                service_name: serviceName,
+                service_price: servicePrice,
+                products_total: productsTotal,
+                cash_received: cash,
+                change_due: change,
+                products_bought: addedProducts,
+                total_amount: currentTotal,
+                payment_method: 'Cash'
+            };
+
+            const btn = document.querySelector('.submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+
+            try {
+                const response = await Auth.apiFetch('/api/finance/transaction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response) {
+                    btn.disabled = false;
+                    btn.textContent = 'Process Checkout';
+                    return;
+                }
+                const result = await response.json();
+
+                if (result.success) {
+                    // Build receipt using safe DOM elements
+                    const receiptBody = document.getElementById('receiptBody');
+                    receiptBody.innerHTML = '';
+
+                    function addReceiptRow(label, value, style) {
+                        const div = document.createElement('div');
+                        div.className = 'receipt-row';
+                        if (style) div.setAttribute('style', style);
+                        const lbl = document.createElement('span');
+                        lbl.textContent = label;
+                        const val = document.createElement('span');
+                        val.textContent = value;
+                        div.appendChild(lbl);
+                        div.appendChild(val);
+                        receiptBody.appendChild(div);
+                    }
+                    function addHr() {
+                        const hr = document.createElement('hr');
+                        hr.style.cssText = 'border: 0; border-top: 1px dashed #ccc; margin: 10px 0;';
+                        receiptBody.appendChild(hr);
+                    }
+
+                    if (result.transaction_id) {
+                        addReceiptRow('Receipt #:', String(result.transaction_id));
+                        addHr();
+                    }
+                    if (clientName) addReceiptRow('Client:', clientName);
+                    if (serviceName) addReceiptRow('Service:', serviceName);
+                    addReceiptRow('Service Cost:', `₱${servicePrice.toFixed(2)}`);
+                    addHr();
+
+                    if (addedProducts.length > 0) {
+                        const prodLabel = document.createElement('div');
+                        prodLabel.style.cssText = 'font-size: 0.8rem; font-weight: bold; margin-bottom: 5px;';
+                        prodLabel.textContent = 'Products:';
+                        receiptBody.appendChild(prodLabel);
+                        addedProducts.forEach(p => {
+                            addReceiptRow(`${p.item_name} (x${p.quantity})`, `₱${(p.price_each * p.quantity).toFixed(2)}`);
+                        });
+                        addHr();
+                    }
+
+                    if (dpPaid > 0) {
+                        addReceiptRow('Down Payment (Online):', `-₱${dpPaid.toFixed(2)}`, 'color: #2e7d32;');
+                        if (dpCredit > 0) {
+                            addReceiptRow('DP Overpayment Credit:', `₱${dpCredit.toFixed(2)}`, 'color: #0277bd;');
+                        }
+                        addHr();
+                    }
+
+                    const balRow = document.createElement('div');
+                    balRow.className = 'receipt-row';
+                    balRow.style.cssText = 'font-weight: 800; font-size: 1.1rem;';
+                    const balLbl = document.createElement('span');
+                    balLbl.textContent = 'BALANCE DUE:';
+                    const balVal = document.createElement('span');
+                    balVal.textContent = `₱${currentTotal.toFixed(2)}`;
+                    balRow.appendChild(balLbl);
+                    balRow.appendChild(balVal);
+                    receiptBody.appendChild(balRow);
+
+                    addReceiptRow('Cash:', `₱${cash.toFixed(2)}`);
+                    addReceiptRow('Change:', `₱${change.toFixed(2)}`);
+                    addReceiptRow('Processed by:', currentUser.name || 'Staff', 'margin-top: 10px; font-size: 0.8rem; color: #999;');
+
+                    document.getElementById('receiptModal').style.display = 'flex';
+                } else {
+                    alert('Error: ' + result.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Process Checkout';
+                }
+            } catch (err) {
+                console.error('Checkout error:', err);
+                alert('Server connection failed. Could not process checkout.');
+                btn.disabled = false;
+                btn.textContent = 'Process Checkout';
+            }
+        }
+
+        function closeReceipt() {
+            document.getElementById('receiptModal').style.display = 'none';
+            window.location.reload();
+        }
+
+        function staffLogout() {
+            if (confirm('Are you sure you want to logout?')) Auth.logout();
+        }
+    </script>
+</body>
+
+</html>

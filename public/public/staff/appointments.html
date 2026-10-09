@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BARBERS R US - My Appointments</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        #servicesContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pax-panel {
+            background: #FCF8EF;
+            border: 1px solid #E8D7B4;
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .pax-panel-header {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #8b2d2d;
+            margin-bottom: 10px;
+        }
+
+        .pax-services {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .service-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .service-row select {
+            flex: 1;
+        }
+
+        .remove-svc-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .remove-svc-btn:hover {
+            background: #a71d2a;
+        }
+
+        .add-service-btn {
+            background: none;
+            border: 1px dashed #C7A655;
+            color: #87630F;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-family: 'Poppins', sans-serif;
+            margin-top: 8px;
+            transition: all 0.2s;
+        }
+
+        .add-service-btn:hover {
+            background: #F7EEDB;
+            border-color: #87630F;
+        }
+
+        .add-btn:hover {
+            background: #712424 !important;
+        }
+    </style>
+</head>
+
+<body class="admin-body">
+
+    <aside class="admin-sidebar">
+        <div class="admin-brand">
+            <div>
+                <span class="admin-logo-small">BARBERS R Us</span>
+                <h2 class="admin-logo-large">Staff Portal</h2>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <ul class="admin-nav" id="adminNav">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="appointments.html" class="active">Appointments</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="pos.html">POS</a></li>
+        </ul>
+
+        <button class="admin-logout-btn" onclick="staffLogout()">Log Out</button>
+    </aside>
+
+    <main class="admin-main">
+
+        <header class="admin-header">
+            <div class="header-text">
+                <h1>Appointments Management</h1>
+                <p>Manage bookings for <strong id="branchName">Loading...</strong></p>
+            </div>
+            <a href="../index.html" class="back-home-btn">Back to Home</a>
+        </header>
+
+        <div class="admin-content-card">
+
+            <div class="admin-filter-bar">
+                <div class="input-group" style="margin-bottom: 0; width: 200px;">
+                    <label for="statusFilter" style="color: #6D5724;">Filter by Status</label>
+                    <select id="statusFilter" class="admin-select" onchange="renderAppointments()">
+                        <option value="all">All Statuses</option>
+                        <option value="Pending Payment">Pending Payment</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Pending Reschedule">Pending Reschedule</option>
+                    </select>
+                </div>
+                <div class="input-group" style="margin-bottom: 0; width: 200px;">
+                    <label for="dateFilter" style="color: #6D5724;">Filter by Date</label>
+                    <input type="date" id="dateFilter" class="admin-select" onchange="renderAppointments()">
+                </div>
+                <button onclick="openWalkinModal()" class="add-btn"
+                    style="height: 38px; margin-top: 26px; padding: 0 15px; background: #8b2d2d; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: 'Poppins', sans-serif; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; transition: background 0.2s;"><i
+                        class="fas fa-plus"></i> Add Appointment</button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Client</th>
+                            <th>Service</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointmentsTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </main>
+
+    <div id="editApptModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 2rem; margin-top: 0;">Update
+                Appointment</h3>
+
+            <form id="editApptForm">
+                <input type="hidden" id="editApptId">
+
+                <div class="form-row" style="display: flex; gap: 15px;">
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="editDate">Date</label>
+                        <input type="date" id="editDate" required style="background-color: #fff;">
+                    </div>
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="editTime">Time</label>
+                        <input type="time" id="editTime" required style="background-color: #fff;">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="editStatus">Status</label>
+                    <select id="editStatus" class="admin-select" style="background-color: #fff;">
+                        <option value="Pending Payment">Pending Payment</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Pending Reschedule">Pending Reschedule</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="submit-btn" style="width: 100%; margin-top: 15px;">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADD WALKIN MODAL -->
+    <div id="addWalkinModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeWalkinModal()">&times;</span>
+            <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 1.8rem; margin-top: 0;">Add
+                Appointment</h3>
+
+            <form id="addWalkinForm">
+                <div class="input-group">
+                    <label for="walkinClientName">Client Name</label>
+                    <input type="text" id="walkinClientName" required style="background-color: #fff;">
+                </div>
+                <div class="input-group">
+                    <label for="walkinClientEmail">Client Email (Optional)</label>
+                    <input type="email" id="walkinClientEmail" style="background-color: #fff;"
+                        placeholder="client@example.com">
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 15px;">
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label>Branch</label>
+                        <input type="text" id="walkinBranchName" readonly style="background-color: #f0f0f0;"
+                            class="admin-select">
+                        <input type="hidden" id="walkinBranch">
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label>Service(s)</label>
+                    <div id="servicesContainer">
+                        <div class="pax-panel" data-pax="1">
+                            <div class="pax-panel-header" style="display: none;">Person 1</div>
+                            <div class="pax-services">
+                                <select class="service-select admin-select" required style="background-color: #fff;">
+                                    <option value="" selected disabled>Select a Service</option>
+                                </select>
+                            </div>
+                            <button type="button" class="add-service-btn" onclick="addServiceToPanel(this)">+ Add
+                                Another Service</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 15px;">
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="walkinPax">Pax</label>
+                        <input type="number" id="walkinPax" min="1" value="1" required style="background-color: #fff;">
+                    </div>
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="walkinStaff">Assign Staff (Optional)</label>
+                        <select id="walkinStaff" class="admin-select" style="background-color: #fff;">
+                            <option value="">Any available staff</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 15px;">
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="walkinDate">Date</label>
+                        <input type="date" id="walkinDate" required style="background-color: #fff;">
+                    </div>
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="walkinTime">Time</label>
+                        <input type="time" id="walkinTime" required style="background-color: #fff;" min="10:00"
+                            max="20:00" step="1800">
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" style="width: 100%; margin-top: 15px;">Confirm
+                    Appointment</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        let currentUser = null;
+        let allAppointments = [];
+        let services = [];
+        let staffList = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            currentUser = Auth.getUser();
+            if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'owner')) {
+                console.log('Access Denied. Staff/Owner only.');
+                window.location.href = '../login.html?error=staff_access';
+                return;
+            }
+
+            try {
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (bRes) {
+                    const bData = await bRes.json();
+                    if (bData.success) {
+                        const branch = (bData.branches || []).find(b => b.branch_id === currentUser.branch_id);
+                        document.getElementById('branchName').textContent = branch ? branch.name : 'All Branches';
+                        document.getElementById('walkinBranchName').value = branch ? branch.name : 'All Branches';
+                        document.getElementById('walkinBranch').value = currentUser.branch_id || '';
+                    }
+                }
+
+                // Fetch Services
+                const sRes = await Auth.apiFetch('/api/services');
+                if (sRes) {
+                    const sData = await sRes.json();
+                    if (sData.success) {
+                        services = sData.services || [];
+                        const templateSelect = document.createElement('select');
+                        templateSelect.className = 'service-select admin-select';
+                        templateSelect.style.backgroundColor = '#fff';
+                        templateSelect.required = true;
+                        templateSelect.innerHTML = '<option value="" selected disabled>Select a Service</option>';
+
+                        const categoryGroups = {};
+                        services.forEach(s => {
+                            const cat = s.category || 'Other Services';
+                            if (!categoryGroups[cat]) categoryGroups[cat] = [];
+                            categoryGroups[cat].push(s);
+                        });
+
+                        for (const category in categoryGroups) {
+                            if (category === 'Other Services') continue;
+                            const optgroup = document.createElement('optgroup');
+                            optgroup.label = category.toUpperCase();
+                            categoryGroups[category].forEach(s => {
+                                const option = document.createElement('option');
+                                option.value = s.service_id;
+                                option.setAttribute('data-name', s.name);
+                                option.setAttribute('data-price', s.price);
+                                if (s.name === 'Warts Removal') {
+                                    option.textContent = `WARTS REMOVAL (₱35/pc)`;
+                                } else {
+                                    option.textContent = `${s.name.toUpperCase()} - ₱${parseFloat(s.price).toLocaleString()}`;
+                                }
+                                optgroup.appendChild(option);
+                            });
+                            templateSelect.appendChild(optgroup);
+                        }
+                        window._serviceSelectTemplate = templateSelect;
+                        const defaultSelect = document.querySelector('.pax-panel .service-select');
+                        if (defaultSelect) defaultSelect.innerHTML = templateSelect.innerHTML;
+
+                        document.getElementById('walkinPax').addEventListener('change', function () {
+                            const maxPax = parseInt(this.value) || 1;
+                            const container = document.getElementById('servicesContainer');
+                            const currentPanels = container.querySelectorAll('.pax-panel');
+
+                            if (currentPanels.length < maxPax) {
+                                for (let i = currentPanels.length; i < maxPax; i++) {
+                                    const panel = document.createElement('div');
+                                    panel.className = 'pax-panel';
+                                    panel.setAttribute('data-pax', i + 1);
+                                    panel.innerHTML = `
+                                        <div class="pax-panel-header">Person ${i + 1}</div>
+                                        <div class="pax-services">
+                                            <select class="service-select admin-select" required style="background-color: #fff;">${window._serviceSelectTemplate.innerHTML}</select>
+                                        </div>
+                                        <button type="button" class="add-service-btn" onclick="addServiceToPanel(this)">+ Add Another Service</button>
+                                    `;
+                                    container.appendChild(panel);
+                                }
+                            } else if (currentPanels.length > maxPax) {
+                                for (let i = currentPanels.length - 1; i >= maxPax; i--) {
+                                    container.removeChild(currentPanels[i]);
+                                }
+                            }
+
+                            container.querySelectorAll('.pax-panel-header').forEach(h => {
+                                h.style.display = maxPax === 1 ? 'none' : 'block';
+                            });
+                        });
+                    }
+                }
+
+                // Fetch Staff
+                const staffRes = await Auth.apiFetch('/api/users/staff');
+                if (staffRes) {
+                    const staffData = await staffRes.json();
+                    if (staffData.success) {
+                        staffList = staffData.staff || [];
+                        populateStaffDropdown();
+                    }
+                }
+
+            } catch (e) { console.error('Error fetching data:', e); }
+
+            renderAppointments();
+        });
+
+        async function renderAppointments() {
+            const tbody = document.getElementById('appointmentsTableBody');
+            const statusFilter = document.getElementById('statusFilter').value;
+            tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner-container"><div class="spinner"></div></div></td></tr>';
+
+            try {
+                let apiSuffix = currentUser.branch_id ? `?branch_id=${currentUser.branch_id}` : '';
+                const response = await Auth.apiFetch(`/api/bookings/branch${apiSuffix}`);
+                if (!response) return;
+                const data = await response.json();
+
+                if (!data.success) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red;">Error: ${data.message}</td></tr>`;
+                    return;
+                }
+
+                let appointments = data.appointments || [];
+                allAppointments = appointments;
+
+                // Filter by status
+                if (statusFilter !== 'all') {
+                    appointments = appointments.filter(a => a.status === statusFilter);
+                }
+
+                // Filter by date
+                const dateFilter = document.getElementById('dateFilter');
+                if (dateFilter && dateFilter.value) {
+                    appointments = appointments.filter(a => (a.appointment_date || '').split('T')[0] === dateFilter.value);
+                }
+
+                // Sort by priority (Pending first), then newest date/time first
+                const statusPriority = {
+                    'Pending Payment': 1,
+                    'Pending Reschedule': 1,
+                    'Confirmed': 2,
+                    'Cancelled': 3,
+                    'Completed': 4
+                };
+
+                appointments.sort((a, b) => {
+                    const pA = statusPriority[a.status] || 5;
+                    const pB = statusPriority[b.status] || 5;
+                    if (pA !== pB) return pA - pB;
+
+                    const dateCompare = (b.appointment_date || '').localeCompare(a.appointment_date || '');
+                    if (dateCompare !== 0) return dateCompare;
+                    return (b.appointment_time || '').localeCompare(a.appointment_time || '');
+                });
+
+                if (appointments.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 30px; color: #999;">No appointments found.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                appointments.forEach((appt, idx) => {
+                    const serviceName = appt.all_service_names || appt.service_name || 'Unknown';
+                    const isPending = appt.status === 'Pending Payment';
+                    const isConfirmed = appt.status === 'Confirmed';
+                    const apptDate = (appt.appointment_date || '').split('T')[0];
+
+                    const row = document.createElement('tr');
+
+                    const tdIdx = document.createElement('td');
+                    tdIdx.setAttribute('data-label', '#');
+                    tdIdx.textContent = String(idx + 1);
+
+                    const tdClient = document.createElement('td');
+                    tdClient.setAttribute('data-label', 'Client');
+                    const strongClient = document.createElement('strong');
+                    strongClient.textContent = appt.client_name || 'Guest';
+                    tdClient.appendChild(strongClient);
+                    if (appt.client_email) {
+                        tdClient.appendChild(document.createElement('br'));
+                        const emailSm = document.createElement('small');
+                        emailSm.style.color = '#999';
+                        emailSm.textContent = appt.client_email;
+                        tdClient.appendChild(emailSm);
+                    }
+
+                    const tdService = document.createElement('td');
+                    tdService.setAttribute('data-label', 'Service');
+                    tdService.style.maxWidth = '220px';
+                    tdService.style.wordBreak = 'break-word';
+                    tdService.style.whiteSpace = 'normal';
+                    tdService.style.fontSize = '0.85rem';
+                    tdService.style.lineHeight = '1.4';
+                    const sParts = serviceName.split(', ');
+                    sParts.forEach((part, i) => {
+                        if (i > 0) tdService.appendChild(document.createElement('br'));
+                        tdService.appendChild(document.createTextNode(part));
+                    });
+                    if (appt.pax > 1) {
+                        tdService.appendChild(document.createTextNode(` (${appt.pax} pax)`));
+                    }
+
+                    const tdDate = document.createElement('td');
+                    tdDate.setAttribute('data-label', 'Date');
+                    tdDate.textContent = apptDate || '—';
+
+                    const tdTime = document.createElement('td');
+                    tdTime.setAttribute('data-label', 'Time');
+                    tdTime.textContent = appt.appointment_time || '—';
+
+                    const tdStatus = document.createElement('td');
+                    tdStatus.setAttribute('data-label', 'Status');
+                    const badge = document.createElement('span');
+                    badge.className = `status-badge ${String(appt.status || '').toLowerCase().replace(/\s+/g, '-')}`;
+                    badge.style.cursor = 'pointer';
+                    badge.style.transition = 'opacity 0.2s';
+                    badge.title = 'Click to update status or schedule';
+                    badge.textContent = appt.status;
+                    badge.onclick = () => openEditModal(appt.appointment_id);
+                    badge.onmouseover = () => { badge.style.opacity = '0.8'; };
+                    badge.onmouseout = () => { badge.style.opacity = '1'; };
+                    tdStatus.appendChild(badge);
+
+                    const tdActions = document.createElement('td');
+                    tdActions.setAttribute('data-label', 'Actions');
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.style.display = 'flex';
+                    actionsDiv.style.gap = '6px';
+                    actionsDiv.style.justifyContent = 'center';
+
+                    if (isPending || appt.status === 'Pending Reschedule') {
+                        const btnConf = document.createElement('button');
+                        btnConf.className = 'action-btn';
+                        btnConf.title = 'Confirm';
+                        btnConf.style.padding = '6px 10px';
+                        btnConf.innerHTML = '<i class="fas fa-check"></i>';
+                        btnConf.onclick = () => updateStatus(appt.appointment_id, 'Confirmed');
+                        actionsDiv.appendChild(btnConf);
+
+                        const btnCanc = document.createElement('button');
+                        btnCanc.className = 'action-btn';
+                        btnCanc.title = 'Cancel';
+                        btnCanc.style.background = '#dc3545';
+                        btnCanc.style.color = 'white';
+                        btnCanc.style.padding = '6px 10px';
+                        btnCanc.innerHTML = '<i class="fas fa-xmark"></i>';
+                        btnCanc.onclick = () => updateStatus(appt.appointment_id, 'Cancelled');
+                        actionsDiv.appendChild(btnCanc);
+                    } else if (isConfirmed) {
+                        const btnPos = document.createElement('button');
+                        btnPos.className = 'action-btn';
+                        btnPos.title = 'Checkout in POS';
+                        btnPos.style.padding = '6px 10px';
+                        btnPos.innerHTML = '<i class="fas fa-circle-check"></i>';
+                        btnPos.onclick = () => {
+                            window.location.href = `pos.html?appointment_id=${appt.appointment_id}`;
+                        };
+                        actionsDiv.appendChild(btnPos);
+                    } else {
+                        actionsDiv.textContent = '—';
+                    }
+                    tdActions.appendChild(actionsDiv);
+
+                    row.appendChild(tdIdx);
+                    row.appendChild(tdClient);
+                    row.appendChild(tdService);
+                    row.appendChild(tdDate);
+                    row.appendChild(tdTime);
+                    row.appendChild(tdStatus);
+                    row.appendChild(tdActions);
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error rendering appointments:', error);
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red;">Failed to load appointments.</td></tr>`;
+            }
+        }
+
+        async function updateStatus(id, newStatus) {
+            try {
+                const res = await Auth.apiFetch('/api/bookings/status', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ appointment_id: id, status: newStatus })
+                });
+                if (!res) return;
+                const result = await res.json();
+                if (result.success) {
+                    renderAppointments();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Status update error:', err);
+                alert('Server connection failed.');
+            }
+        }
+
+        // Modal UI Functions
+        function openEditModal(id) {
+            const appt = allAppointments.find(a => a.appointment_id === id);
+            if (appt) {
+                document.getElementById('editApptId').value = appt.appointment_id;
+                document.getElementById('editDate').value = appt.appointment_date ? appt.appointment_date.split('T')[0] : '';
+                document.getElementById('editTime').value = appt.appointment_time || '';
+                document.getElementById('editStatus').value = appt.status;
+                document.getElementById('editApptModal').style.display = 'flex';
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editApptModal').style.display = 'none';
+        }
+
+        document.getElementById('editApptForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const id = parseInt(document.getElementById('editApptId').value);
+            const date = document.getElementById('editDate').value;
+            const time = document.getElementById('editTime').value;
+            const status = document.getElementById('editStatus').value;
+
+            try {
+                const res = await Auth.apiFetch('/api/bookings/update', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ appointment_id: id, appointment_date: date, appointment_time: time, status: status })
+                });
+                if (!res) return;
+                const result = await res.json();
+
+                if (result.success) {
+                    alert('Appointment successfully updated!');
+                    closeEditModal();
+                    renderAppointments();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Update appointment error:', err);
+                alert('Server connection failed.');
+            }
+        });
+
+        // Walkin Functionality
+        function addServiceToPanel(btn) {
+            const panel = btn.closest('.pax-panel');
+            const servicesDiv = panel.querySelector('.pax-services');
+            const row = document.createElement('div');
+            row.className = 'service-row';
+            row.innerHTML = `
+                <select class="service-select admin-select" required style="background-color: #fff;">${window._serviceSelectTemplate.innerHTML}</select>
+                <button type="button" class="remove-svc-btn" onclick="removeServiceRow(this)" title="Remove">×</button>
+            `;
+            servicesDiv.appendChild(row);
+        }
+
+        function removeServiceRow(btn) {
+            btn.closest('.service-row').remove();
+        }
+
+        function populateStaffDropdown() {
+            const branchId = currentUser.branch_id;
+            const walkinStaff = document.getElementById('walkinStaff');
+            walkinStaff.innerHTML = '<option value="">Any available staff</option>';
+            staffList.filter(s => String(s.branch_id) === String(branchId)).forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.staff_id;
+                opt.textContent = s.name;
+                walkinStaff.appendChild(opt);
+            });
+        }
+
+        function openWalkinModal() {
+            document.getElementById('addWalkinForm').reset();
+            populateStaffDropdown();
+            // Retain branch assignment visually
+            const branchName = document.getElementById('branchName').textContent;
+            document.getElementById('walkinBranchName').value = branchName;
+            document.getElementById('walkinBranch').value = currentUser.branch_id || '';
+            // Reset pax panels
+            document.getElementById('walkinPax').value = 1;
+            document.getElementById('walkinPax').dispatchEvent(new Event('change'));
+            document.getElementById('addWalkinModal').style.display = 'flex';
+        }
+
+        function closeWalkinModal() {
+            document.getElementById('addWalkinModal').style.display = 'none';
+        }
+
+        document.getElementById('addWalkinForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            // Validate services
+            const serviceSelects = document.querySelectorAll('.service-select');
+            let allSelected = true;
+            serviceSelects.forEach(sel => {
+                if (sel.selectedIndex === 0 || !sel.value) allSelected = false;
+            });
+            if (!allSelected) {
+                alert('Please select a service for each slot.');
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+
+            const service_ids = Array.from(serviceSelects).map(sel => sel.value).filter(v => v);
+
+            const payload = {
+                client_name: document.getElementById('walkinClientName').value.trim(),
+                client_email: document.getElementById('walkinClientEmail').value.trim(),
+                branch_id: document.getElementById('walkinBranch').value,
+                service_ids: service_ids,
+                pax: document.getElementById('walkinPax').value,
+                staff_id: document.getElementById('walkinStaff').value || null,
+                date: document.getElementById('walkinDate').value,
+                time: document.getElementById('walkinTime').value,
+            };
+
+            try {
+                const res = await Auth.apiFetch('/api/bookings/walkin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res) return;
+                const result = await res.json();
+
+                if (result.success) {
+                    alert('Walk-in Appointment Created!');
+                    closeWalkinModal();
+                    renderAppointments(); // Refetch
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Walk-in error:', err);
+                alert('Server connection failed.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Confirm Appointment';
+            }
+        });
+
+        function staffLogout() {
+            if (confirm('Are you sure you want to logout?')) Auth.logout();
+        }
+    </script>
+</body>
+
+</html>

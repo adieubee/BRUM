@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BARBER R US - Appointments</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        #servicesContainer { display: flex; flex-direction: column; gap: 12px; }
+        .pax-panel { background: #FCF8EF; border: 1px solid #E8D7B4; border-radius: 10px; padding: 14px; }
+        .pax-panel-header { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.85rem; color: #8b2d2d; margin-bottom: 10px; }
+        .pax-services { display: flex; flex-direction: column; gap: 8px; }
+        .service-row { display: flex; gap: 8px; align-items: center; }
+        .service-row select { flex: 1; }
+        .remove-svc-btn { background: #dc3545; color: white; border: none; border-radius: 6px; width: 30px; height: 30px; cursor: pointer; font-size: 1rem; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0; }
+        .remove-svc-btn:hover { background: #a71d2a; }
+        .add-service-btn { background: none; border: 1px dashed #C7A655; color: #87630F; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-family: 'Poppins', sans-serif; margin-top: 8px; transition: all 0.2s; }
+        .add-service-btn:hover { background: #F7EEDB; border-color: #87630F; }
+        .add-btn:hover { background: #712424 !important; }
+        .history-btn { background: #2f6f9f; color: white; }
+        .history-modal-content { max-width: 700px; }
+        .history-list { display: flex; flex-direction: column; gap: 12px; max-height: 420px; overflow-y: auto; }
+        .history-item { background: #fffaf2; border: 1px solid #e6d7b2; border-radius: 10px; padding: 14px; }
+        .history-meta { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 8px; font-size: 0.8rem; color: #6b5a2d; }
+        .history-badge { display: inline-block; background: #8b2d2d; color: #fff; border-radius: 999px; padding: 4px 10px; font-weight: 600; font-size: 0.72rem; text-transform: capitalize; }
+        .history-line { margin: 3px 0; color: #3b2d1d; font-size: 0.9rem; }
+        .history-details { margin-top: 8px; color: #6d5724; font-size: 0.8rem; }
+    </style>
+</head>
+
+<body class="admin-body">
+
+    <aside class="admin-sidebar">
+        <div class="admin-brand">
+            <div>
+                <span class="admin-logo-small">BARBER R US</span>
+                <h2 class="admin-logo-large">Admin Portal</h2>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <ul class="admin-nav">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="appointments.html" class="active">Appointments</a></li>
+            <li><a href="reports.html">Reports</a></li>
+            <li><a href="commissions.html">Commissions</a></li>
+            <li><a href="staff.html">Staff</a></li>
+            <li><a href="pos.html">POS</a></li>
+        </ul>
+
+        <button class="admin-logout-btn" onclick="adminLogout()">Log Out</button>
+    </aside>
+
+    <main class="admin-main">
+
+        <header class="admin-header">
+            <div class="header-text">
+                <h1>Appointments Management</h1>
+                <p>View and manage all client bookings</p>
+            </div>
+            <a href="../index.html" class="back-home-btn">Back to Home</a>
+        </header>
+
+        <div class="admin-content-card">
+
+            <div class="admin-filter-bar">
+                <div class="input-group" style="margin-bottom: 0; width: 250px;">
+                    <label for="branchFilter" style="color: #6D5724;">Filter by Branch</label>
+                    <select id="branchFilter" class="admin-select" onchange="renderAppointments()">
+                        <option value="all">All Branches</option>
+                    </select>
+                </div>
+                <div class="input-group" style="margin-bottom: 0; width: 200px;">
+                    <label for="statusFilter" style="color: #6D5724;">Filter by Status</label>
+                    <select id="statusFilter" class="admin-select" onchange="renderAppointments()">
+                        <option value="all">All Statuses</option>
+                        <option value="Pending Payment">Pending Payment</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Pending Reschedule">Pending Reschedule</option>
+                    </select>
+                </div>
+                <button onclick="openWalkinModal()" class="add-btn" style="height: 38px; margin-top: 26px; padding: 0 15px; background: #8b2d2d; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: 'Poppins', sans-serif; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; transition: background 0.2s;"><i class="fas fa-plus"></i> Add Appointment</button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Client</th>
+                            <th>Service</th>
+                            <th>Branch</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointmentsTableBody">
+                        <tr>
+                            <td colspan="7">
+                                <div class="loading-spinner-container">
+                                    <div class="spinner"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </main>
+
+    <div id="editApptModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 2rem; margin-top: 0;">Update
+                Appointment</h3>
+
+            <form id="editApptForm">
+                <input type="hidden" id="editApptId">
+
+                <div class="form-row" style="display: flex; gap: 15px;">
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="editDate">Date</label>
+                        <input type="date" id="editDate" required style="background-color: #fff;">
+                    </div>
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="editTime">Time</label>
+                        <input type="time" id="editTime" required style="background-color: #fff;">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="editStatus">Status</label>
+                    <select id="editStatus" class="admin-select" style="background-color: #fff;">
+                        <option value="Pending Payment">Pending Payment</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Pending Reschedule">Pending Reschedule</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="submit-btn" style="width: 100%; margin-top: 15px;">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content history-modal-content">
+            <span class="close" onclick="closeHistoryModal()">&times;</span>
+            <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 2rem; margin-top: 0;">Booking History</h3>
+            <div id="historyList" class="history-list"></div>
+        </div>
+    </div>
+
+    <!-- ADD WALKIN MODAL -->
+    <div id="addWalkinModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeWalkinModal()">&times;</span>
+            <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 1.8rem; margin-top: 0;">Add Appointment</h3>
+
+            <form id="addWalkinForm">
+                <div class="input-group">
+                    <label for="walkinClientName">Client Name</label>
+                    <input type="text" id="walkinClientName" required style="background-color: #fff;">
+                </div>
+                <div class="input-group">
+                    <label for="walkinClientEmail">Client Email (Optional)</label>
+                    <input type="email" id="walkinClientEmail" style="background-color: #fff;" placeholder="client@example.com">
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 15px;">
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="walkinBranch">Branch</label>
+                        <select id="walkinBranch" required class="admin-select" style="background-color: #fff;"></select>
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label>Service(s)</label>
+                    <div id="servicesContainer">
+                        <div class="pax-panel" data-pax="1">
+                            <div class="pax-panel-header" style="display: none;">Person 1</div>
+                            <div class="pax-services">
+                                <select class="service-select admin-select" required style="background-color: #fff;">
+                                    <option value="" selected disabled>Select a Service</option>
+                                </select>
+                            </div>
+                            <button type="button" class="add-service-btn" onclick="addServiceToPanel(this)">+ Add Another Service</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 15px;">
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="walkinPax">Pax</label>
+                        <input type="number" id="walkinPax" min="1" value="1" required style="background-color: #fff;">
+                    </div>
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="walkinStaff">Assign Staff (Optional)</label>
+                        <select id="walkinStaff" class="admin-select" style="background-color: #fff;">
+                            <option value="">Any available staff</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 15px;">
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="walkinDate">Date</label>
+                        <input type="date" id="walkinDate" required style="background-color: #fff;">
+                    </div>
+                    <div class="input-group flex-1" style="flex: 1;">
+                        <label for="walkinTime">Time</label>
+                        <input type="time" id="walkinTime" required style="background-color: #fff;" min="10:00" max="20:00" step="1800">
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" style="width: 100%; margin-top: 15px;">Confirm Appointment</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        let allAppointments = [];
+        let branches = [];
+        let services = [];
+        let staffList = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = Auth.getUser();
+            if (!user || user.role === 'client') {
+                console.log('Access Denied.');
+                window.location.href = '../login.html';
+                return;
+            }
+
+            // Hide Reports for non-owners
+            const reportsLink = document.querySelector('a[href="reports.html"]');
+            if (reportsLink && user.role !== 'owner') {
+                reportsLink.parentElement.style.display = 'none';
+            }
+
+            try {
+                // Fetch Branches
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (!bRes) return;
+                const bData = await bRes.json();
+
+                const branchFilter = document.getElementById('branchFilter');
+                if (bData.success) {
+                    branches = bData.branches;
+
+                    const walkinBranch = document.getElementById('walkinBranch');
+                    if (user.role === 'staff' && user.branch_id) {
+                        const branch = branches.find(b => b.branch_id === user.branch_id);
+                        branchFilter.innerHTML = `<option value="${user.branch_id}">${branch ? branch.name : 'My Branch'}</option>`;
+                        walkinBranch.innerHTML = `<option value="${user.branch_id}">${branch ? branch.name : 'My Branch'}</option>`;
+                        branchFilter.disabled = true;
+                    } else {
+                        branches.forEach(branch => {
+                            const opt = document.createElement('option');
+                            opt.value = branch.branch_id;
+                            opt.textContent = branch.name;
+                            branchFilter.appendChild(opt);
+
+                            const walkOpt = document.createElement('option');
+                            walkOpt.value = branch.branch_id;
+                            walkOpt.textContent = branch.name;
+                            walkinBranch.appendChild(walkOpt);
+                        });
+                    }
+                }
+
+                // Fetch Services
+                const sRes = await Auth.apiFetch('/api/services');
+                if (!sRes) return;
+                const sData = await sRes.json();
+                if (sData.success) {
+                    services = sData.services;
+                    const templateSelect = document.createElement('select');
+                    templateSelect.className = 'service-select admin-select';
+                    templateSelect.style.backgroundColor = '#fff';
+                    templateSelect.required = true;
+                    templateSelect.innerHTML = '<option value="" selected disabled>Select a Service</option>';
+
+                    const categoryGroups = {};
+                    services.forEach(s => {
+                        const cat = s.category || 'Other Services';
+                        if (!categoryGroups[cat]) categoryGroups[cat] = [];
+                        categoryGroups[cat].push(s);
+                    });
+
+                    for (const category in categoryGroups) {
+                        if (category === 'Other Services') continue;
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = category.toUpperCase();
+                        categoryGroups[category].forEach(s => {
+                            const option = document.createElement('option');
+                            option.value = s.service_id;
+                            option.setAttribute('data-name', s.name);
+                            option.setAttribute('data-price', s.price);
+                            if (s.name === 'Warts Removal') {
+                                option.textContent = `WARTS REMOVAL (₱35/pc)`;
+                            } else {
+                                option.textContent = `${s.name.toUpperCase()} - ₱${parseFloat(s.price).toLocaleString()}`;
+                            }
+                            optgroup.appendChild(option);
+                        });
+                        templateSelect.appendChild(optgroup);
+                    }
+                    window._serviceSelectTemplate = templateSelect;
+                    document.querySelector('.pax-panel .service-select').innerHTML = templateSelect.innerHTML;
+
+                    document.getElementById('walkinPax').addEventListener('change', function () {
+                        const maxPax = parseInt(this.value) || 1;
+                        const container = document.getElementById('servicesContainer');
+                        const currentPanels = container.querySelectorAll('.pax-panel');
+
+                        if (currentPanels.length < maxPax) {
+                            for (let i = currentPanels.length; i < maxPax; i++) {
+                                const panel = document.createElement('div');
+                                panel.className = 'pax-panel';
+                                panel.setAttribute('data-pax', i + 1);
+                                panel.innerHTML = `
+                                    <div class="pax-panel-header">Person ${i + 1}</div>
+                                    <div class="pax-services">
+                                        <select class="service-select admin-select" required style="background-color: #fff;">${window._serviceSelectTemplate.innerHTML}</select>
+                                    </div>
+                                    <button type="button" class="add-service-btn" onclick="addServiceToPanel(this)">+ Add Another Service</button>
+                                `;
+                                container.appendChild(panel);
+                            }
+                        } else if (currentPanels.length > maxPax) {
+                            for (let i = currentPanels.length - 1; i >= maxPax; i--) {
+                                container.removeChild(currentPanels[i]);
+                            }
+                        }
+
+                        container.querySelectorAll('.pax-panel-header').forEach(h => {
+                            h.style.display = maxPax === 1 ? 'none' : 'block';
+                        });
+                    });
+                }
+
+                // Fetch Staff
+                const staffRes = await Auth.apiFetch('/api/users/staff');
+                if (!staffRes) return;
+                const staffData = await staffRes.json();
+                if (staffData.success) {
+                    staffList = staffData.staff;
+                    populateStaffDropdown();
+                    document.getElementById('walkinBranch').addEventListener('change', populateStaffDropdown);
+                }
+
+                // Fetch Appointments
+                const apptRes = await Auth.apiFetch('/api/bookings/branch');
+                if (!apptRes) return;
+                const apptData = await apptRes.json();
+
+                if (apptData.success) {
+                    allAppointments = apptData.appointments;
+                }
+            } catch (err) {
+                console.error("Error loading data:", err);
+            }
+
+            renderAppointments();
+        });
+
+        function getBranchName(id) {
+            const b = branches.find(branch => branch.branch_id === id);
+            return b ? b.name : 'Unknown';
+        }
+
+        function renderAppointments() {
+            const tableBody = document.getElementById('appointmentsTableBody');
+            const branchFilter = document.getElementById('branchFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            tableBody.innerHTML = '';
+
+            let appointments = [...allAppointments];
+
+            // Filter by branch
+            if (branchFilter !== 'all') {
+                appointments = appointments.filter(a => String(a.branch_id) === String(branchFilter));
+            }
+
+            // Filter by status
+            if (statusFilter !== 'all') {
+                appointments = appointments.filter(a => a.status === statusFilter);
+            }
+
+            // Sort by priority (Pending first), then newest date/time first
+            const statusPriority = {
+                'Pending Payment': 1,
+                'Pending Reschedule': 1,
+                'Confirmed': 2,
+                'Cancelled': 3,
+                'Completed': 4
+            };
+
+            appointments.sort((a, b) => {
+                const pA = statusPriority[a.status] || 5;
+                const pB = statusPriority[b.status] || 5;
+                if (pA !== pB) return pA - pB;
+
+                const dateCompare = (b.appointment_date || '').localeCompare(a.appointment_date || '');
+                if (dateCompare !== 0) return dateCompare;
+                return (b.appointment_time || '').localeCompare(a.appointment_time || '');
+            });
+
+            if (appointments.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: #999;">No appointments found.</td></tr>`;
+                return;
+            }
+
+            appointments.forEach((appt, idx) => {
+                const serviceName = appt.all_service_names || appt.service_name || 'Unknown';
+                const paxLabel = appt.pax > 1 ? ` (${appt.pax} pax)` : '';
+                const branchName = getBranchName(appt.branch_id);
+                const statusClass = appt.status.toLowerCase().replace(/\s+/g, '-');
+                const isPending = appt.status === 'Pending Payment';
+
+                const apptDate = appt.appointment_date ? appt.appointment_date.split('T')[0] : '—';
+                const apptTime = appt.appointment_time || '—';
+
+                const row = document.createElement('tr');
+
+                // Build cells safely using textContent to prevent XSS
+                const idxTd = document.createElement('td');
+                idxTd.setAttribute('data-label', '#');
+                idxTd.textContent = idx + 1;
+
+                const clientTd = document.createElement('td');
+                clientTd.setAttribute('data-label', 'Client');
+                const clientStrong = document.createElement('strong');
+                clientStrong.textContent = appt.client_name || 'Guest';
+                const clientBr = document.createElement('br');
+                const clientSmall = document.createElement('small');
+                clientSmall.style.color = '#999';
+                clientSmall.textContent = appt.client_email || '';
+                clientTd.appendChild(clientStrong);
+                clientTd.appendChild(clientBr);
+                clientTd.appendChild(clientSmall);
+
+                const svcTd = document.createElement('td');
+                svcTd.setAttribute('data-label', 'Service');
+                svcTd.style.cssText = 'max-width:220px;word-break:break-word;white-space:normal;font-size:0.85rem;line-height:1.4;';
+                serviceName.split(', ').forEach((s, i, arr) => {
+                    svcTd.appendChild(document.createTextNode(s));
+                    if (i < arr.length - 1) svcTd.appendChild(document.createElement('br'));
+                });
+                if (paxLabel) svcTd.appendChild(document.createTextNode(paxLabel));
+
+                const branchTd = document.createElement('td');
+                branchTd.setAttribute('data-label', 'Branch');
+                branchTd.textContent = branchName;
+
+                const dateTd = document.createElement('td');
+                dateTd.setAttribute('data-label', 'Date');
+                dateTd.textContent = apptDate;
+
+                const timeTd = document.createElement('td');
+                timeTd.setAttribute('data-label', 'Time');
+                timeTd.textContent = apptTime;
+
+                const statusTd = document.createElement('td');
+                statusTd.setAttribute('data-label', 'Status');
+                const statusBadge = document.createElement('span');
+                statusBadge.className = `status-badge ${statusClass}`;
+                statusBadge.style.cssText = 'cursor:pointer;transition:opacity 0.2s;';
+                statusBadge.title = 'Click to update status or schedule';
+                statusBadge.textContent = appt.status;
+                statusBadge.addEventListener('click', () => openEditModal(appt.appointment_id));
+                statusBadge.addEventListener('mouseover', () => statusBadge.style.opacity = '0.8');
+                statusBadge.addEventListener('mouseout', () => statusBadge.style.opacity = '1');
+                statusTd.appendChild(statusBadge);
+
+                const actionTd = document.createElement('td');
+                actionTd.setAttribute('data-label', 'Action');
+                const actionDiv = document.createElement('div');
+                actionDiv.style.cssText = 'display:flex;gap:6px;justify-content:center;flex-wrap:wrap;';
+
+                const histBtn = document.createElement('button');
+                histBtn.className = 'action-btn history-btn';
+                histBtn.title = 'View booking history';
+                histBtn.style.padding = '6px 10px';
+                histBtn.innerHTML = '<i class="fas fa-clock-rotate-left"></i>';
+                histBtn.addEventListener('click', () => openHistoryModal(appt.appointment_id));
+                actionDiv.appendChild(histBtn);
+
+                if (isPending || appt.status === 'Pending Reschedule') {
+                    const confirmBtn = document.createElement('button');
+                    confirmBtn.className = 'action-btn';
+                    confirmBtn.title = 'Confirm';
+                    confirmBtn.style.padding = '6px 10px';
+                    confirmBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    confirmBtn.addEventListener('click', () => {
+                        if (confirm('Confirm this appointment?')) updateStatus(appt.appointment_id, 'Confirmed');
+                    });
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'action-btn';
+                    cancelBtn.style.cssText = 'background:#dc3545;color:white;padding:6px 10px;';
+                    cancelBtn.title = 'Cancel';
+                    cancelBtn.innerHTML = '<i class="fas fa-xmark"></i>';
+                    cancelBtn.addEventListener('click', () => {
+                        if (confirm('Cancel this appointment?')) updateStatus(appt.appointment_id, 'Cancelled');
+                    });
+                    actionDiv.appendChild(confirmBtn);
+                    actionDiv.appendChild(cancelBtn);
+                } else if (appt.status === 'Confirmed') {
+                    const posBtn = document.createElement('button');
+                    posBtn.className = 'action-btn';
+                    posBtn.title = 'Checkout in POS';
+                    posBtn.style.padding = '6px 10px';
+                    posBtn.innerHTML = '<i class="fas fa-circle-check"></i>';
+                    posBtn.addEventListener('click', () => window.location.href = `pos.html?appointment_id=${appt.appointment_id}`);
+                    actionDiv.appendChild(posBtn);
+                } else {
+                    actionDiv.appendChild(document.createTextNode('—'));
+                }
+
+                actionTd.appendChild(actionDiv);
+                row.appendChild(idxTd);
+                row.appendChild(clientTd);
+                row.appendChild(svcTd);
+                row.appendChild(branchTd);
+                row.appendChild(dateTd);
+                row.appendChild(timeTd);
+                row.appendChild(statusTd);
+                row.appendChild(actionTd);
+                tableBody.appendChild(row);
+            });
+        }
+
+        async function updateStatus(id, newStatus) {
+            try {
+                const res = await Auth.apiFetch('/api/bookings/status', {
+                    method: 'PUT',
+                    body: JSON.stringify({ appointment_id: id, status: newStatus })
+                });
+                if (!res) return;
+                const result = await res.json();
+
+                if (result.success) {
+                    const appt = allAppointments.find(a => a.appointment_id === id);
+                    if (appt) appt.status = newStatus;
+                    renderAppointments();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Update status error:', err);
+                alert('Server connection failed.');
+            }
+        }
+
+        // Modal UI Functions
+        function openEditModal(id) {
+            const appt = allAppointments.find(a => a.appointment_id === id);
+            if (appt) {
+                document.getElementById('editApptId').value = appt.appointment_id;
+                document.getElementById('editDate').value = appt.appointment_date ? appt.appointment_date.split('T')[0] : '';
+                document.getElementById('editTime').value = appt.appointment_time || '';
+                document.getElementById('editStatus').value = appt.status;
+                document.getElementById('editApptModal').style.display = 'flex';
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editApptModal').style.display = 'none';
+        }
+
+        async function openHistoryModal(id) {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '<div class="loading-spinner-container"><div class="spinner"></div></div>';
+            document.getElementById('historyModal').style.display = 'flex';
+
+            try {
+                const res = await fetch(`/api/bookings/history?appointment_id=${id}`);
+                const result = await res.json();
+
+                if (!result.success || !Array.isArray(result.history) || !result.history.length) {
+                    historyList.innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">No booking history found.</p>';
+                    return;
+                }
+
+                result.history.map(item => {
+                    const action = String(item.action || 'updated').replace(/_/g, ' ');
+                    const from = item.previous_status || '—';
+                    const to = item.new_status || '—';
+                    const actor = item.changed_by_name || 'System';
+                    const createdAt = item.created_at ? new Date(item.created_at).toLocaleString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric',
+                        hour: 'numeric', minute: '2-digit'
+                    }) : 'Unknown';
+
+                    const div = document.createElement('div');
+                    div.className = 'history-item';
+
+                    const meta = document.createElement('div');
+                    meta.className = 'history-meta';
+                    const badge = document.createElement('span');
+                    badge.className = 'history-badge';
+                    badge.textContent = action;
+                    const timeSpan = document.createElement('span');
+                    timeSpan.textContent = createdAt;
+                    meta.appendChild(badge);
+                    meta.appendChild(timeSpan);
+
+                    const fromLine = document.createElement('div');
+                    fromLine.className = 'history-line';
+                    fromLine.textContent = `From: ${from} → To: ${to}`;
+
+                    const byLine = document.createElement('div');
+                    byLine.className = 'history-line';
+                    byLine.textContent = `By: ${actor}`;
+
+                    const details = document.createElement('div');
+                    details.className = 'history-details';
+                    details.textContent = item.details || 'No additional details provided.';
+
+                    div.appendChild(meta);
+                    div.appendChild(fromLine);
+                    div.appendChild(byLine);
+                    div.appendChild(details);
+                    return div;
+                }).forEach(el => historyList.appendChild(el));
+            } catch (err) {
+                console.error('History load error:', err);
+                historyList.innerHTML = '<p style="padding: 20px; text-align: center; color: #a94442;">Could not load booking history.</p>';
+            }
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+
+        document.getElementById('editApptForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const id = parseInt(document.getElementById('editApptId').value);
+            const date = document.getElementById('editDate').value;
+            const time = document.getElementById('editTime').value;
+            const status = document.getElementById('editStatus').value;
+
+            try {
+                // We will send a PUT request to our update endpoint
+                const res = await Auth.apiFetch('/api/bookings/update', {
+                    method: 'PUT',
+                    body: JSON.stringify({ appointment_id: id, appointment_date: date, appointment_time: time, status: status })
+                });
+                if (!res) return;
+                const result = await res.json();
+
+                if (result.success) {
+                    alert('Appointment successfully updated!');
+                    closeEditModal();
+
+                    // Update locally to avoid refetching
+                    const appt = allAppointments.find(a => a.appointment_id === id);
+                    if (appt) {
+                        appt.appointment_date = date;
+                        appt.appointment_time = time;
+                        appt.status = status;
+                    }
+                    renderAppointments();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Update appointment error:', err);
+                alert('Server connection failed.');
+            }
+        });
+
+        // Walkin Functionality
+        function addServiceToPanel(btn) {
+            const panel = btn.closest('.pax-panel');
+            const servicesDiv = panel.querySelector('.pax-services');
+            const row = document.createElement('div');
+            row.className = 'service-row';
+            row.innerHTML = `
+                <select class="service-select admin-select" required style="background-color: #fff;">${window._serviceSelectTemplate.innerHTML}</select>
+                <button type="button" class="remove-svc-btn" onclick="removeServiceRow(this)" title="Remove">×</button>
+            `;
+            servicesDiv.appendChild(row);
+        }
+
+        function removeServiceRow(btn) {
+            btn.closest('.service-row').remove();
+        }
+
+        function populateStaffDropdown() {
+            const branchId = document.getElementById('walkinBranch').value;
+            const walkinStaff = document.getElementById('walkinStaff');
+            walkinStaff.innerHTML = '<option value="">Any available staff</option>';
+            staffList.filter(s => String(s.branch_id) === String(branchId)).forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.staff_id;
+                opt.textContent = s.name;
+                walkinStaff.appendChild(opt);
+            });
+        }
+
+        function openWalkinModal() {
+            document.getElementById('addWalkinForm').reset();
+            populateStaffDropdown();
+            // Reset pax panels
+            document.getElementById('walkinPax').value = 1;
+            document.getElementById('walkinPax').dispatchEvent(new Event('change'));
+            document.getElementById('addWalkinModal').style.display = 'flex';
+        }
+
+        function closeWalkinModal() {
+            document.getElementById('addWalkinModal').style.display = 'none';
+        }
+
+        document.getElementById('addWalkinForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Validate services
+            const serviceSelects = document.querySelectorAll('.service-select');
+            let allSelected = true;
+            serviceSelects.forEach(sel => {
+                if (sel.selectedIndex === 0 || !sel.value) allSelected = false;
+            });
+            if (!allSelected) {
+                alert('Please select a service for each slot.');
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+
+            const service_ids = Array.from(serviceSelects).map(sel => sel.value).filter(v => v);
+
+            const payload = {
+                client_name: document.getElementById('walkinClientName').value,
+                client_email: document.getElementById('walkinClientEmail').value,
+                branch_id: document.getElementById('walkinBranch').value,
+                service_ids: service_ids,
+                pax: document.getElementById('walkinPax').value,
+                staff_id: document.getElementById('walkinStaff').value || null,
+                date: document.getElementById('walkinDate').value,
+                time: document.getElementById('walkinTime').value,
+            };
+
+            try {
+                const res = await Auth.apiFetch('/api/bookings/walkin', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                if (!res) return;
+                const result = await res.json();
+
+                if (result.success) {
+                    alert('Walk-in Appointment Created!');
+                    closeWalkinModal();
+                    const apptRes = await Auth.apiFetch('/api/bookings/branch');
+                    if (!apptRes) return;
+                    const apptData = await apptRes.json();
+                    if (apptData.success) {
+                        allAppointments = apptData.appointments;
+                        renderAppointments();
+                    }
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Walk-in error:', err);
+                alert('Server connection failed.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Confirm Appointment';
+            }
+        });
+
+        function adminLogout() {
+            if (confirm('Are you sure you want to logout?')) Auth.logout();
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BARBERS R US - Branch Inventory</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="admin-body">
+
+    <aside class="admin-sidebar">
+        <div class="admin-brand">
+            <div>
+                <span class="admin-logo-small">BARBERS R US</span>
+                <h2 class="admin-logo-large">Staff Portal</h2>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <ul class="admin-nav" id="adminNav">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="appointments.html">Appointments</a></li>
+            <li><a href="inventory.html" class="active">Inventory</a></li>
+            <li><a href="pos.html">POS</a></li>
+        </ul>
+
+        <button class="admin-logout-btn" onclick="staffLogout()">Log Out</button>
+    </aside>
+
+    <main class="admin-main">
+
+        <header class="admin-header">
+            <div class="header-text">
+                <h1>Branch Inventory</h1>
+                <p>Stock levels for <strong id="branchName">Loading...</strong></p>
+            </div>
+            <a href="../index.html" class="back-home-btn">Back to Home</a>
+        </header>
+
+        <!-- Stock Summary -->
+        <div class="admin-filter-bar"
+            style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px;">
+            <div class="input-group" style="margin-bottom: 0; width: 300px;">
+                <label for="branchFilter" style="color: #6D5724;">Viewing Branch</label>
+                <select id="branchFilter" class="admin-select" onchange="handleBranchChange()">
+                    <option value="all">All Branches</option>
+                </select>
+            </div>
+            <button class="action-btn" onclick="openAddProductModal()" style="padding: 10px 20px; font-size: 0.9rem;"><i
+                    class="fas fa-plus"></i> Add Product</button>
+        </div>
+
+        <section class="admin-widgets">
+            <div class="widget-card">
+                <h3>Total Items</h3>
+                <p class="widget-value" id="countTotal">0</p>
+            </div>
+            <div class="widget-card">
+                <h3>Good Stock</h3>
+                <p class="widget-value" id="countGood">0</p>
+            </div>
+            <div class="widget-card">
+                <h3>Low / Critical</h3>
+                <p class="widget-value" id="countLow">0</p>
+            </div>
+        </section>
+
+        <!-- Inventory Table -->
+        <div class="admin-content-card" style="margin-top: 20px;">
+
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Item Name</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script src="../js/auth.js"></script>
+    <div id="restockModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeRestockModal()">&times;</span>
+            <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 2rem; margin-top: 0;">Restock Item
+            </h3>
+
+            <form id="restockForm">
+                <input type="hidden" id="restockItemId">
+
+                <div class="input-group">
+                    <label for="restockQuantity">Quantity to Add</label>
+                    <input type="number" id="restockQuantity" min="1" required
+                        style="background-color: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                </div>
+
+                <button type="submit" class="submit-btn" style="width: 100%; margin-top: 15px;">Add Stock</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddProductModal()">&times;</span>
+            <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 2rem; margin-top: 0;">Add New
+                Product</h3>
+
+            <form id="addProductForm">
+                <div class="input-group">
+                    <label for="addItemName">Product Name</label>
+                    <input type="text" id="addItemName" required
+                        style="background-color: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                </div>
+                <div class="input-group">
+                    <label for="addUnit">Unit</label>
+                    <input type="text" id="addUnit" placeholder="e.g. pcs, bottles, box" required
+                        style="background-color: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                </div>
+                <div class="form-row" style="display: flex; gap: 15px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label for="addPrice">Price (₱)</label>
+                        <input type="number" id="addPrice" min="0" step="0.01" required
+                            style="background-color: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label for="addStock">Initial Stock</label>
+                        <input type="number" id="addStock" min="0" required
+                            style="background-color: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                    </div>
+                </div>
+                <input type="hidden" id="addBranch">
+                <button type="submit" class="submit-btn" style="width: 100%; margin-top: 15px;">Add Product</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/main.js"></script>
+    <script>
+        let currentUser = null;
+        let branchInventory = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            currentUser = Auth.getUser();
+            if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'owner')) {
+                console.log('Access Denied. Staff/Owner only.');
+                window.location.href = '../login.html?error=staff_access';
+                return;
+            }
+
+            try {
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (bRes) {
+                    const bData = await bRes.json();
+                    if (bData.success) {
+                        const branchFilter = document.getElementById('branchFilter');
+                        branchFilter.innerHTML = '';
+                        (bData.branches || []).forEach(b => {
+                            const opt = document.createElement('option');
+                            opt.value = b.branch_id;
+                            opt.textContent = b.name;
+                            if (currentUser.branch_id && b.branch_id === currentUser.branch_id) {
+                                opt.selected = true;
+                            }
+                            branchFilter.appendChild(opt);
+                        });
+                        if (currentUser.role === 'staff' && currentUser.branch_id) {
+                            branchFilter.disabled = true;
+                        }
+                        updateBranchName();
+                    }
+                }
+            } catch (e) { console.error('Error fetching branch:', e); }
+
+            renderInventory();
+        });
+
+        function handleBranchChange() {
+            updateBranchName();
+            renderInventory();
+        }
+
+        function updateBranchName() {
+            const select = document.getElementById('branchFilter');
+            const branchNameSpan = document.getElementById('branchName');
+            if (select.selectedIndex >= 0) {
+                branchNameSpan.textContent = select.options[select.selectedIndex].text;
+            }
+        }
+
+        async function renderInventory() {
+            const tbody = document.getElementById('inventoryTableBody');
+            tbody.innerHTML = '<tr><td colspan="5"><div class="loading-spinner-container"><div class="spinner"></div></div></td></tr>';
+
+            const selectedBranch = document.getElementById('branchFilter') ? document.getElementById('branchFilter').value : 'all';
+            let apiSuffix = selectedBranch !== 'all' ? `?branch_id=${selectedBranch}` : '';
+
+            try {
+                const response = await Auth.apiFetch(`/api/inventory${apiSuffix}`);
+                if (!response) return;
+                const data = await response.json();
+
+                if (!data.success) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: red;">Error: ${data.message}</td></tr>`;
+                    return;
+                }
+
+                branchInventory = data.inventory || [];
+
+                // Update summary cards
+                document.getElementById('countTotal').textContent = branchInventory.length;
+                document.getElementById('countGood').textContent = branchInventory.filter(i => i.quantity >= 10).length;
+                document.getElementById('countLow').textContent = branchInventory.filter(i => i.quantity < 10).length;
+
+                if (branchInventory.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 30px; color: #999;">No inventory items for this branch.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                branchInventory.forEach((item, idx) => {
+                    let statusText = 'Good';
+                    if (item.quantity < 3) statusText = 'Critical';
+                    else if (item.quantity < 10) statusText = 'Low Stock';
+
+                    const row = document.createElement('tr');
+                    if (item.quantity < 10) row.classList.add('low-stock-row');
+
+                    const tdIdx = document.createElement('td');
+                    tdIdx.setAttribute('data-label', '#');
+                    tdIdx.textContent = String(idx + 1);
+
+                    const tdItem = document.createElement('td');
+                    tdItem.setAttribute('data-label', 'Item');
+                    const strong = document.createElement('strong');
+                    strong.textContent = item.item_name;
+                    tdItem.appendChild(strong);
+
+                    const tdStock = document.createElement('td');
+                    tdStock.setAttribute('data-label', 'Stock');
+                    tdStock.style.fontWeight = '800';
+                    tdStock.style.fontSize = '1.1rem';
+                    tdStock.textContent = String(item.quantity);
+
+                    const tdStatus = document.createElement('td');
+                    tdStatus.setAttribute('data-label', 'Status');
+                    const badge = document.createElement('span');
+                    badge.className = `status-badge ${statusText === 'Good' ? 'confirmed' : 'cancelled'}`;
+                    badge.textContent = statusText;
+                    tdStatus.appendChild(badge);
+
+                    const tdAction = document.createElement('td');
+                    tdAction.setAttribute('data-label', 'Action');
+                    const canRestock = item.branch_id === currentUser.branch_id || currentUser.role === 'owner';
+                    if (canRestock) {
+                        const btn = document.createElement('button');
+                        btn.className = 'action-btn';
+                        btn.textContent = 'Restock';
+                        btn.onclick = () => restockItem(item.inventory_id);
+                        tdAction.appendChild(btn);
+                    } else {
+                        const span = document.createElement('span');
+                        span.style.color = '#999';
+                        span.style.fontSize = '0.85rem';
+                        span.style.fontStyle = 'italic';
+                        span.textContent = 'View Only';
+                        tdAction.appendChild(span);
+                    }
+
+                    row.appendChild(tdIdx);
+                    row.appendChild(tdItem);
+                    row.appendChild(tdStock);
+                    row.appendChild(tdStatus);
+                    row.appendChild(tdAction);
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error rendering inventory:', error);
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: red;">Failed to load inventory.</td></tr>`;
+            }
+        }
+
+        function restockItem(id) {
+            document.getElementById('restockItemId').value = id;
+            document.getElementById('restockQuantity').value = '';
+            document.getElementById('restockModal').style.display = 'flex';
+        }
+
+        function closeRestockModal() {
+            document.getElementById('restockModal').style.display = 'none';
+        }
+
+        document.getElementById('restockForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = parseInt(document.getElementById('restockItemId').value, 10);
+            const amountToAdd = parseInt(document.getElementById('restockQuantity').value, 10);
+
+            if (isNaN(amountToAdd) || amountToAdd <= 0) {
+                alert("Please enter a valid positive number.");
+                return;
+            }
+
+            const item = branchInventory.find(i => i.inventory_id === id);
+            if (!item) return;
+
+            try {
+                const res = await Auth.apiFetch('/api/inventory/restock', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inventory_id: id, delta: amountToAdd })
+                });
+                if (!res) return;
+                const result = await res.json();
+
+                if (result.success) {
+                    item.quantity += amountToAdd;
+                    renderInventory();
+                    closeRestockModal();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Restock error:', err);
+                alert('Server connection failed.');
+            }
+        });
+
+        function openAddProductModal() {
+            document.getElementById('addBranch').value = currentUser.branch_id || '';
+            document.getElementById('addProductModal').style.display = 'flex';
+        }
+
+        function closeAddProductModal() {
+            document.getElementById('addProductModal').style.display = 'none';
+            document.getElementById('addProductForm').reset();
+        }
+
+        document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const payload = {
+                item_name: document.getElementById('addItemName').value.trim(),
+                unit: document.getElementById('addUnit').value.trim(),
+                price: parseFloat(document.getElementById('addPrice').value),
+                quantity: parseInt(document.getElementById('addStock').value, 10),
+                branch_id: parseInt(document.getElementById('addBranch').value || currentUser.branch_id, 10)
+            };
+
+            try {
+                const res = await Auth.apiFetch('/api/inventory/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res) return;
+                const result = await res.json();
+
+                if (result.success) {
+                    alert('Product added successfully!');
+                    closeAddProductModal();
+                    renderInventory();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Add product error:', err);
+                alert('Server connection failed.');
+            }
+        });
+
+        function staffLogout() {
+            if (confirm('Are you sure you want to logout?')) Auth.logout();
+        }
+    </script>
+</body>
+
+</html>

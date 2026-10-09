@@ -370,8 +370,7 @@
                         <p>Please note that to secure your appointment/booking slot, a 20% down payment of the total
                             service price is required. Your slot will only be confirmed once the payment has been
                             received. Down payment is non-refundable!</p>
-                        <p>An email confirmation will be sent to your registered email address once your booking has
-                            been
+                        <p>An email confirmation will be sent to your registered email address once your booking has been
                             successfully secured.</p>
                     </div>
 
@@ -459,9 +458,8 @@
             document.getElementById('date').setAttribute('min', year + '-' + month + '-' + day);
 
             try {
-                // Use Auth.apiFetch so Authorization Bearer header is automatically attached
-                const formDataRes = await Auth.apiFetch('/api/bookings/form-data');
-                if (!formDataRes) return;
+                // Fetch both branches and services from a single optimized endpoint
+                const formDataRes = await fetch('/api/bookings/form-data');
                 const formData = await formDataRes.json();
 
                 const branchesData = { success: formData.success, branches: formData.branches };
@@ -469,16 +467,17 @@
 
                 const branchSelect = document.getElementById('branch');
                 const techSelect = document.getElementById('tech');
+                const serviceContainer = document.getElementById('serviceCheckboxes');
 
                 branchSelect.innerHTML = '<option value="" disabled selected>Select Branch</option>';
 
-                if (branchesData.success && branchesData.branches) {
+                if (branchesData.success) {
                     branchesData.branches.forEach(b => {
                         branchSelect.innerHTML += `<option value="${b.branch_id}">${b.name}</option>`;
                     });
                 }
 
-                if (servicesData.success && servicesData.services) {
+                if (servicesData.success) {
                     globalServices = servicesData.services;
 
                     // Build a template select element to clone for each service dropdown
@@ -518,9 +517,7 @@
 
                     // Populate the first panel's first select
                     const firstSelect = document.querySelector('.pax-panel .service-select');
-                    if (firstSelect) {
-                        firstSelect.innerHTML = templateSelect.innerHTML;
-                    }
+                    firstSelect.innerHTML = templateSelect.innerHTML;
 
                     // Pax change handler — creates/removes per-person panels
                     document.getElementById('people').addEventListener('change', function () {
@@ -528,6 +525,7 @@
                         const container = document.getElementById('servicesContainer');
                         const currentPanels = container.querySelectorAll('.pax-panel');
 
+                        // Add more panels if needed
                         if (currentPanels.length < maxPax) {
                             for (let i = currentPanels.length; i < maxPax; i++) {
                                 const panel = document.createElement('div');
@@ -542,24 +540,28 @@
                                 `;
                                 container.appendChild(panel);
                             }
-                        } else if (currentPanels.length > maxPax) {
+                        }
+                        // Remove excess panels
+                        else if (currentPanels.length > maxPax) {
                             for (let i = currentPanels.length - 1; i >= maxPax; i--) {
                                 container.removeChild(currentPanels[i]);
                             }
                         }
 
+                        // Show/hide "Person 1" header when solo
                         container.querySelectorAll('.pax-panel-header').forEach(h => {
                             h.style.display = maxPax === 1 ? 'none' : 'block';
                         });
                     });
 
-                    const p1Header = document.querySelector('.pax-panel-header');
-                    if (p1Header) p1Header.style.display = 'none';
+                    // Hide "Person 1" header by default (single pax)
+                    document.querySelector('.pax-panel-header').style.display = 'none';
                 }
 
                 // Handle picking a branch -> Populates the staff for that branch
                 branchSelect.addEventListener('change', (e) => {
                     techSelect.innerHTML = '<option value="" disabled selected>Select Barber</option>';
+                    // "No Preference" option
                     const noPref = document.createElement('option');
                     noPref.value = '0';
                     noPref.textContent = 'No Preference';
@@ -581,21 +583,23 @@
                     Array.from(branchSelect.options).forEach(opt => {
                         if (opt.text.toLowerCase() === branchParam.toLowerCase()) opt.selected = true;
                     });
+
+                    // Manually trigger change event to fetch the correct staff
                     branchSelect.dispatchEvent(new Event('change'));
                 }
 
                 const serviceParam = urlParams.get('service');
                 if (serviceParam) {
                     const firstSelect = document.querySelector('.service-select');
-                    if (firstSelect) {
-                        const allOptions = firstSelect.querySelectorAll('option');
-                        allOptions.forEach(opt => {
-                            const optName = opt.getAttribute('data-name');
-                            if (optName && optName.toLowerCase() === serviceParam.toLowerCase()) {
-                                opt.selected = true;
-                            }
-                        });
-                    }
+                    // Look through all optgroups to find the exact match
+                    const allOptions = firstSelect.querySelectorAll('option');
+                    allOptions.forEach(opt => {
+                        const optName = opt.getAttribute('data-name');
+                        // Exact match on the clean `data-name` attribute
+                        if (optName && optName.toLowerCase() === serviceParam.toLowerCase()) {
+                            opt.selected = true;
+                        }
+                    });
                 }
 
                 // Check for unavailable times
@@ -605,6 +609,7 @@
                     const techId = document.getElementById('tech').value;
                     const timeSelect = document.getElementById('time');
 
+                    // Reset all options
                     Array.from(timeSelect.options).forEach(opt => {
                         if (opt.value) {
                             opt.disabled = false;
@@ -616,16 +621,16 @@
                         try {
                             let url = `/api/bookings/unavailable-times?branch_id=${branchId}&date=${dateVal}`;
                             if (techId) url += `&staff_id=${techId}`;
-
-                            const res = await Auth.apiFetch(url);
-                            if (!res) return;
+                            
+                            const res = await fetch(url);
                             const data = await res.json();
                             if (data.success && data.unavailable_times) {
+                                // Disable booked times
                                 Array.from(timeSelect.options).forEach(opt => {
                                     if (data.unavailable_times.includes(opt.value) || data.unavailable_times.includes(opt.value + ':00')) {
                                         opt.disabled = true;
                                         opt.text += ' (Booked)';
-                                        if (opt.selected) timeSelect.selectedIndex = 0;
+                                        if (opt.selected) timeSelect.selectedIndex = 0; // Reset if currently selected
                                     }
                                 });
                             }
@@ -650,6 +655,7 @@
                 .filter(val => val && val !== '0');
         }
 
+        // Global helper: Add another service <select> inside a person's panel
         function addServiceToPanel(btn) {
             const panel = btn.closest('.pax-panel');
             const servicesDiv = panel.querySelector('.pax-services');
@@ -662,12 +668,13 @@
             servicesDiv.appendChild(row);
         }
 
+        // Global helper: Remove a service row from a panel
         function removeServiceRow(btn) {
             const row = btn.closest('.service-row');
             row.remove();
         }
 
-        // Step 1 -> Step 2
+        // Step 1 → Step 2: Show confirmation
         document.getElementById('bookingForm').addEventListener('submit', function (event) {
             event.preventDefault();
 
@@ -681,6 +688,7 @@
                 return;
             }
 
+            // Validate all services are selected
             const serviceSelects = document.querySelectorAll('.service-select');
             let allSelected = true;
             serviceSelects.forEach(sel => {
@@ -701,6 +709,7 @@
             document.getElementById('confDateTime').textContent = `${document.getElementById('date').value} | ${selectedTimeText}`;
             document.getElementById('confPeople').textContent = document.getElementById('people').value;
 
+            // Build per-person service display
             const panels = document.querySelectorAll('.pax-panel');
             let serviceListHTML = '';
             let basePriceSum = 0;
@@ -738,6 +747,7 @@
 
             finalDp += Math.round(basePriceSum * 0.2);
 
+            // Replace both the Title and the empty Price column with one unified display block
             document.querySelector('.confirm-services-grid').innerHTML = `
                 <div class="col" style="width: 100%;">
                     <p style="margin-bottom: 10px;"><strong>Service Availed:</strong></p>
@@ -751,6 +761,7 @@
 
             document.getElementById('confMessage').textContent = document.getElementById('message').value || "None";
 
+            // Calculate totals for display
             let displayTotalText = '';
             if (hasWarts && basePriceSum === 0) {
                 displayTotalText = "Varies (₱35/pc)";
@@ -767,7 +778,7 @@
             document.getElementById('step2').style.display = 'block';
         });
 
-        // Step 2 -> Modal
+        // Step 2 Submit: Show Modal Pop-up
         document.getElementById('proceedPaymentBtn').addEventListener('click', function () {
             const serviceIds = getSelectedServiceIds();
             const branchId = document.getElementById('branch').value;
@@ -798,12 +809,13 @@
 
             document.getElementById('modalDpAmount').textContent = `₱${finalDp.toLocaleString()}`;
 
+            // Reset modal state
             document.getElementById('modalContentConfirm').style.display = 'block';
             document.getElementById('modalContentLoading').style.display = 'none';
             document.getElementById('paymentModal').style.display = 'flex';
         });
 
-        // Confirm & Pay
+        // Modal Action: Confirm & Pay
         document.getElementById('confirmPayBtn').addEventListener('click', async function () {
             const user = Auth.getUser();
             if (!user) return;
@@ -819,12 +831,13 @@
                 return;
             }
 
+            // Show loading state
             document.getElementById('modalContentConfirm').style.display = 'none';
             document.getElementById('modalContentLoading').style.display = 'block';
 
             const pax = parseInt(document.getElementById('people').value);
             const payload = {
-                client_id: user.id || user.user_id,
+                client_id: user.id,
                 branch_id: branchId,
                 service_ids: serviceIds,
                 pax: pax,
@@ -835,13 +848,11 @@
             };
 
             try {
-                // Use Auth.apiFetch to send the request with token headers
-                const response = await Auth.apiFetch('/api/bookings/create', {
+                const response = await fetch('/api/bookings/create', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if (!response) return;
-
                 const result = await response.json();
 
                 if (result.success && result.checkout_url) {
@@ -858,6 +869,7 @@
             }
         });
     </script>
+
 </body>
 
 </html>

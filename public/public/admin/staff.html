@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BARBER R US - Staff Management</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="admin-body">
+
+    <aside class="admin-sidebar">
+        <div class="admin-brand">
+            <div>
+                <span class="admin-logo-small">BARBER R US</span>
+                <h2 class="admin-logo-large">Admin Portal</h2>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <ul class="admin-nav" id="adminNav">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="appointments.html">Appointments</a></li>
+            <li><a href="reports.html">Reports</a></li>
+            <li><a href="commissions.html">Commissions</a></li>
+            <li><a href="staff.html" class="active">Staff</a></li>
+            <li><a href="pos.html">POS</a></li>
+        </ul>
+
+        <button class="admin-logout-btn" onclick="adminLogout()">Log Out</button>
+    </aside>
+
+    <main class="admin-main">
+
+        <header class="admin-header">
+            <div class="header-text">
+                <h1>Staff Management</h1>
+                <p>View and manage staff members across branches</p>
+            </div>
+            <a href="../index.html" class="back-home-btn">Back to Home</a>
+        </header>
+
+        <!-- Staff Widgets -->
+        <section class="admin-widgets">
+            <div class="widget-card">
+                <h3>Total Staff</h3>
+                <p class="widget-value" id="countTotal">0</p>
+            </div>
+            <div class="widget-card">
+                <h3>Active Staff</h3>
+                <p class="widget-value" id="countActive">0</p>
+            </div>
+            <div class="widget-card">
+                <h3>Branches Covered</h3>
+                <p class="widget-value" id="countBranches">0</p>
+            </div>
+        </section>
+
+        <!-- Staff Table -->
+        <div class="admin-content-card" style="margin-top: 20px;">
+            <div class="admin-filter-bar">
+                <div class="input-group" style="margin-bottom: 0; width: 250px;">
+                    <label for="branchFilter" style="color: #6D5724;">Filter by Branch</label>
+                    <select id="branchFilter" class="admin-select" onchange="renderStaff()">
+                        <option value="all">All Branches</option>
+                    </select>
+                </div>
+                <button class="submit-btn" onclick="openAddStaffModal()" style="padding: 8px 18px; font-size: 0.85rem;">
+                    + Add Staff
+                </button>
+            </div>
+
+            <div class="table-responsive" style="margin-top: 15px;">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Branch</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staffTableBody">
+                        <tr>
+                            <td colspan="7">
+                                <div class="loading-spinner-container">
+                                    <div class="spinner"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Add Staff Modal -->
+        <div id="addStaffModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeAddStaffModal()">&times;</span>
+                <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 2rem; margin-top: 0;">Add New
+                    Staff</h3>
+                <form id="addStaffForm">
+                    <div class="input-group">
+                        <label for="newStaffName">Full Name</label>
+                        <input type="text" id="newStaffName" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="newStaffUsername">Username</label>
+                        <input type="text" id="newStaffUsername" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="newStaffPassword">Password</label>
+                        <input type="password" id="newStaffPassword" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="newStaffBranch">Branch</label>
+                        <select id="newStaffBranch" class="admin-select" required></select>
+                    </div>
+                    <button type="submit" class="submit-btn" style="width: 100%;">Create Staff Account</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Staff Modal -->
+        <div id="editStaffModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeEditStaffModal()">&times;</span>
+                <h3 style="font-family: 'Brown Sugar', serif; color: #8b2d2d; font-size: 2rem; margin-top: 0;">Update
+                    Staff</h3>
+                <form id="editStaffForm">
+                    <input type="hidden" id="editStaffId">
+                    <div class="input-group">
+                        <label for="editStaffName">Full Name</label>
+                        <input type="text" id="editStaffName" required style="background-color: #fff;">
+                    </div>
+                    <div class="input-group">
+                        <label for="editStaffUsername">Username</label>
+                        <input type="text" id="editStaffUsername" required style="background-color: #fff;">
+                    </div>
+                    <div class="input-group">
+                        <label for="editStaffBranch">Assign Branch</label>
+                        <select id="editStaffBranch" class="admin-select" required
+                            style="background-color: #fff;"></select>
+                    </div>
+                    <button type="submit" class="submit-btn" style="width: 100%;">Save Changes</button>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        let allStaff = [];
+        let branches = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = Auth.getUser();
+            if (!user || user.role !== 'owner') {
+                console.log('Access Denied. Owner only.');
+                window.location.href = user ? '../login.html?error=staff_access' : '../login.html';
+                return;
+            }
+
+            try {
+                // Fetch Branches
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (!bRes) return;
+                const bData = await bRes.json();
+
+                const branchFilter = document.getElementById('branchFilter');
+                const addBranchSelect = document.getElementById('newStaffBranch');
+
+                if (bData.success) {
+                    branches = bData.branches;
+
+                    branches.forEach(branch => {
+                        const opt1 = document.createElement('option');
+                        opt1.value = branch.branch_id;
+                        opt1.textContent = branch.name;
+                        branchFilter.appendChild(opt1);
+
+                        const opt2 = document.createElement('option');
+                        opt2.value = branch.branch_id;
+                        opt2.textContent = branch.name;
+                        addBranchSelect.appendChild(opt2);
+
+                        const opt3 = document.createElement('option');
+                        opt3.value = branch.branch_id;
+                        opt3.textContent = branch.name;
+                        document.getElementById('editStaffBranch').appendChild(opt3);
+                    });
+                }
+
+                // Fetch Staff
+                await fetchStaff();
+
+            } catch (err) {
+                console.error("Initialization error:", err);
+            }
+        });
+
+        async function fetchStaff() {
+            try {
+                const res = await Auth.apiFetch('/api/users/staff');
+                if (!res) return;
+                const data = await res.json();
+                if (data.success) {
+                    allStaff = data.staff;
+                    renderStaff();
+                } else {
+                    console.error('Failed to load staff:', data.message);
+                }
+            } catch (err) {
+                console.error("Error fetching staff:", err);
+            }
+        }
+
+        function getBranchName(id) {
+            const b = branches.find(branch => branch.branch_id == id);
+            return b ? b.name : 'Unknown';
+        }
+
+        function renderStaff() {
+            const tableBody = document.getElementById('staffTableBody');
+            const filterValue = document.getElementById('branchFilter').value;
+            tableBody.innerHTML = '';
+
+            let filteredStaff = [...allStaff];
+
+            // Filter by branch
+            if (filterValue !== 'all') {
+                filteredStaff = filteredStaff.filter(s => String(s.branch_id) === String(filterValue));
+            }
+
+            // Update stat cards
+            document.getElementById('countTotal').textContent = allStaff.length;
+            document.getElementById('countActive').textContent = allStaff.length; // Active logic ignored for now
+            const branchIds = new Set(allStaff.map(s => s.branch_id).filter(Boolean));
+            document.getElementById('countBranches').textContent = branchIds.size;
+
+            if (filteredStaff.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 30px; color: #999;">No staff members found.</td></tr>`;
+                return;
+            }
+
+            filteredStaff.forEach((staff, idx) => {
+                const branchName = getBranchName(staff.branch_id);
+                const row = document.createElement('tr');
+
+                const idxTd = document.createElement('td');
+                idxTd.setAttribute('data-label', '#');
+                idxTd.textContent = idx + 1;
+
+                const nameTd = document.createElement('td');
+                nameTd.setAttribute('data-label', 'Name');
+                const strong = document.createElement('strong');
+                strong.textContent = staff.name;
+                nameTd.appendChild(strong);
+
+                const usernameTd = document.createElement('td');
+                usernameTd.setAttribute('data-label', 'Username');
+                usernameTd.textContent = staff.username || '—';
+
+                const branchTd = document.createElement('td');
+                branchTd.setAttribute('data-label', 'Branch');
+                branchTd.textContent = branchName;
+
+                const roleTd = document.createElement('td');
+                roleTd.setAttribute('data-label', 'Role');
+                const roleBadge = document.createElement('span');
+                roleBadge.className = 'status-badge confirmed';
+                roleBadge.textContent = 'Staff';
+                roleTd.appendChild(roleBadge);
+
+                const statusTd = document.createElement('td');
+                statusTd.setAttribute('data-label', 'Status');
+                const statusBadge = document.createElement('span');
+                statusBadge.className = 'status-badge confirmed';
+                statusBadge.textContent = 'Active';
+                statusTd.appendChild(statusBadge);
+
+                const actionTd = document.createElement('td');
+                actionTd.setAttribute('data-label', 'Action');
+                const editBtn = document.createElement('button');
+                editBtn.className = 'action-btn';
+                editBtn.style.cssText = 'background:#B8892D;color:white;';
+                editBtn.textContent = 'Edit';
+                editBtn.addEventListener('click', () => openEditStaffModal(staff.id));
+                actionTd.appendChild(editBtn);
+
+                row.appendChild(idxTd);
+                row.appendChild(nameTd);
+                row.appendChild(usernameTd);
+                row.appendChild(branchTd);
+                row.appendChild(roleTd);
+                row.appendChild(statusTd);
+                row.appendChild(actionTd);
+                tableBody.appendChild(row);
+            });
+        }
+
+        function toggleStaffStatus(id) {
+            console.log('Staff status toggling is not available via the backend database schema. Feature skipped for now.');
+        }
+
+        function openAddStaffModal() {
+            document.getElementById('addStaffModal').style.display = 'flex';
+        }
+
+        function closeAddStaffModal() {
+            document.getElementById('addStaffModal').style.display = 'none';
+            document.getElementById('addStaffForm').reset();
+        }
+
+        // Edit Modal Functions
+        function openEditStaffModal(id) {
+            const staff = allStaff.find(s => s.id === id);
+            if (staff) {
+                document.getElementById('editStaffId').value = staff.id;
+                document.getElementById('editStaffName').value = staff.name;
+                document.getElementById('editStaffUsername').value = staff.username;
+                document.getElementById('editStaffBranch').value = staff.branch_id;
+                document.getElementById('editStaffModal').style.display = 'flex';
+            }
+        }
+
+        function closeEditStaffModal() {
+            document.getElementById('editStaffModal').style.display = 'none';
+        }
+
+        document.getElementById('editStaffForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const user_id = parseInt(document.getElementById('editStaffId').value);
+            const name = document.getElementById('editStaffName').value;
+            const username = document.getElementById('editStaffUsername').value;
+            const branch_id = parseInt(document.getElementById('editStaffBranch').value);
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const res = await Auth.apiFetch('/api/users/update', {
+                    method: 'PUT',
+                    body: JSON.stringify({ user_id, name, username, branch_id })
+                });
+                if (!res) return;
+                const data = await res.json();
+
+                if (data.success) {
+                    alert('Staff member updated successfully!');
+                    closeEditStaffModal();
+                    await fetchStaff();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (err) {
+                console.error("Update staff error:", err);
+                console.log('Server connection failed.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save Changes';
+            }
+        });
+
+        document.getElementById('addStaffForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const name = document.getElementById('newStaffName').value;
+            const username = document.getElementById('newStaffUsername').value;
+            const password = document.getElementById('newStaffPassword').value;
+            const branch_id = parseInt(document.getElementById('newStaffBranch').value);
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const res = await Auth.apiFetch('/api/users/staff', {
+                    method: 'POST',
+                    body: JSON.stringify({ name, username, password, branch_id })
+                });
+                if (!res) return;
+                const data = await res.json();
+
+                if (data.success) {
+                    alert('Staff member created successfully!');
+                    closeAddStaffModal();
+                    await fetchStaff();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (err) {
+                console.error("Create staff error:", err);
+                console.log('Server connection failed.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Staff Account';
+            }
+        });
+
+        function adminLogout() {
+            if (confirm('Are you sure you want to logout?')) Auth.logout();
+        }
+    </script>
+</body>
+
+</html>

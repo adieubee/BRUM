@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BARBER R US - Reports</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="admin-body">
+
+    <aside class="admin-sidebar">
+        <div class="admin-brand">
+            <div>
+                <span class="admin-logo-small">BARBER R US</span>
+                <h2 class="admin-logo-large">Admin Portal</h2>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <ul class="admin-nav">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="appointments.html">Appointments</a></li>
+            <li><a href="reports.html" class="active">Reports</a></li>
+            <li><a href="commissions.html">Commissions</a></li>
+            <li><a href="staff.html">Staff</a></li>
+            <li><a href="pos.html">POS</a></li>
+        </ul>
+
+        <button class="admin-logout-btn" onclick="adminLogout()">Log Out</button>
+    </aside>
+
+    <main class="admin-main">
+
+        <header class="admin-header">
+            <div class="header-text">
+                <h1>Sales Reports</h1>
+                <p>Sales performance and revenue overview (Owner only)</p>
+            </div>
+        </header>
+
+        <!-- Revenue Summary Cards -->
+        <div class="stat-cards" style="margin-top: 20px;">
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <i class="fas fa-peso-sign"></i>
+                </div>
+                <div>
+                    <div class="stat-number" id="totalRevenue">₱0</div>
+                    <div class="stat-label">Total Revenue</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div>
+                    <div class="stat-number" id="totalAppointments">0</div>
+                    <div class="stat-label">Total Appointments</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon pink">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div>
+                    <div class="stat-number" id="avgTransaction">₱0</div>
+                    <div class="stat-label">Avg. per Transaction</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="admin-grid-row" style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));">
+            <!-- Sales by Branch (Bar Chart) -->
+            <div class="chart-container fade-in-up">
+                <div class="chart-title"><i class="fas fa-chart-line" style="margin-right: 8px;"></i> Revenue by Branch
+                </div>
+                <div class="bar-chart" id="revenueBars">
+                    <!-- Javascript will inject bars here -->
+                    <div class="loading-spinner-container" style="padding: 20px;">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Sales Table (Most Popular Services) -->
+            <div class="chart-container fade-in-up">
+                <div class="chart-title"><i class="fas fa-star" style="margin-right: 8px;"></i> Most Popular Services
+                </div>
+                <div class="bar-chart" id="servicesBars">
+                    <!-- Javascript will inject bars here -->
+                    <div class="loading-spinner-container" style="padding: 20px;">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Sales Table -->
+        <div class="chart-container fade-in-up" style="padding: 0; overflow: hidden;">
+            <div class="chart-title" style="padding: 24px 24px 0 24px;"><i class="fas fa-list-ol"
+                    style="margin-right: 8px;"></i> Sales Breakdown</div>
+            <div class="table-responsive" style="margin-top: 15px;">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Branch</th>
+                            <th style="text-align: center;">Completed</th>
+                            <th style="text-align: center;">Cancelled</th>
+                            <th style="text-align: right;">Revenue</th>
+                            <th style="text-align: right;">Avg. Ticket</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody">
+                        <tr>
+                            <td colspan="3">
+                                <div class="loading-spinner-container">
+                                    <div class="spinner"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot id="reportTableFoot">
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        </div>
+
+    </main>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = Auth.getUser();
+            if (!user || user.role !== 'owner') {
+                console.log('Access Denied. Owner only.');
+                window.location.href = user ? '../login.html?error=staff_access' : '../login.html';
+                return;
+            }
+
+            try {
+                // 1. Fetch branches
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (!bRes) return;
+                const bData = await bRes.json();
+                let branches = bData.success ? (bData.branches || []) : [];
+
+                // 2. Fetch finance transactions for revenue & completed count
+                const fRes = await Auth.apiFetch('/api/finance');
+                if (!fRes) return;
+                const fData = await fRes.json();
+                let transactions = fData.success ? (fData.transactions || []) : [];
+
+                // 3. Fetch bookings for cancelled count
+                const aRes = await Auth.apiFetch('/api/bookings/branch');
+                if (!aRes) return;
+                const aData = await aRes.json();
+                let appointments = aData.success ? (aData.appointments || []) : [];
+
+                // Initialize report object per branch
+                const reportMap = {};
+                branches.forEach(b => {
+                    reportMap[b.branch_id] = {
+                        name: b.name,
+                        completed: 0,
+                        cancelled: 0,
+                        revenue: 0
+                    };
+                });
+
+                // Tally finance data
+                transactions.forEach(t => {
+                    if (reportMap[t.branch_id]) {
+                        reportMap[t.branch_id].completed += 1;
+                        reportMap[t.branch_id].revenue += parseFloat(t.total_amount) || 0;
+                    }
+                });
+
+                // Tally cancelled appointments
+                appointments.forEach(a => {
+                    if (a.status === 'Cancelled' && reportMap[a.branch_id]) {
+                        reportMap[a.branch_id].cancelled += 1;
+                    }
+                });
+
+                const tbody = document.getElementById('reportTableBody');
+                const tfoot = document.getElementById('reportTableFoot');
+
+                tbody.innerHTML = '';
+
+                let totalCompleted = 0;
+                let totalCancelled = 0;
+                let totalRevenue = 0;
+
+                // Find Max Revenue for Chart Scaling
+                const maxRevenue = Math.max(...Object.values(reportMap).map(s => s.revenue), 1);
+
+                Object.values(reportMap).forEach(stats => {
+                    totalCompleted += stats.completed;
+                    totalCancelled += stats.cancelled;
+                    totalRevenue += stats.revenue;
+
+                    const avgTicket = stats.completed > 0 ? (stats.revenue / stats.completed) : 0;
+
+                    // Table Rows
+                    const tr = document.createElement('tr');
+
+                    const tdBranch = document.createElement('td');
+                    tdBranch.setAttribute('data-label', 'Branch');
+                    tdBranch.style.fontWeight = '700';
+                    tdBranch.textContent = stats.name;
+
+                    const tdCompleted = document.createElement('td');
+                    tdCompleted.setAttribute('data-label', 'Completed');
+                    tdCompleted.style.textAlign = 'center';
+                    tdCompleted.textContent = stats.completed;
+
+                    const tdCancelled = document.createElement('td');
+                    tdCancelled.setAttribute('data-label', 'Cancelled');
+                    tdCancelled.style.textAlign = 'center';
+                    tdCancelled.textContent = stats.cancelled;
+
+                    const tdRev = document.createElement('td');
+                    tdRev.setAttribute('data-label', 'Revenue');
+                    tdRev.style.textAlign = 'right';
+                    const strongRev = document.createElement('strong');
+                    strongRev.style.color = 'green';
+                    strongRev.textContent = '₱' + stats.revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    tdRev.appendChild(strongRev);
+
+                    const tdAvg = document.createElement('td');
+                    tdAvg.setAttribute('data-label', 'Avg Ticket');
+                    tdAvg.style.textAlign = 'right';
+                    tdAvg.style.color = '#6D5724';
+                    tdAvg.style.fontWeight = '600';
+                    tdAvg.textContent = '₱' + avgTicket.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                    tr.appendChild(tdBranch);
+                    tr.appendChild(tdCompleted);
+                    tr.appendChild(tdCancelled);
+                    tr.appendChild(tdRev);
+                    tr.appendChild(tdAvg);
+                    tbody.appendChild(tr);
+                });
+
+                const totalAvgTicket = totalCompleted > 0 ? (totalRevenue / totalCompleted) : 0;
+                tfoot.innerHTML = `
+                    <tr>
+                        <td data-label="Branch" style="font-weight: 800; color: #111;">TOTAL</td>
+                        <td data-label="Completed" style="font-weight: 800; color: #111; text-align: center;">${totalCompleted}</td>
+                        <td data-label="Cancelled" style="font-weight: 800; color: #111; text-align: center;">${totalCancelled}</td>
+                        <td data-label="Revenue" style="color: #8b2d2d; font-weight: 800; font-size: 1.05rem; text-align: right;">₱${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td data-label="Avg Ticket" style="font-weight: 800; color: #111; text-align: right;">₱${totalAvgTicket.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                `;
+
+                // Update Top Summary Cards
+                document.getElementById('totalAppointments').textContent = totalCompleted;
+                document.getElementById('totalRevenue').textContent = '₱' + totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                document.getElementById('avgTransaction').textContent = '₱' + totalAvgTicket.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+                // Render Custom CSS Bar Charts
+                const revBars = document.getElementById('revenueBars');
+                const srvBars = document.getElementById('servicesBars');
+                revBars.innerHTML = '';
+                srvBars.innerHTML = '';
+
+                // Revenue by Branch Bars
+                const colorClasses = ['red', 'orange', 'blue'];
+                let colorIndex = 0;
+
+                Object.values(reportMap).forEach(stats => {
+                    const widthPercent = (stats.revenue / maxRevenue) * 100;
+                    const colorClass = colorClasses[colorIndex % colorClasses.length];
+                    colorIndex++;
+
+                    const shortName = stats.name.replace(' Branch', '');
+
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'bar-row';
+
+                    const lbl = document.createElement('div');
+                    lbl.className = 'bar-label';
+                    lbl.textContent = shortName;
+
+                    const track = document.createElement('div');
+                    track.className = `bar-track ${colorClass}`;
+                    const fill = document.createElement('div');
+                    fill.className = `bar-fill ${colorClass}`;
+                    fill.style.width = `${widthPercent}%`;
+                    track.appendChild(fill);
+
+                    const val = document.createElement('div');
+                    val.className = 'bar-value';
+                    val.textContent = '₱' + stats.revenue.toLocaleString('en-US');
+
+                    rowDiv.appendChild(lbl);
+                    rowDiv.appendChild(track);
+                    rowDiv.appendChild(val);
+                    revBars.appendChild(rowDiv);
+                });
+
+                // Top Services Bars
+                const serviceCountMap = {};
+                appointments.forEach(a => {
+                    if (a.service_name && a.status !== 'Cancelled') {
+                        serviceCountMap[a.service_name] = (serviceCountMap[a.service_name] || 0) + 1;
+                    }
+                });
+
+                const sortedServices = Object.keys(serviceCountMap)
+                    .map(name => ({ name, count: serviceCountMap[name] }))
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 4); // Top 4
+
+                const maxServiceCount = sortedServices.length > 0 ? sortedServices[0].count : 1;
+                colorIndex = 0;
+
+                sortedServices.forEach(srv => {
+                    const widthPercent = (srv.count / maxServiceCount) * 100;
+                    const colorClass = colorClasses[colorIndex % colorClasses.length];
+                    colorIndex++;
+
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'bar-row';
+
+                    const lbl = document.createElement('div');
+                    lbl.className = 'bar-label';
+                    lbl.textContent = srv.name;
+
+                    const track = document.createElement('div');
+                    track.className = `bar-track ${colorClass}`;
+                    const fill = document.createElement('div');
+                    fill.className = `bar-fill ${colorClass}`;
+                    fill.style.width = `${widthPercent}%`;
+                    track.appendChild(fill);
+
+                    const val = document.createElement('div');
+                    val.className = 'bar-value';
+                    val.textContent = String(srv.count);
+
+                    rowDiv.appendChild(lbl);
+                    rowDiv.appendChild(track);
+                    rowDiv.appendChild(val);
+                    srvBars.appendChild(rowDiv);
+                });
+
+            } catch (err) {
+                console.error("Error building report:", err);
+                document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="5" style="color: red; text-align: center;">Error loading reporting data.</td></tr>`;
+                document.getElementById('revenueBars').innerHTML = `<p style="padding: 20px; color: #999;">Unable to load revenue chart.</p>`;
+                document.getElementById('servicesBars').innerHTML = `<p style="padding: 20px; color: #999;">Unable to load services chart.</p>`;
+            }
+            }
+        });
+
+        function adminLogout() {
+            if (confirm('Are you sure you want to logout?')) Auth.logout();
+        }
+    </script>
+</body>
+
+</html>

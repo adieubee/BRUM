@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbershop Services | Professional Cuts & Grooming | Barbers R Us</title>
+    <meta name="description"
+        content="Explore our complete range of barbershop services including haircuts, fades, beard grooming, and hot towel shaves. Expert barbering at Barbers R Us.">
+    <meta name="keywords"
+        content="haircuts, beard grooming, fades, barbershop services, hot towel shave, hair styling, barber">
+    <link rel="canonical" href="https://Barbers R Us.vercel.app/services.html">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="services-body">
+
+    <header class="navbar">
+        <div class="nav-brand">
+            <a href="index.html" class="nav-logo-link">
+                <img src="./assets/ICON.svg" alt="Barbers R Us Logo" class="nav-logo">
+                <span class="nav-title">Barbers R Us</span>
+            </a>
+        </div>
+
+        <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <nav class="nav-links" id="navLinks">
+            <a href="services.html" class="active">Services</a>
+            <a href="branches.html">Branches</a>
+            <a href="about-us.html">About Us</a>
+            <a href="login.html" class="nav-btn" id="navAuthBtn">Login | Sign Up</a>
+        </nav>
+    </header>
+
+    <section class="services-page-section">
+        <div class="services-bg-curve"></div>
+
+        <div class="services-content-wrapper">
+            <div class="services-page-header">
+                <h2>OUR SERVICES</h2>
+                <p>Premium Barbershop Services for Every Style</p>
+            </div>
+
+            <!-- SEARCH & FILTER SECTION -->
+            <div style="width: 100%; max-width: 1100px; margin: 0 auto 40px auto; position: relative; z-index: 2;">
+                <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.08);">
+                    
+                    <!-- Search Bar -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 700; color: #8b2d2d; display: block; margin-bottom: 8px;">
+                            <i class="fas fa-search"></i> Search Services
+                        </label>
+                        <input type="text" id="serviceSearch" placeholder="Search by service name (e.g., 'fade', 'beard')..."
+                            style="width: 100%; padding: 12px 15px; border: 2px solid #e5ddd5; border-radius: 8px; 
+                                   font-size: 1rem; font-family: 'Poppins', sans-serif; box-sizing: border-box;">
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 700; color: #8b2d2d; display: block; margin-bottom: 8px;">
+                            <i class="fas fa-filter"></i> Filter by Category
+                        </label>
+                        <select id="categoryFilter" 
+                            style="width: 100%; padding: 12px 15px; border: 2px solid #e5ddd5; border-radius: 8px; 
+                                   font-size: 1rem; font-family: 'Poppins', sans-serif; box-sizing: border-box; cursor: pointer;">
+                            <option value="">All Categories</option>
+                            <option value="Classic Haircuts">Classic Haircuts</option>
+                            <option value="Fades & Line-Ups">Fades & Line-Ups</option>
+                            <option value="Beard Grooming & Shaves">Beard Grooming & Shaves</option>
+                            <option value="Specialty Grooming">Specialty Grooming</option>
+                            <option value="Combo & Package Deals">Combo & Package Deals</option>
+                            <option value="Premium Add-Ons">Premium Add-Ons</option>
+                        </select>
+                    </div>
+
+                    <!-- Price Range Filter -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 700; color: #8b2d2d; display: block; margin-bottom: 8px;">
+                            <i class="fas fa-peso-sign"></i> Max Price: ₱<span id="priceValue">3000</span>
+                        </label>
+                        <input type="range" id="priceFilter" min="0" max="3000" value="3000" step="50"
+                            style="width: 100%; cursor: pointer;">
+                        <div style="font-size: 0.85rem; color: #999; margin-top: 5px;">
+                            Drag to filter services by price
+                        </div>
+                    </div>
+
+                    <!-- Duration Filter -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 700; color: #8b2d2d; display: block; margin-bottom: 8px;">
+                            <i class="fas fa-clock"></i> Service Duration
+                        </label>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="duration-filter" data-duration="15" 
+                                style="padding: 8px 16px; border: 2px solid #e5ddd5; border-radius: 6px; 
+                                       background: white; cursor: pointer; font-weight: 600; color: #8b2d2d; transition: all 0.3s;">
+                                ≤ 15 min
+                            </button>
+                            <button class="duration-filter" data-duration="30"
+                                style="padding: 8px 16px; border: 2px solid #e5ddd5; border-radius: 6px; 
+                                       background: white; cursor: pointer; font-weight: 600; color: #8b2d2d; transition: all 0.3s;">
+                                ≤ 30 min
+                            </button>
+                            <button class="duration-filter" data-duration="60"
+                                style="padding: 8px 16px; border: 2px solid #e5ddd5; border-radius: 6px; 
+                                       background: white; cursor: pointer; font-weight: 600; color: #8b2d2d; transition: all 0.3s;">
+                                ≤ 60 min
+                            </button>
+                            <button class="duration-filter" data-duration="999"
+                                style="padding: 8px 16px; border: 2px solid #e5ddd5; border-radius: 6px; 
+                                       background: white; cursor: pointer; font-weight: 600; color: #8b2d2d; transition: all 0.3s;">
+                                All Durations
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Clear Filters Button -->
+                    <button id="clearFilters" 
+                        style="width: 100%; padding: 12px; background: #a46464; color: white; border: none; 
+                               border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all 0.3s;">
+                        <i class="fas fa-redo"></i> Clear All Filters
+                    </button>
+
+                    <!-- Results Count -->
+                    <div id="resultsCount" style="margin-top: 15px; text-align: center; color: #645933; font-weight: 600;">
+                        Showing all services
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="servicesContainer"
+                style="width: 100%; max-width: 1100px; margin: 0 auto; position: relative; z-index: 2;">
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-brand">Barbers R Us</div>
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="services.html">Services</a>
+                <a href="branches.html">Branches</a>
+                <a href="about-us.html">About Us</a>
+            </div>
+            <div class="footer-divider"></div>
+            <p>&copy; 2026 Barbers R Us Management System. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCategorizedServices();
+            setupSearchFilters();
+        });
+
+        // ========================================
+        // SEARCH & FILTER FUNCTIONALITY
+        // ========================================
+        function setupSearchFilters() {
+            const searchInput = document.getElementById('serviceSearch');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const priceFilter = document.getElementById('priceFilter');
+            const priceValue = document.getElementById('priceValue');
+            const clearBtn = document.getElementById('clearFilters');
+            const durationButtons = document.querySelectorAll('.duration-filter');
+            let selectedDuration = 999;
+
+            // Event listeners
+            searchInput?.addEventListener('input', () => applyFilters());
+            categoryFilter?.addEventListener('change', () => applyFilters());
+            priceFilter?.addEventListener('input', (e) => {
+                priceValue.textContent = e.target.value;
+                applyFilters();
+            });
+            clearBtn?.addEventListener('click', resetFilters);
+
+            // Duration filter buttons
+            durationButtons.forEach((btn, index) => {
+                btn.addEventListener('click', (e) => {
+                    durationButtons.forEach(b => {
+                        b.style.background = 'white';
+                        b.style.color = '#8b2d2d';
+                    });
+                    e.target.style.background = '#8b2d2d';
+                    e.target.style.color = 'white';
+                    selectedDuration = parseInt(e.target.dataset.duration);
+                    applyFilters();
+                });
+                // Set "All Durations" as default selected
+                if (index === durationButtons.length - 1) {
+                    btn.style.background = '#8b2d2d';
+                    btn.style.color = 'white';
+                }
+            });
+
+            // Apply filters function
+            function applyFilters() {
+                const searchTerm = searchInput?.value.toLowerCase() || '';
+                const category = categoryFilter?.value || '';
+                const maxPrice = parseInt(priceFilter?.value || 3000);
+
+                // Get all service cards
+                const serviceCards = document.querySelectorAll('.service-item-card');
+                let visibleCount = 0;
+
+                serviceCards.forEach(card => {
+                    const serviceName = card.querySelector('h3')?.textContent.toLowerCase() || '';
+                    const priceText = card.querySelector('.service-item-details')?.textContent || '';
+                    const price = extractPrice(priceText);
+                    const durationText = card.querySelector('.service-item-details')?.textContent || '';
+                    const duration = extractDuration(durationText);
+
+                    // Get category from parent section
+                    const categorySection = card.closest('.category-section');
+                    const sectionTitle = categorySection?.querySelector('.category-title')?.textContent || '';
+
+                    // Check if service matches all filters
+                    const matchesSearch = serviceName.includes(searchTerm);
+                    const matchesCategory = !category || sectionTitle.includes(category);
+                    const matchesPrice = price <= maxPrice;
+                    const matchesDuration = duration <= selectedDuration;
+
+                    const isVisible = matchesSearch && matchesCategory && matchesPrice && matchesDuration;
+
+                    card.style.display = isVisible ? 'block' : 'none';
+                    if (isVisible) visibleCount++;
+                });
+
+                // Update results count
+                const resultsCount = document.getElementById('resultsCount');
+                if (resultsCount) {
+                    if (visibleCount === 0) {
+                        resultsCount.textContent = '❌ No services match your filters. Try adjusting your search.';
+                        resultsCount.style.color = '#c4956a';
+                    } else {
+                        resultsCount.textContent = `✅ Found ${visibleCount} service(s)`;
+                        resultsCount.style.color = '#6a8b6d';
+                    }
+                }
+            }
+
+            // Helper function to extract price from text
+            function extractPrice(text) {
+                const match = text.match(/₱([\d,]+)/);
+                if (match) {
+                    return parseInt(match[1].replace(/,/g, ''));
+                }
+                return 0;
+            }
+
+            // Helper function to extract duration from text
+            function extractDuration(text) {
+                const match = text.match(/(\d+)\s*mins?/i);
+                if (match) {
+                    return parseInt(match[1]);
+                }
+                return 0;
+            }
+
+            // Reset filters function
+            function resetFilters() {
+                searchInput.value = '';
+                categoryFilter.value = '';
+                priceFilter.value = 3000;
+                priceValue.textContent = '3000';
+                selectedDuration = 999;
+                durationButtons.forEach((b, index) => {
+                    b.style.background = 'white';
+                    b.style.color = '#8b2d2d';
+                    // Set "All Durations" as default
+                    if (index === durationButtons.length - 1) {
+                        b.style.background = '#8b2d2d';
+                        b.style.color = 'white';
+                    }
+                });
+                applyFilters();
+            }
+        }
+
+        function renderCategorizedServices() {
+            const container = document.getElementById('servicesContainer');
+            if (!container) return;
+            const serviceCategories = [
+                {
+                    title: "Classic Haircuts",
+                    icon: "fas fa-cut",
+                    items: [
+                        { name: "Classic Gentleman Cut", price: 350, duration: "30 mins", desc: "Traditional barbershop cut with clean lines and sharp edges" },
+                        { name: "Modern Textured Cut", price: 400, duration: "40 mins", desc: "Contemporary styling with texture and movement" },
+                        { name: "Buzz Cut", price: 250, duration: "15 mins", desc: "Clean, simple buzz with your preferred length" },
+                        { name: "Tapered Sides", price: 350, duration: "30 mins", desc: "Longer on top with precision tapered sides" },
+                        { name: "Kids Haircut", price: 200, duration: "20 mins", desc: "Fun, quick cuts for the little ones" }
+                    ]
+                },
+                {
+                    title: "Fades & Line-Ups",
+                    icon: "fas fa-fan",
+                    items: [
+                        { name: "Skin Fade with Styling", price: 400, duration: "45 mins", desc: "Clean fade from skin up with professional styling" },
+                        { name: "High Fade", price: 350, duration: "35 mins", desc: "Sharp fade starting from the sides" },
+                        { name: "Low Fade", price: 350, duration: "35 mins", desc: "Subtle fade that blends smoothly" },
+                        { name: "Line-Up/Shape-Up", price: 150, duration: "15 mins", desc: "Clean edges and lines to tighten up your style" },
+                        { name: "Fade with Beard Trim", price: 500, duration: "50 mins", desc: "Full grooming with fade and beard work" }
+                    ]
+                },
+                {
+                    title: "Beard Grooming & Shaves",
+                    icon: "fas fa-moustache",
+                    items: [
+                        { name: "Classic Beard Trim & Shape-up", price: 250, duration: "20 mins", desc: "Professional beard trimming with precise shaping" },
+                        { name: "Full Hot Towel Shave", price: 350, duration: "45 mins", desc: "Traditional straight razor shave with hot towel ritual" },
+                        { name: "Beard Sculpting", price: 300, duration: "25 mins", desc: "Advanced beard design and edge definition" },
+                        { name: "Beard & Stache Combo", price: 200, duration: "20 mins", desc: "Mustache and beard detailed work" },
+                        { name: "Beard Wash & Oil Treatment", price: 100, duration: "10 mins", desc: "Premium beard cleanse with conditioning oil" }
+                    ]
+                },
+                {
+                    title: "Specialty Grooming",
+                    icon: "fas fa-spray-can",
+                    items: [
+                        { name: "Hair Styling with Product", price: 100, duration: "10 mins", desc: "Professional styling with premium pomade or clay" },
+                        { name: "Scalp Massage & Treatment", price: 200, duration: "20 mins", desc: "Relaxing scalp massage with therapeutic treatment" },
+                        { name: "Eyebrow Trim", price: 80, duration: "10 mins", desc: "Clean, precise eyebrow grooming" },
+                        { name: "Nose & Ear Trim", price: 50, duration: "5 mins", desc: "Quick grooming detail work" },
+                        { name: "Full Grooming Package", price: 800, duration: "90 mins", desc: "Complete grooming: haircut, beard trim, facial massage & styling" }
+                    ]
+                },
+                {
+                    title: "Combo & Package Deals",
+                    icon: "fas fa-box",
+                    items: [
+                        { name: "Haircut + Beard Combo", price: 600, duration: "60 mins", desc: "Complete look: professional cut with beard shaping" },
+                        { name: "Fade + Hot Towel Shave", price: 650, duration: "70 mins", desc: "Sharp fade with classic straight razor shave" },
+                        { name: "Ultimate Barbershop Experience", price: 1200, duration: "120 mins", desc: "Everything: fade, beard trim, hot shave, facial, scalp massage & styling" },
+                        { name: "Weekend Special (Haircut Only)", price: 300, duration: "30 mins", desc: "Limited-time special rate for haircuts on weekends" },
+                        { name: "Membership Package (Monthly)", priceStr: "₱3,000/mo", duration: "4 visits", desc: "4 haircuts per month at discounted rates + priority booking" }
+                    ]
+                },
+                {
+                    title: "Premium Add-Ons",
+                    icon: "fas fa-gem",
+                    items: [
+                        { name: "Premium Beard Oil Application", price: 150, duration: "5 mins", desc: "Luxury beard conditioning with premium imported oils" },
+                        { name: "Hot Towel Facial", price: 200, duration: "15 mins", desc: "Cleansing facial using hot towel treatment" },
+                        { name: "Head Massage", price: 200, duration: "20 mins", desc: "Relaxing head and neck massage to relieve tension" },
+                        { name: "Cologne Application", price: 50, duration: "2 mins", desc: "Finish your look with our signature barbershop cologne" },
+                        { name: "Hair Product Retail", priceStr: "₱200-1000", duration: "N/A", desc: "Professional pomades, clays, and grooming products for home care" }
+                    ]
+                }
+            ];
+
+            container.innerHTML = '';
+
+            serviceCategories.forEach(category => {
+                // 1. Create the Category Wrapper
+                const catSection = document.createElement('div');
+                catSection.className = 'category-section';
+
+                // 2. Add Category Title and Line
+                const titleWrapper = document.createElement('div');
+                titleWrapper.className = 'category-title-wrapper';
+
+                const catTitle = document.createElement('h2');
+                catTitle.className = 'category-title';
+                catTitle.innerHTML = `<i class="${category.icon}"></i> ${category.title}`;
+
+                const catLine = document.createElement('div');
+                catLine.className = 'category-line';
+
+                titleWrapper.appendChild(catTitle);
+                titleWrapper.appendChild(catLine);
+                catSection.appendChild(titleWrapper);
+
+                const grid = document.createElement('div');
+                grid.className = 'services-list-grid';
+
+                category.items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'service-item-card';
+
+                    const displayPrice = item.priceStr ? item.priceStr : `₱${item.price.toLocaleString()}`;
+                    const displayDesc = item.desc ? `<div class="service-note">${item.desc}</div>` : '';
+
+                    card.innerHTML = `
+                        <div>
+                            <h3>${item.name}</h3>
+                            <div class="service-item-details">
+                                <p><strong>Price:</strong> ${displayPrice}</p>
+                                <p><strong>Duration:</strong> ${item.duration}</p>
+                                ${displayDesc}
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                catSection.appendChild(grid);
+                container.appendChild(catSection);
+            });
+        }
+    </script>
+
+</body>
+
+</html>

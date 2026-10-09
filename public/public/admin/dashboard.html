@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="/assets/ICON.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BARBER R US - Admin Portal</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="admin-body">
+
+    <aside class="admin-sidebar">
+        <div class="admin-brand">
+            <div>
+                <span class="admin-logo-small">BARBER R US</span>
+                <h2 class="admin-logo-large">Admin Portal</h2>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <ul class="admin-nav">
+            <li><a href="dashboard.html" class="active">Dashboard</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="appointments.html">Appointments</a></li>
+            <li><a href="reports.html">Reports</a></li>
+            <li><a href="commissions.html">Commissions</a></li>
+            <li><a href="staff.html">Staff</a></li>
+            <li><a href="pos.html">POS</a></li>
+        </ul>
+
+        <button class="admin-logout-btn" onclick="adminLogout()">Log Out</button>
+    </aside>
+
+    <main class="admin-main">
+
+        <header class="admin-header">
+            <div class="header-text">
+                <h1>Welcome Back, <span id="adminName">Admin</span></h1>
+                <p>Check your daily updates</p>
+            </div>
+            <a href="../index.html" class="back-home-btn">Back to Home</a>
+        </header>
+
+        <section class="stat-cards">
+            <div class="stat-card">
+                <div class="stat-icon pink">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div>
+                    <div class="stat-number" id="countToday">0</div>
+                    <div class="stat-label">Appointments Today</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon orange">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div>
+                    <div class="stat-number" id="countPending">0</div>
+                    <div class="stat-label">Pending Requests</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon red">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <div class="stat-number" id="countLowStock">0</div>
+                    <div class="stat-label">Low Stock Alerts</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div>
+                    <div class="stat-number" id="countCompleted">0</div>
+                    <div class="stat-label">Completed This Week</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Appointments Table -->
+        <section class="admin-table-section" style="margin-top: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="font-family: 'Poppins', sans-serif; color: #8b2d2d; font-size: 1.2rem;">
+                    Recent Appointments
+                </h2>
+                <a href="appointments.html"
+                    style="color: #8b2d2d; text-decoration: none; font-size: 0.85rem; font-family: 'Poppins', sans-serif; font-weight: 600;">View
+                    All →</a>
+            </div>
+            <div class="table-responsive"
+                style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <table class="appointments-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Service</th>
+                            <th>Branch</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentAppointmentsBody">
+                        <tr>
+                            <td colspan="6">
+                                <div class="loading-spinner-container">
+                                    <div class="spinner"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Low Stock + Quick Actions Row -->
+        <section class="admin-grid-row">
+            <!-- Low Stock Items -->
+            <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-family: 'Poppins', sans-serif; color: #8b2d2d; font-size: 1rem; margin-bottom: 15px;">
+                    Low Stock Items
+                </h3>
+                <table class="appointments-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Branch</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lowStockBody">
+                        <tr>
+                            <td colspan="4">
+                                <div class="loading-spinner-container">
+                                    <div class="spinner"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Quick Actions -->
+            <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-family: 'Poppins', sans-serif; color: #8b2d2d; font-size: 1rem; margin-bottom: 15px;">
+                    Quick Actions
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <a href="pos.html" class="submit-btn"
+                        style="text-align: center; text-decoration: none; display: block; padding: 10px;">
+                        Open POS
+                    </a>
+                    <a href="inventory.html"
+                        style="display: block; text-align: center; padding: 10px; border: 1px solid #8b2d2d; border-radius: 8px; color: #8b2d2d; text-decoration: none; font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 600;">
+                        Check Inventory
+                    </a>
+                    <a href="staff.html"
+                        style="display: block; text-align: center; padding: 10px; border: 1px solid #8b2d2d; border-radius: 8px; color: #8b2d2d; text-decoration: none; font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 600;">
+                        View Staff
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = Auth.getUser();
+            if (!user || user.role === 'client') {
+                console.warn('Access denied. Staff/Owner only.');
+                window.location.href = '../login.html?error=admin_access';
+                return;
+            }
+
+            document.getElementById('adminName').textContent = user.name;
+
+            // Hide Reports for non-owners
+            const reportsLink = document.querySelector('a[href="reports.html"]');
+            if (reportsLink && user.role !== 'owner') {
+                reportsLink.parentElement.style.display = 'none';
+            }
+
+            try {
+                // Fetch Branches for naming reference
+                let branches = [];
+                const bRes = await Auth.apiFetch('/api/branches');
+                if (!bRes) return;
+                const bData = await bRes.json();
+                if (bData.success) {
+                    branches = bData.branches;
+                }
+                const getBranchName = (id) => {
+                    const b = branches.find(branch => branch.branch_id === id);
+                    return b ? b.name : 'Unknown';
+                };
+
+                // Fetch All Appointments
+                const apptRes = await Auth.apiFetch('/api/bookings/branch');
+                if (!apptRes) return;
+                const apptData = await apptRes.json();
+
+                if (apptData.success) {
+                    const appointments = apptData.appointments;
+
+                    // Local Date YYYY-MM-DD
+                    const today = new Date().toLocaleDateString('en-CA');
+
+                    // This-week range (Mon-Sun)
+                    const now = new Date();
+                    const dayOfWeek = now.getDay();
+                    const startOfWeek = new Date(now);
+                    startOfWeek.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                    startOfWeek.setHours(0, 0, 0, 0);
+
+                    const todayAppts = appointments.filter(a => {
+                        return a.appointment_date && a.appointment_date.split('T')[0] === today;
+                    });
+                    const pendingAppts = appointments.filter(a =>
+                        a.status === 'Pending Payment' || a.status === 'Pending Reschedule'
+                    );
+                    const completedAppts = appointments.filter(a => {
+                        if (a.status !== 'Completed') return false;
+                        // Use appointment_date for "this week" filter
+                        const d = a.appointment_date ? new Date(a.appointment_date.split('T')[0]) : null;
+                        return d && d >= startOfWeek;
+                    });
+
+                    document.getElementById('countToday').textContent = todayAppts.length;
+                    document.getElementById('countPending').textContent = pendingAppts.length;
+                    document.getElementById('countCompleted').textContent = completedAppts.length;
+
+                    // Render recent appointments (last 5)
+                    const tbody = document.getElementById('recentAppointmentsBody');
+                    tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner-container"><div class="spinner"></div></div></td></tr>';
+                    if (appointments.length > 0) {
+                        const sorted = [...appointments].sort((a, b) => b.appointment_id - a.appointment_id).slice(0, 5);
+                        tbody.innerHTML = '';
+                        sorted.forEach(appt => {
+                            const serviceName = appt.all_service_names || appt.service_name || 'Unknown';
+                            const paxLabel = appt.pax > 1 ? ` (${appt.pax} pax)` : '';
+                            const branchName = getBranchName(appt.branch_id);
+                            const statusClass = (appt.status || '').toLowerCase().replace(/\s+/g, '-');
+                            const formattedDate = appt.appointment_date ? appt.appointment_date.split('T')[0] : '';
+
+                            const tr = document.createElement('tr');
+
+                            const clientTd = document.createElement('td');
+                            clientTd.setAttribute('data-label', 'Client');
+                            clientTd.textContent = appt.client_name || 'Guest';
+
+                            const svcTd = document.createElement('td');
+                            svcTd.setAttribute('data-label', 'Service');
+                            svcTd.style.cssText = 'font-size:0.85rem;line-height:1.4;';
+                            serviceName.split(', ').forEach((s, i, arr) => {
+                                svcTd.appendChild(document.createTextNode(s + (paxLabel && i === arr.length - 1 ? paxLabel : '')));
+                                if (i < arr.length - 1) svcTd.appendChild(document.createElement('br'));
+                            });
+
+                            const branchTd = document.createElement('td');
+                            branchTd.setAttribute('data-label', 'Branch');
+                            branchTd.textContent = branchName;
+
+                            const dateTd = document.createElement('td');
+                            dateTd.setAttribute('data-label', 'Date');
+                            dateTd.textContent = formattedDate;
+
+                            const timeTd = document.createElement('td');
+                            timeTd.setAttribute('data-label', 'Time');
+                            timeTd.textContent = appt.appointment_time || '—';
+
+                            const statusTd = document.createElement('td');
+                            statusTd.setAttribute('data-label', 'Status');
+                            const badge = document.createElement('span');
+                            badge.className = `status-badge ${statusClass}`;
+                            badge.textContent = appt.status;
+                            statusTd.appendChild(badge);
+
+                            tr.appendChild(clientTd);
+                            tr.appendChild(svcTd);
+                            tr.appendChild(branchTd);
+                            tr.appendChild(dateTd);
+                            tr.appendChild(timeTd);
+                            tr.appendChild(statusTd);
+                            tbody.appendChild(tr);
+                        });
+                    } else {
+                        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #999;">No recent appointments found.</td></tr>`;
+                    }
+                }
+
+                // Fetch All Inventory
+                const invRes = await Auth.apiFetch('/api/inventory');
+                if (!invRes) return;
+                const invData = await invRes.json();
+
+                if (invData.success) {
+                    const inventory = invData.inventory;
+                    const lowStockItems = inventory.filter(i => i.quantity < 10);
+
+                    document.getElementById('countLowStock').textContent = lowStockItems.length;
+
+                    const lowStockBody = document.getElementById('lowStockBody');
+                    if (lowStockItems.length > 0) {
+                        lowStockBody.innerHTML = '';
+                        lowStockItems.forEach(item => {
+                            const branchName = getBranchName(item.branch_id);
+                            const isCritical = item.quantity < 3;
+                            const statusClass = isCritical ? 'cancelled' : 'pending-payment';
+                            const statusText = isCritical ? 'Critical' : 'Low Stock';
+
+                            const tr = document.createElement('tr');
+
+                            const nameTd = document.createElement('td');
+                            nameTd.setAttribute('data-label', 'Item');
+                            nameTd.textContent = item.item_name;
+
+                            const branchTd = document.createElement('td');
+                            branchTd.setAttribute('data-label', 'Branch');
+                            branchTd.textContent = branchName;
+
+                            const stockTd = document.createElement('td');
+                            stockTd.setAttribute('data-label', 'Stock');
+                            const strong = document.createElement('strong');
+                            strong.style.color = '#d9534f';
+                            strong.textContent = item.quantity;
+                            stockTd.appendChild(strong);
+
+                            const statusTd = document.createElement('td');
+                            statusTd.setAttribute('data-label', 'Status');
+                            const badge = document.createElement('span');
+                            badge.className = `status-badge ${statusClass}`;
+                            badge.textContent = statusText;
+                            statusTd.appendChild(badge);
+
+                            tr.appendChild(nameTd);
+                            tr.appendChild(branchTd);
+                            tr.appendChild(stockTd);
+                            tr.appendChild(statusTd);
+                            lowStockBody.appendChild(tr);
+                        });
+                    } else {
+                        lowStockBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 15px; color: #999;">All stock levels good.</td></tr>`;
+                    }
+                }
+
+            } catch (err) {
+                console.error('Error loading dashboard data:', err);
+                // Clear spinners so page doesn't stay frozen
+                document.getElementById('recentAppointmentsBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#a94442;padding:20px;">Failed to load data.</td></tr>';
+                document.getElementById('lowStockBody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#a94442;padding:20px;">Failed to load data.</td></tr>';
+            }
+        });
+
+        function adminLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                Auth.logout();
+            }
+        }
+    </script>
+</body>
+
+</html>
