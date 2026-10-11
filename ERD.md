@@ -14,6 +14,7 @@ erDiagram
     USERS ||--o{ APPOINTMENTS : "client_id"
     BRANCHES ||--o{ APPOINTMENTS : "hosts"
     STAFF |o--o{ APPOINTMENTS : "assigned barber (optional)"
+    STAFF |o--o{ APPOINTMENTS : "requested barber (optional)"
     SERVICES ||--o{ APPOINTMENT_SERVICES : "included service"
     APPOINTMENTS ||--|{ APPOINTMENT_SERVICES : "selected services"
     BRANCHES ||--o{ BRANCH_SERVICES : "offers"
@@ -62,6 +63,7 @@ erDiagram
                    int branch_id FK
                    int service_id "legacy primary FK"
                    int staff_id "nullable FK staff.staff_id"
+                   int requested_staff_id "nullable FK staff.staff_id"
                    date appointment_date
                    time appointment_time
                    string status }
@@ -131,3 +133,7 @@ erDiagram
 - In-person visits are recorded by `appointment_visits` after confirmation; `visitor_log` is a separate, pseudonymous website page-view dataset.
 - `audit_log`, `visitor_log`, and `api_sessions` store pseudonymous metadata, not raw IPs or plaintext tokens. `login_attempts` is keyed by normalized login identifier and stores time-limited lockouts; it is not a user-profile table.
 - The `database_dump.sql` script **deletes and recreates tables**; use it only for a fresh database, never as an upgrade script. Existing databases migrate through `ensureSchema()` and the service backfill command after a backup.
+
+## v1.2.3 preference requests
+
+`appointments.requested_staff_id` is an optional FK to `staff.staff_id`, recording the client's preferred barber. `appointments.staff_id` remains the actual assigned barber FK. When no qualification mapping exists, the client may request a barber but `staff_id` stays **NULL** until an admin approves competencies and assignment. Booked time slots for a requested barber remain blocked; an unassigned request itself does not reserve the barber.

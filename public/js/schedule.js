@@ -19,6 +19,12 @@ async function loadSchedule(){
             const select=document.createElement('select'),unassigned=document.createElement('option');unassigned.value='';unassigned.textContent='Awaiting assignment';select.append(unassigned);
             for(const s of barbers.filter(s=>Number(s.branch_id)===Number(appt.branch_id)&&[...(apptServices.get(Number(appt.appointment_id))||[])].every(id=>staffSkills.get(Number(s.staff_id))?.has(id)))){const op=document.createElement('option');op.value=s.staff_id;op.textContent=s.name+' — '+(s.specialization||'Qualified');select.append(op);}
             select.value=appt.staff_id||'';
+            if(!appt.staff_id && appt.requested_staff_id){
+                const preferred=barbers.find(s=>Number(s.staff_id)===Number(appt.requested_staff_id));
+                const preference=document.createElement('div');preference.className='requested-barber';
+                preference.textContent='Requested: '+(preferred?.name||'Barber #'+appt.requested_staff_id)+' — verify qualifications before assignment';
+                td.append(preference);
+            }
             const button=document.createElement('button');button.type='button';button.textContent='Assign';button.onclick=async()=>{
                 if(!select.value)return setText('scheduleNotice','Select a barber.');
                 const r=await Auth.apiFetch('/api/bookings/assign',{method:'PUT',body:JSON.stringify({appointment_id:appt.appointment_id,staff_id:Number(select.value)})});

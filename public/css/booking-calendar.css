@@ -55,3 +55,10 @@
 .booking-secondary-btn {background:transparent;border:1px solid #999088;border-radius:8px;padding:12px 24px;color:#555;font:700 .95rem Poppins,sans-serif;cursor:pointer;margin-right:12px;}
 .booking-secondary-btn:hover {background:#f0e7d9;}
 @media(max-width:767px){.booking-content{flex-direction:column;}.booking-card,.contact-info{width:100%;box-sizing:border-box;}.booking-card{order:0;}.contact-info{order:1;}.booking-times{grid-template-columns:repeat(3,minmax(0,1fr));}}
+
+/* Hover must never erase the dark selected state (the old hover selector was more specific). */
+.booking-times .booking-time.selected,
+.booking-times .booking-time.selected:hover:not(:disabled),
+.booking-times .booking-time.selected:focus-visible {background:#363636;color:#fff;border-color:#363636;}
+.booking-times .booking-time.selected .slot-status {color:#f0d6a1;}
+.booking-barber-notice {background:#f9f5ed;border-left:3px solid #c69a35;padding:9px 12px;margin:10px 0 4px;font:400 .8rem/1.5 Poppins,sans-serif;color:#5f5244;border-radius:0 7px 7px 0;}

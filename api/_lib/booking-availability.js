@@ -30,7 +30,7 @@ function withinBusinessHours(date, time, duration) {
     const start = minutes(time), length = durationMinutes(duration);
     return Number.isFinite(start) && start % STEP_MINUTES === 0 && start >= OPEN_MINUTES && start + length <= closingMinutes(date);
 }
-function evaluateTime({ date, time, duration = 30, reservations = [], shifts = [], staffChosen = false, now = Date.now() }) {
+function evaluateTime({ date, time, duration = 30, reservations = [], shifts = [], staffChosen = false, requiresApproval = false, now = Date.now() }) {
     const start = minutes(time), length = durationMinutes(duration);
     if (!withinBusinessHours(date,time,length)) return { status:'closed', reason:'Outside business hours or insufficient time for services' };
     if (appointmentStartTime(date,time) <= now) return { status:'past', reason:'This time has already passed' };
@@ -44,16 +44,16 @@ function evaluateTime({ date, time, duration = 30, reservations = [], shifts = [
         const busyEnd = busyStart + durationMinutes(r.duration_minutes);
         return start < busyEnd && start + length > busyStart;
     });
-    return overlaps
-        ? { status:'booked', reason:'Selected barber is already booked during this time' }
-        : { status:'available', reason:'Available for your selected services' };
+    if (overlaps) return { status:'booked', reason:'Selected barber is already booked during this time' };
+    if (requiresApproval) return { status:'request', reason:'Barber preference recorded; admin must verify service qualifications and assign the barber' };
+    return { status:'available', reason:'Available for your selected services' };
 }
-function makeSlots({ date, duration = 30, reservations = [], shifts = [], staffChosen = false, now = Date.now() }) {
+function makeSlots({ date, duration = 30, reservations = [], shifts = [], staffChosen = false, requiresApproval = false, now = Date.now() }) {
     if (!isoDate(date)) return [];
     const slots = [];
     for (let start=OPEN_MINUTES; start<closingMinutes(date); start += STEP_MINUTES) {
         const time=hhmm(start);
-        slots.push({ time, ...evaluateTime({ date,time,duration,reservations,shifts,staffChosen,now }) });
+        slots.push({ time, ...evaluateTime({ date,time,duration,reservations,shifts,staffChosen,requiresApproval,now }) });
     }
     return slots;
 }

@@ -310,7 +310,8 @@
                             <select id="tech" required>
                                 <option value="" disabled selected>Select a branch first</option>
                             </select>
-                            <small class="booking-help" style="color:#827362;font-size:.74rem">Only qualified barbers appear as selectable options. No Preference requires admin assignment.</small>
+                            <small class="booking-help" style="color:#827362;font-size:.74rem">Choose any barber at your branch. If their service qualifications have not been approved yet, your booking becomes an admin-approved request instead of a confirmed barber assignment.</small>
+                            <p id="barberQualificationNotice" class="booking-barber-notice" role="status" aria-live="polite"></p>
                         </div>
 
                         <section class="booking-calendar-wrap" aria-label="Choose appointment date and time">
@@ -376,7 +377,7 @@
 
                     <div class="confirm-disclaimer">
                         <p>Your estimated down payment is shown below. This demo records the booking but does not charge real money.
-                            A time request without a preferred barber still requires admin assignment.</p>
+                            Requests with No Preference or an unverified barber require admin assignment; a selected barber is not guaranteed until approved.</p>
                         <p>Any booking confirmation is subject to server validation and branch approval. Email notifications require the configured email service.</p>
                     </div>
 
@@ -621,17 +622,30 @@
                         if(!allowed.has(String(row.staff_id))) allowed.set(String(row.staff_id),new Set());
                         allowed.get(String(row.staff_id)).add(String(row.service_id));
                     }
+                    // NEVER disable the barber dropdown because the skills table is empty.
+                    // The API checks qualifications when creating a booking. An unverified
+                    // barber choice is saved as a preference requiring admin assignment.
                     for(const opt of techSelect.options){
                         if(!opt.value||opt.value==='0')continue;
-                        opt.disabled=!selected.length||selected.some(id=>!allowed.get(String(opt.value))?.has(id));
+                        const qualified=selected.length && selected.every(id=>allowed.get(String(opt.value))?.has(id));
+                        opt.disabled=false;
+                        opt.dataset.qualified=String(Boolean(qualified));
+                        opt.title=qualified?'Qualified for selected services':'Admin qualification approval required';
                     }
-                    if(techSelect.selectedOptions[0]?.disabled){techSelect.value='0';}
+                    const notice=document.getElementById('barberQualificationNotice');
+                    const selectedBarber=techSelect.options[techSelect.selectedIndex];
+                    if(!branchSelect.value) notice.textContent='Choose a branch to see its barbers.';
+                    else if(!selected.length) notice.textContent='Select your services to check each barber’s qualifications.';
+                    else if(!selectedBarber||!selectedBarber.value) notice.textContent='Choose a barber or No Preference. Unverified qualifications will not block a request.';
+                    else if(selectedBarber.value==='0') notice.textContent='No Preference: admin assigns a qualified barber after reviewing your request.';
+                    else if(selectedBarber.dataset.qualified==='true') notice.textContent='This barber is qualified for your selected services. Check the timetable below.';
+                    else notice.textContent='This barber can be requested, but admin must verify their service qualifications before assignment.';
                     calendar.refresh();
                 }
                 document.getElementById('servicesContainer').addEventListener('change',refreshQualifiedBarbers);
                 document.getElementById('people').addEventListener('change',()=>setTimeout(refreshQualifiedBarbers,0));
                 branchSelect.addEventListener('change',()=>setTimeout(refreshQualifiedBarbers,0));
-                techSelect.addEventListener('change',()=>calendar.refresh());
+                techSelect.addEventListener('change',refreshQualifiedBarbers);
                 window.refreshQualifiedBarbers=refreshQualifiedBarbers;
                 // Apply URL service prefill and initial branch before asking for availability.
                 refreshQualifiedBarbers();
@@ -755,7 +769,7 @@
 
             const techSelect = document.getElementById('tech');
             const selectedTechText = techSelect.options[techSelect.selectedIndex].text;
-            document.getElementById('confTech').textContent = selectedTechText;
+            document.getElementById('confTech').textContent = selectedTechText + (document.getElementById('tech').selectedOptions[0]?.dataset.qualified==='false' && document.getElementById('tech').value!=='0' ? ' (admin approval required)' : '');
 
             document.getElementById('confMessage').textContent = document.getElementById('message').value || "None";
 

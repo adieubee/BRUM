@@ -40,7 +40,7 @@ New admin screens:
 
 **Crucial for upgraded databases:** Existing barbers have no service specializations until the admin checks and saves their actual competencies under Barber Timetable; this is intentionally fail-closed. Staff accounts retain their current profile records, but permissions and session tokens are revoked immediately when their role changes. Role- and branch-specific skills are cleared when staff status/branch changes. Prior appointments remain for audit purposes.
 
-No barber preference is stored as `appointments.staff_id=NULL` until an admin chooses an available active barber at the requested branch/time. The timetable rejects overlapping allocations. **Unassigned bookings are pending allocation, not a guaranteed barber assignment**; admins must review open bookings and avoid overselling available capacity.
+An unverified preferred barber is stored in `appointments.requested_staff_id` while `appointments.staff_id` stays NULL until admin approval. No Preference also leaves `appointments.staff_id=NULL` until an admin chooses an available active barber at the requested branch/time. The timetable rejects overlapping allocations. **Unassigned bookings are pending allocation, not a guaranteed barber assignment**; admins must review open bookings and avoid overselling available capacity.
 
 ## Demo logins (local and classroom testing only)
 
@@ -113,7 +113,7 @@ This matches the app's booking confirmation flow and keeps the setup working wit
 ## v1.2.2 calendar booking — testing instructions
 
 1. Log in as one of the original demo clients (demo buttons are still on `login.html`) and open `client/booking.html`.
-2. Choose a branch, guest count, service(s) and an eligible barber. Admin must publish barber skills in admin management; a barber lacking required qualifications cannot be selected.
+2. Choose a branch, guest count, service(s) and an eligible barber. Admin must publish barber skills in admin management; a barber lacking configured qualifications can be requested, but cannot be assigned until admin approval.
 3. Click any future day on the inline calendar. Wait for the server-supplied 30-minute slot cards. Past times, booked/overlapping times, off-duty hours and times too close to closing are disabled with labels.
 4. Create a test booking at 09:00 lasting 60 minutes with Barber A. The same barber should have **09:00 and 09:30 unavailable** on that date; 10:00 may be available. Barber B's schedule is independent.
 5. Selecting No Preference allows a tentative request; it does **not** claim to reserve an unnamed barber. Admin still allocates a qualified staff member later.
@@ -123,3 +123,9 @@ This matches the app's booking confirmation flow and keeps the setup working wit
 Availability API time-zone rule: `appointment_date` and `appointment_time` use **Asia/Manila** business time. The website's published hours (Mon–Fri 09:00–20:00; Sat–Sun 09:00–18:00) apply across branches until branch-specific opening hours are configured. No database schema changes are needed for this release.
 
 Note that automatic tests use mocked database responses; a real MySQL instance and interactive browser session were not available for final end-to-end verification in this environment. Do not treat the test suite as a production guarantee.
+
+## v1.2.3 — Barber selection fix
+
+The booking form no longer disables all barber options when upgraded databases have no `staff_services` rows. A client can select a preferred barber; any unavailable/overlapping slot still displays **Booked** and cannot be selected. If that barber's service qualifications have not been approved, free slots are labeled **Request**, not **Available**. Such bookings retain the preferred staff member in the new nullable FK `appointments.requested_staff_id` and leave `appointments.staff_id` null. Admin must assign the barber after configuring competencies via **Admin → Barber Timetable**. Bookings with a qualified barber proceed as before. Calendar now defaults to today or tomorrow depending on local closing time.
+
+**Upgrade:** `ensureSchema` adds the requested_staff_id column and FK during database setup. If your deployment user cannot modify the schema, a DB administrator must apply `migrations/2026-10-12-booking-preference.sql` once on an existing database after checking that the column is absent. Do not re-import the destructive demo SQL dump over existing data. Explicitly test the new calendar against your live MySQL data; unit and simulated-browser checks do not guarantee live deployment behavior.

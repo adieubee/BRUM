@@ -1,3 +1,11 @@
+## v1.2.3 — Barber booking selectability fix
+- Fixed disabled barber dropdowns for databases with missing qualification records.
+- Unverified barbers now appear as selectable *requests*, never falsely approved assignments.
+- Added appointment `requested_staff_id` nullable FK, keeping actual `staff_id` null until approval.
+- Availability still blocks overlapping bookings, shifts, past dates and closing-time conflicts.
+- Fixed selected slot hover contrast and clarified booking confirmation messaging.
+- Added server and browser-interaction regressions; retained original demo-login buttons.
+
 ## 1.2.1 — Demo login quick-fill restored
 
 - Restored the original three demo-account buttons on `/login.html` (`admin`, `staff_malolos`, `client1`, all `123`) with accessible HTML buttons.

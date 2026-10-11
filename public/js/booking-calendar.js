@@ -21,7 +21,16 @@
         const prev = document.getElementById('bookingPrevMonth');
         const next = document.getElementById('bookingNextMonth');
         const monthZero = todayInManila().slice(0,7);
-        let shownMonth = monthZero;
+        // Start with the next useful business date when today's slots have all passed.
+        if (!date.value) {
+            const today=todayInManila();
+            const parts=today.split('-').map(Number);
+            const currentPHT=new Date().toLocaleTimeString('en-GB',{timeZone:'Asia/Manila',hour12:false,hour:'2-digit',minute:'2-digit'});
+            const closing=[0,6].includes(new Date(Date.UTC(parts[0],parts[1]-1,parts[2])).getUTCDay())?'18:00':'20:00';
+            const nextDay=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]+1));
+            date.value=currentPHT>=closing?nextDay.toISOString().slice(0,10):today;
+        }
+        let shownMonth = date.value.slice(0,7);
         let requestCount = 0;
         let knownSlots = [];
         let loading = false;
@@ -80,7 +89,7 @@
                     time.value=slot.time;
                     checkedSignature=signature();
                     renderSlots(knownSlots);
-                    message(slot.status==='request'?'Requested time selected. An admin must assign and confirm your barber.':`${labelTime(slot.time)} is available for the selected barber and services.`,'success');
+                    message(slot.status==='request'?'Requested time selected. An admin must approve the barber assignment.':`${labelTime(slot.time)} is available for the selected barber and services.`,'success');
                 });
                 times.appendChild(button);
             }
@@ -108,11 +117,14 @@
                 const free=knownSlots.filter(s=>s.status==='available'||s.status==='request').length;
                 const booked=knownSlots.filter(s=>s.status==='booked').length;
                 const selectedName=barber.options[barber.selectedIndex]?.textContent||'Barber';
-                if(free && result.schedule_published===false)message(`${selectedName} has no published weekly shift schedule yet. Times shown are tentative and must be confirmed by the admin.`);
-                else if(free)message(result.provisional
-                    ?`${free} request times shown. No Preference means the admin will assign a qualified barber; a time is not reserved until assigned.`
-                    :`${free} available times for ${selectedName}.${booked?` ${booked} blocked by existing bookings.`:''} Select an available time.`);
-                else message(`No times available for ${selectedName} on this date. Try another barber or day.`,'error');
+                if(free && result.requires_approval) message(`${free} request times for ${selectedName}. This barber’s service qualifications need admin approval; no barber is reserved yet.${booked?` ${booked} booked times are blocked.`:''}`);
+                else if(free && result.provisional)message(`${free} request times shown. Admin will assign a qualified barber; this request does not reserve a particular barber.`);
+                else if(free && result.schedule_published===false)message(`${free} times shown for ${selectedName}. The admin has not published a weekly shift yet; check with the branch before relying on this time.`);
+                else if(free)message(`${free} available times for ${selectedName}.${booked?` ${booked} blocked by existing bookings.`:''} Select an available time.`);
+                else if(knownSlots.some(s=>s.status==='off-duty'))message(`${selectedName} is off duty or their shift does not cover your service duration on this date. Choose another date or barber.`,'error');
+                else if(knownSlots.some(s=>s.status==='past'))message(`Today's appointment times have passed or are unavailable. Choose a future date or another barber.`,'error');
+                else if(knownSlots.some(s=>s.status==='booked'))message(`${selectedName} is fully booked for times that fit your services on this date. Choose another date or barber.`,'error');
+                else message(`No available times for ${selectedName} on this date. Your services may run past closing time. Try another date.`,'error');
             }catch(err){
                 if(thisRequest!==requestCount)return;
                 knownSlots=[];renderSlots([]);

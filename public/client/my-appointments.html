@@ -149,6 +149,12 @@
                     const strongSvc = document.createElement('strong');
                     strongSvc.textContent = (appt.all_service_names || appt.service_name || 'Service') + (appt.pax > 1 ? ` (${appt.pax} pax)` : '');
                     tdService.appendChild(strongSvc);
+                    if(appt.staff_name || appt.requested_staff_name){
+                        const preference=document.createElement('div');
+                        preference.style.cssText='font-size:.75rem;color:#74665b;margin-top:5px;line-height:1.4';
+                        preference.textContent=appt.staff_name ? 'Assigned barber: '+appt.staff_name : 'Requested barber: '+appt.requested_staff_name+' (awaiting admin assignment)';
+                        tdService.appendChild(preference);
+                    }
 
                     const tdBranch = document.createElement('td');
                     tdBranch.textContent = appt.branch_name || 'Branch';

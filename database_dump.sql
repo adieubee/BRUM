@@ -114,6 +114,7 @@ CREATE TABLE `appointments` (
     `branch_id` INT NOT NULL,
     `service_id` INT NOT NULL,
     `staff_id` INT DEFAULT NULL,
+    `requested_staff_id` INT DEFAULT NULL,
     `service_ids` VARCHAR(255) DEFAULT NULL,
     `appointment_date` DATE NOT NULL,
     `appointment_time` TIME NOT NULL,
@@ -133,7 +134,8 @@ CREATE TABLE `appointments` (
     CONSTRAINT `fk_appt_branch` FOREIGN KEY (`branch_id`) REFERENCES `branches` (`branch_id`),
     CONSTRAINT `fk_appt_client` FOREIGN KEY (`client_id`) REFERENCES `users` (`user_id`),
     CONSTRAINT `fk_appt_service` FOREIGN KEY (`service_id`) REFERENCES `services` (`service_id`),
-    CONSTRAINT `fk_appt_staff` FOREIGN KEY (`staff_id`) REFERENCES `staff` (`staff_id`)
+    CONSTRAINT `fk_appt_staff` FOREIGN KEY (`staff_id`) REFERENCES `staff` (`staff_id`),
+    CONSTRAINT `fk_appointment_requested_staff` FOREIGN KEY (`requested_staff_id`) REFERENCES `staff` (`staff_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `appointments` (

@@ -250,10 +250,12 @@ module.exports = async function handler(req, res) {
             const staffSelected = staff_id != null && !['','0','null'].includes(String(staff_id));
             const assignedStaff = staffSelected ? Number(staff_id) : null;
             if (staffSelected && (!Number.isSafeInteger(assignedStaff) || assignedStaff <= 0
-                || !(await staffBelongsToBranch(pool,assignedStaff,branch_id))
-                || !(await barberQualified(pool,assignedStaff,ids)))) {
-                return res.status(400).json({ success:false, message:'This barber is not qualified or does not work at this branch.' });
+                || !(await staffBelongsToBranch(pool,assignedStaff,branch_id)))) {
+                return res.status(400).json({ success:false, message:'This barber is not available at this branch.' });
             }
+            // Staff service competencies may not yet be configured after an upgrade.
+            // Allow a preference request without pretending the person is certified/assigned.
+            const requiresApproval = !!assignedStaff && !(await barberQualified(pool,assignedStaff,ids));
             let reservations=[], shifts=[];
             if (assignedStaff) {
                 const [busyRows, shiftRows] = await Promise.all([
@@ -271,8 +273,9 @@ module.exports = async function handler(req, res) {
             }
             return res.status(200).json({
                 success:true, date, branch_id:Number(branch_id), staff_id:assignedStaff,
-                duration_minutes:length, provisional:!assignedStaff, schedule_published:!assignedStaff?null:shifts.length>0,
-                slots:availability.makeSlots({date,duration:length,reservations,shifts,staffChosen:!!assignedStaff})
+                duration_minutes:length, provisional:!assignedStaff||requiresApproval,
+                requires_approval:requiresApproval, schedule_published:!assignedStaff?null:shifts.length>0,
+                slots:availability.makeSlots({date,duration:length,reservations,shifts,staffChosen:!!assignedStaff,requiresApproval})
             });
         }
 
@@ -312,8 +315,8 @@ module.exports = async function handler(req, res) {
             const client_id = bookingUser.id;
             const ids = normalizeServiceIds(service_ids, service_id);
             const staffSelected=staff_id != null && !['','0','null'].includes(String(staff_id));
-            const assignedStaff = staffSelected ? Number(staff_id) : null;
-            if(staffSelected && (!Number.isSafeInteger(assignedStaff) || assignedStaff<=0)) return res.status(400).json({success:false,message:'Invalid barber selection.'});
+            const requestedStaff = staffSelected ? Number(staff_id) : null;
+            if(staffSelected && (!Number.isSafeInteger(requestedStaff) || requestedStaff<=0)) return res.status(400).json({success:false,message:'Invalid barber selection.'});
             const paxCount = Number(pax ?? 1);
             if (!Number.isInteger(paxCount) || paxCount < 1 || paxCount > 20) return res.status(400).json({success:false,message:'Party size must be 1–20.'});
 
@@ -335,12 +338,16 @@ module.exports = async function handler(req, res) {
             const allowed=new Set(allowedServices.map(x=>String(x.service_id)));
             if (ids.some(id=>!allowed.has(String(id)))) return res.status(400).json({success:false,message:'A selected service is not offered at this branch.'});
 
-            if (assignedStaff && !(await barberQualified(pool,assignedStaff,ids))) return res.status(409).json({ success:false,message:'This barber is not certified in all the selected services. Choose No Preference or another barber.' });
-            if (assignedStaff && !(await staffBelongsToBranch(pool, assignedStaff, branch_id))) {
-                return res.status(400).json({ success: false, message: 'Selected staff member does not belong to this branch.' });
+            if (requestedStaff && !(await staffBelongsToBranch(pool, requestedStaff, branch_id))) {
+                return res.status(400).json({ success: false, message: 'Selected barber does not work at this branch.' });
             }
-            if (assignedStaff && !(await isStaffTimeAvailable(pool, branch_id, assignedStaff, date, time, null, totalDuration))) {
-                return res.status(409).json({ success: false, message: 'That staff member is already booked for the selected time.' });
+            // A missing competency record must never silently authorize an assigned booking.
+            // Store the customer's preferred barber, but leave the appointment unassigned
+            // until an admin verifies qualifications and makes the assignment.
+            const qualified = requestedStaff ? await barberQualified(pool,requestedStaff,ids) : false;
+            const assignedStaff = qualified ? requestedStaff : null;
+            if (requestedStaff && !(await isStaffTimeAvailable(pool, branch_id, requestedStaff, date, time, null, totalDuration))) {
+                return res.status(409).json({ success: false, message: 'That barber is already booked or off duty at your selected time.' });
             }
 
             let nonWartsPrice = 0;
@@ -356,35 +363,37 @@ module.exports = async function handler(req, res) {
             let result;
             try {
                 await cn.beginTransaction();
-                if (assignedStaff) {
-                    await cn.query('SELECT staff_id FROM staff WHERE staff_id=? FOR UPDATE',[assignedStaff]);
-                    if (!(await isStaffTimeAvailable(cn,branch_id,assignedStaff,date,time,null,totalDuration))) {
+                if (requestedStaff) {
+                    await cn.query('SELECT staff_id FROM staff WHERE staff_id=? FOR UPDATE',[requestedStaff]);
+                    if (!(await staffBelongsToBranch(cn,requestedStaff,branch_id))
+                        || (assignedStaff && !(await barberQualified(cn,assignedStaff,ids)))
+                        || !(await isStaffTimeAvailable(cn,branch_id,requestedStaff,date,time,null,totalDuration))) {
                         await cn.rollback();
                         return res.status(409).json({success:false,message:'This barber was just booked for that time. Please select another slot.'});
                     }
                 }
             const [insertResult] = await cn.query(`
                 INSERT INTO appointments (
-                    client_id, branch_id, service_id, service_ids, pax, staff_id,
+                    client_id, branch_id, service_id, service_ids, pax, staff_id, requested_staff_id,
                     appointment_date, appointment_time, status, message,
                     dp_paid, warts_dp, non_warts_price
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending Payment', ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending Payment', ?, ?, ?, ?)
             `, [
-                client_id, branch_id, ids[0], ids.join(','), paxCount, assignedStaff,
+                client_id, branch_id, ids[0], ids.join(','), paxCount, assignedStaff, requestedStaff,
                 date, timeToHHMMSS(time), message || null,
                 dpPaid, wartsDp, nonWartsPrice
             ]);
 
             result = insertResult;
             await storeAppointmentServices(cn, result.insertId, ids);
-            await audit(cn, req, 'appointment.created', 'appointment', result.insertId, { branch_id, staff_id: assignedStaff });
+            await audit(cn, req, 'appointment.created', 'appointment', result.insertId, { branch_id, staff_id: assignedStaff, requested_staff_id: requestedStaff });
             await logBookingHistory(cn, {
                 appointmentId: result.insertId,
                 action: 'created',
                 previousStatus: null,
                 newStatus: 'Pending Payment',
                 changedBy: client_id,
-                details: `Booking created for ${client.name || 'client'}`
+                details: `Booking created for ${client.name || 'client'}` + (requestedStaff && !assignedStaff ? `; requested barber #${requestedStaff} (qualification pending)` : '')
             });
                 await cn.commit();
             } catch(error) { await cn.rollback(); throw error; } finally { cn.release(); }
@@ -394,7 +403,7 @@ module.exports = async function handler(req, res) {
                 appointment_id: result.insertId,
                 down_payment: dpPaid,
                 checkout_url: `/client/payment-success.html?ids=${result.insertId}`,
-                message: 'Booking created. Continue to confirmation.'
+                message: requestedStaff && !assignedStaff ? 'Booking request saved. Your preferred barber needs admin qualification approval and assignment.' : 'Booking created. Continue to confirmation.'
             });
         }
 
@@ -678,7 +687,7 @@ module.exports = async function handler(req, res) {
             const filters = [date];
             let clause = ' WHERE a.appointment_date = ?';
             if (branch_id) { clause += ' AND a.branch_id = ?'; filters.push(branch_id); }
-            const [bookings] = await pool.query(`SELECT a.appointment_id,a.client_id,u.name AS client_name,a.branch_id,a.staff_id,a.appointment_date,a.appointment_time,a.status,a.service_ids FROM appointments a JOIN users u ON u.user_id=a.client_id ${clause} ORDER BY a.appointment_time`, filters);
+            const [bookings] = await pool.query(`SELECT a.appointment_id,a.client_id,u.name AS client_name,a.branch_id,a.staff_id,a.requested_staff_id,a.appointment_date,a.appointment_time,a.status,a.service_ids FROM appointments a JOIN users u ON u.user_id=a.client_id ${clause} ORDER BY a.appointment_time`, filters);
             const [staff] = await pool.query(`SELECT s.staff_id,s.branch_id,u.name,s.specialization FROM staff s JOIN users u ON s.user_id=u.user_id AND u.role='staff' AND s.is_active=1 ${branch_id ? 'WHERE s.branch_id=?' : ''} ORDER BY u.name`, branch_id ? [branch_id] : []);
             const [qualifications] = await pool.query('SELECT staff_id,service_id FROM staff_services');
             const [required] = await pool.query('SELECT appointment_id,service_id FROM appointment_services WHERE appointment_id IN (SELECT appointment_id FROM appointments WHERE appointment_date=?)',[date]);
@@ -705,7 +714,7 @@ module.exports = async function handler(req, res) {
                 if (!(await barberQualified(cn,staff_id,requiredServices))) { await cn.rollback(); return res.status(409).json({success:false,message:'This barber is not qualified for every selected service. Configure qualifications first.'}); }
                 const [durations] = await cn.query('SELECT SUM(s.duration_minutes * aps.quantity) AS minutes FROM appointment_services aps JOIN services s ON s.service_id=aps.service_id WHERE aps.appointment_id=?',[appointment_id]);
                 if (!(await isStaffTimeAvailable(cn,a.branch_id,staff_id,String(a.appointment_date).slice(0,10),String(a.appointment_time),a.appointment_id,Number(durations[0]?.minutes)||30))) { await cn.rollback(); return res.status(409).json({ success:false,message:'Barber is already booked or is outside their timetable.' }); }
-                await cn.query('UPDATE appointments SET staff_id=? WHERE appointment_id=?',[staff_id,appointment_id]);
+                await cn.query('UPDATE appointments SET staff_id=?,requested_staff_id=? WHERE appointment_id=?',[staff_id,staff_id,appointment_id]);
                 await logBookingHistory(cn,{appointmentId:appointment_id,action:'staff_assigned',changedBy:user.id,details:`Barber #${staff_id} assigned`});
                 await audit(cn,req,'appointment.staff_assigned','appointment',appointment_id,{staff_id,previous_staff_id:a.staff_id});
                 await cn.commit();
@@ -726,12 +735,14 @@ module.exports = async function handler(req, res) {
 
             const [rows] = await pool.query(`
                 SELECT a.*, s.name AS service_name, s.price AS service_price, b.name AS branch_name,
-                       su.name AS staff_name
+                       su.name AS staff_name, ru.name AS requested_staff_name
                 FROM appointments a
                 JOIN services s ON a.service_id = s.service_id
                 JOIN branches b ON a.branch_id = b.branch_id
                 LEFT JOIN staff st ON a.staff_id = st.staff_id
                 LEFT JOIN users su ON st.user_id = su.user_id
+                LEFT JOIN staff rst ON a.requested_staff_id = rst.staff_id
+                LEFT JOIN users ru ON rst.user_id = ru.user_id
                 WHERE a.client_id = ?
                 ORDER BY a.appointment_date DESC, a.appointment_time DESC
             `, [client_id]);

@@ -60,6 +60,13 @@ async function runSchemaChecks() {
     await addColumnIfMissing('staff', 'is_active', 'TINYINT(1) NOT NULL DEFAULT 1 AFTER specialization');
 
     // Fields used by booking/POS flows.
+    await addColumnIfMissing('appointments', 'requested_staff_id', 'INT NULL AFTER staff_id');
+    const [preferredStaffForeignKeys] = await db.query(`SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='appointments'
+        AND COLUMN_NAME='requested_staff_id' AND REFERENCED_TABLE_NAME='staff'`);
+    if (!preferredStaffForeignKeys.length) {
+        await db.query('ALTER TABLE appointments ADD CONSTRAINT fk_appointment_requested_staff FOREIGN KEY (requested_staff_id) REFERENCES staff(staff_id) ON DELETE SET NULL');
+    }
     await addColumnIfMissing('appointments', 'dp_paid', "DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER message");
     await addColumnIfMissing('appointments', 'warts_dp', "DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER dp_paid");
     await addColumnIfMissing('appointments', 'non_warts_price', "DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER warts_dp");
