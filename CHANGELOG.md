@@ -1,3 +1,9 @@
+## 1.2.1 — Demo login quick-fill restored
+
+- Restored the original three demo-account buttons on `/login.html` (`admin`, `staff_malolos`, `client1`, all `123`) with accessible HTML buttons.
+- Clicking a button fills credentials but **does not authenticate** or bypass the normal login form and backend security.
+- Added demo-login regression tests and a README warning about using public credentials outside a test environment.
+
 # BRUMS audited upgrade — October 11, 2026
 
 ## Implemented

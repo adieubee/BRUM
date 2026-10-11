@@ -42,6 +42,12 @@ New admin screens:
 
 No barber preference is stored as `appointments.staff_id=NULL` until an admin chooses an available active barber at the requested branch/time. The timetable rejects overlapping allocations. **Unassigned bookings are pending allocation, not a guaranteed barber assignment**; admins must review open bookings and avoid overselling available capacity.
 
+## Demo logins (local and classroom testing only)
+
+The login page retains three clickable demo credentials from the original project: `admin / 123`, `staff_malolos / 123`, and `client1 / 123`. The buttons populate username/password only; the form still calls the server for authentication, and the three-failed-attempt lockout, sessions, and role restrictions remain active. These accounts are included in the clean-install `database_dump.sql`; they are **not** created by upgrading an existing database. If you are upgrading a database that lacks them, the buttons will not magically make them work.
+
+**Security warning:** The sample password is publicly visible and not appropriate for an internet-facing deployment. On a real deployment, remove/disable the demo credentials, change the sample passwords (or delete the accounts), and revoke their active sessions. Do not use the bundled demo database as production data.
+
 ## Payment and notification limitations
 
 The original project's payment success page is only a **demo confirmation**, not payment gateway verification. It is blocked in production by default. Enabling `ALLOW_DEMO_PAYMENTS=true` is only suitable in a closed test environment. Real online payments need a verified gateway webhook and reconciled deposits before a live launch. Email confirmations use EmailJS if configured; browser session warnings do not send push/SMS.

@@ -43,12 +43,32 @@
             </form>
 
             <p class="footer-text">New to Barbers R Us? <a href="register.html">Sign up</a></p>
+
+            <!-- Demo credentials are intended only for classroom / local testing. -->
+            <section aria-labelledby="demo-account-heading" style="margin-top:20px;padding-top:15px;border-top:1px solid #e5ddd5;text-align:center;">
+                <p id="demo-account-heading" style="font-size:0.78rem;color:#777;margin-bottom:9px;font-family:'Poppins',sans-serif;">Demo Accounts (click to fill)</p>
+                <div style="display:flex;flex-wrap:wrap;gap:7px;justify-content:center;">
+                    <button type="button" class="demo-account" data-demo-user="admin" data-demo-password="123" style="cursor:pointer;background:#8b2d2d;color:white;border:0;padding:6px 11px;border-radius:12px;font-size:0.75rem;font-family:'Poppins',sans-serif;">admin / 123</button>
+                    <button type="button" class="demo-account" data-demo-user="staff_malolos" data-demo-password="123" style="cursor:pointer;background:#B8892D;color:white;border:0;padding:6px 11px;border-radius:12px;font-size:0.75rem;font-family:'Poppins',sans-serif;">staff_malolos / 123</button>
+                    <button type="button" class="demo-account" data-demo-user="client1" data-demo-password="123" style="cursor:pointer;background:#6a8b6d;color:white;border:0;padding:6px 11px;border-radius:12px;font-size:0.75rem;font-family:'Poppins',sans-serif;">client1 / 123</button>
+                </div>
+            </section>
         </div>
 
     </div>
 
     <script src="js/auth.js"></script>
     <script>
+
+        // Prefill only: clicking a demo account never bypasses authentication.
+        document.querySelectorAll('.demo-account').forEach(button => {
+            button.addEventListener('click', () => {
+                document.getElementById('username').value = button.dataset.demoUser;
+                document.getElementById('password').value = button.dataset.demoPassword;
+                document.getElementById('login-error').style.display = 'none';
+                document.getElementById('password').focus();
+            });
+        });
 
         const loginError = document.getElementById('login-error');
         const loginParams = new URLSearchParams(window.location.search);
