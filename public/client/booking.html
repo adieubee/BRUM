@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BARBERS R US - Book Appointment</title>
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/booking-calendar.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         .modal-overlay {
@@ -216,7 +217,7 @@
             <div id="modalContentConfirm">
                 <i class="fa-solid fa-wallet modal-icon" style="color: #C69A35;"></i>
                 <h3 class="modal-title">Confirm Checkout</h3>
-                <p class="modal-desc">To secure your booking slot, a 20% down payment is required to proceed.</p>
+                <p class="modal-desc">Review the estimated down payment. This demonstration does not charge your account.</p>
                 <div class="modal-amount">
                     <span>Down Payment Required</span>
                     <strong id="modalDpAmount">₱ 0.00</strong>
@@ -224,7 +225,7 @@
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel"
                         onclick="document.getElementById('paymentModal').style.display='none'">Cancel</button>
-                    <button type="button" class="btn-confirm" id="confirmPayBtn">Confirm Down Payment</button>
+                    <button type="button" class="btn-confirm" id="confirmPayBtn">Continue Booking</button>
                 </div>
             </div>
             <div id="modalContentLoading" style="display: none; padding: 20px 0;">
@@ -263,6 +264,9 @@
             <div class="booking-card">
 
                 <div id="step1">
+                    <span class="booking-step-tag">Step 01 / 02</span>
+                    <h1 class="booking-page-title">Book Your Appointment</h1>
+                    <p class="booking-page-lead">Select your services, preferred barber, and a free time on our calendar.</p>
                     <form id="bookingForm">
                         <div class="line-input-group">
                             <label for="name">Name*</label>
@@ -276,27 +280,13 @@
                             </select>
                         </div>
 
-                        <div class="form-row">
-                            <div class="line-input-group flex-2">
-                                <label>Preferred Schedule*</label>
-                                <div class="split-inputs">
-                                    <input type="date" id="date" required>
-                                    <input id="time" type="time" lang="en-PH" required min="09:00" max="17:00" step="1800" aria-describedby="timeAvailability" style="min-width:145px" value="09:00">
-                                    <small id="timeAvailability" role="status" style="display:block;color:#8b2d2d"></small>
-                                </div>
-                            </div>
-
-                            <div class="line-input-group flex-1">
-                                <label for="people"># of People*</label>
-                                <select id="people" required>
-                                    <option value="" disabled selected>Pax</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5</option>
-                                </select>
-                            </div>
+                        <div class="line-input-group">
+                            <label for="people"># of People*</label>
+                            <select id="people" required>
+                                <option value="" disabled selected>Choose number of guests</option>
+                                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                                <option value="4">4</option><option value="5">5</option>
+                            </select>
                         </div>
 
                         <div class="line-input-group">
@@ -318,9 +308,37 @@
                         <div class="line-input-group">
                             <label for="tech">Preferred Barber*</label>
                             <select id="tech" required>
-                                <option value="" disabled selected>Select Branch First</option>
+                                <option value="" disabled selected>Select a branch first</option>
                             </select>
+                            <small class="booking-help" style="color:#827362;font-size:.74rem">Only qualified barbers appear as selectable options. No Preference requires admin assignment.</small>
                         </div>
+
+                        <section class="booking-calendar-wrap" aria-label="Choose appointment date and time">
+                            <div class="booking-intro">
+                                <strong><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Select Date &amp; Time*</strong>
+                                <small>Philippine Time (PHT) · 30-minute start intervals</small>
+                            </div>
+                            <input type="hidden" id="date" name="date">
+                            <input type="hidden" id="time" name="time">
+                            <div class="booking-calendar-layout">
+                                <div class="booking-widget">
+                                    <div class="booking-month-bar">
+                                        <button type="button" id="bookingPrevMonth" class="booking-month-nav" aria-label="Previous month"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                                        <span id="bookingMonthLabel" class="booking-month-label"></span>
+                                        <button type="button" id="bookingNextMonth" class="booking-month-nav" aria-label="Next month"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+                                    </div>
+                                    <div class="booking-weekdays" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+                                    <div id="bookingCalendarDays" class="booking-days" role="group" aria-label="Select an appointment date"></div>
+                                </div>
+                                <div class="booking-widget">
+                                    <div class="booking-time-head"><h3>Available Times</h3><span class="booking-duration" id="bookingDuration">Choose services</span></div>
+                                    <div id="bookingTimeSlots" class="booking-times" role="group" aria-label="Available appointment start times"></div>
+                                    <div class="booking-legend" aria-label="Time slot legend"><span><i></i> Available</span><span><i class="unavailable-dot"></i> Unavailable</span><span><i class="selected-dot"></i> Selected</span></div>
+                                </div>
+                            </div>
+                            <div id="timeAvailability" class="booking-feedback" role="status" aria-live="polite"></div>
+                            <div class="booking-summary">Times are checked again before confirmation. A booked barber cannot be selected for an overlapping appointment. Walk-ins and pending appointments can affect availability.</div>
+                        </section>
 
                         <div class="line-input-group">
                             <label for="message">Message</label>
@@ -357,12 +375,9 @@
                     </div>
 
                     <div class="confirm-disclaimer">
-                        <p>Please note that to secure your appointment/booking slot, a 20% down payment of the total
-                            service price is required. Your slot will only be confirmed once the payment has been
-                            received. Down payment is non-refundable!</p>
-                        <p>An email confirmation will be sent to your registered email address once your booking has
-                            been
-                            successfully secured.</p>
+                        <p>Your estimated down payment is shown below. This demo records the booking but does not charge real money.
+                            A time request without a preferred barber still requires admin assignment.</p>
+                        <p>Any booking confirmation is subject to server validation and branch approval. Email notifications require the configured email service.</p>
                     </div>
 
                     <div class="confirm-totals" style="margin-bottom: 20px;">
@@ -370,7 +385,8 @@
                         <p><strong>Down Payment (20% of Total):</strong> ₱ --</p>
                     </div>
 
-                    <button type="button" class="next-btn" id="proceedPaymentBtn">Proceed to Payment</button>
+                    <button type="button" class="booking-secondary-btn" id="editBookingBtn">Edit Booking</button>
+                    <button type="button" class="next-btn" id="proceedPaymentBtn">Review Booking</button>
                 </div>
 
             </div>
@@ -425,6 +441,7 @@
 
     <script src="../js/auth.js"></script>
     <script src="../js/main.js"></script>
+    <script src="../js/booking-calendar.js"></script>
     <script>
         let globalServices = [];
 
@@ -440,13 +457,6 @@
             if (nameInput && user.name) {
                 nameInput.value = user.name;
             }
-
-            // Limit past dates on the date picker
-            const dtToday = new Date();
-            const month = (dtToday.getMonth() + 1).toString().padStart(2, '0');
-            const day = dtToday.getDate().toString().padStart(2, '0');
-            const year = dtToday.getFullYear();
-            document.getElementById('date').setAttribute('min', year + '-' + month + '-' + day);
 
             try {
                 // Use Auth.apiFetch so Authorization Bearer header is automatically attached
@@ -597,51 +607,34 @@
                     }
                 }
 
-                // Native calendar date + clock picker. Server rechecks every booking for collisions.
-                async function checkUnavailableTimes(){
-                    const branchId=document.getElementById('branch').value,dateVal=document.getElementById('date').value;
-                    const barber=document.getElementById('tech').value, clock=document.getElementById('time');
-                    const note=document.getElementById('timeAvailability');
-                    clock.setCustomValidity('');note.textContent='';
-                    if(!branchId||!dateVal||!barber||barber==='0'){
-                        note.textContent='No preference: an admin will allocate a qualified barber after booking.';return;
-                    }
-                    try {
-                        const qs=new URLSearchParams({branch_id:branchId,date:dateVal,staff_id:barber});
-                        const response=await Auth.apiFetch('/api/bookings/unavailable-times?'+qs);
-                        if(!response)return;
-                        const result=await response.json();
-                        if(!result.success)return;
-                        const selected=clock.value.slice(0,5);
-                        if(result.unavailable_times.some(t=>String(t).slice(0,5)===selected)){
-                            clock.setCustomValidity('This time is booked for the selected barber.');
-                            note.textContent='Selected barber is booked at this time. Choose another time.';
-                        }
-                    }catch(e){note.textContent='Availability could not be checked. Booking will be validated before saving.';}
-                }
-                // Only show barbers whose admin-published skills cover all selected services.
+                // A calendar-driven slot selector replaces the native free-form time field.
+                const calendar = window.BookingCalendar.mount({
+                    branch:branchSelect,barber:techSelect,
+                    date:document.getElementById('date'),time:document.getElementById('time'),
+                    services:getSelectedServiceIds
+                });
+                window.bookingCalendar = calendar;
                 function refreshQualifiedBarbers(){
                     const selected=getSelectedServiceIds();
                     const allowed=new Map();
                     for(const row of formData.staff_services||[]){
-                        if(!allowed.has(String(row.staff_id)))allowed.set(String(row.staff_id),new Set());
+                        if(!allowed.has(String(row.staff_id))) allowed.set(String(row.staff_id),new Set());
                         allowed.get(String(row.staff_id)).add(String(row.service_id));
                     }
                     for(const opt of techSelect.options){
                         if(!opt.value||opt.value==='0')continue;
-                        opt.disabled=!selected.length||selected.some(id=>!allowed.get(opt.value)?.has(id));
+                        opt.disabled=!selected.length||selected.some(id=>!allowed.get(String(opt.value))?.has(id));
                     }
-                    if(techSelect.selectedOptions[0]?.disabled)techSelect.value='0';
-                    checkUnavailableTimes();
+                    if(techSelect.selectedOptions[0]?.disabled){techSelect.value='0';}
+                    calendar.refresh();
                 }
                 document.getElementById('servicesContainer').addEventListener('change',refreshQualifiedBarbers);
                 document.getElementById('people').addEventListener('change',()=>setTimeout(refreshQualifiedBarbers,0));
                 branchSelect.addEventListener('change',()=>setTimeout(refreshQualifiedBarbers,0));
+                techSelect.addEventListener('change',()=>calendar.refresh());
                 window.refreshQualifiedBarbers=refreshQualifiedBarbers;
-                document.getElementById('branch').addEventListener('change', checkUnavailableTimes);
-                document.getElementById('date').addEventListener('change', checkUnavailableTimes);
-                document.getElementById('tech').addEventListener('change',checkUnavailableTimes);
-                document.getElementById('time').addEventListener('change',checkUnavailableTimes);
+                // Apply URL service prefill and initial branch before asking for availability.
+                refreshQualifiedBarbers();
 
             } catch (err) {
                 console.error("Error loading dropdown data:", err);
@@ -654,6 +647,8 @@
                 .filter(val => val && val !== '0');
         }
 
+        function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
         function addServiceToPanel(btn) {
             const panel = btn.closest('.pax-panel');
             const servicesDiv = panel.querySelector('.pax-services');
@@ -664,15 +659,17 @@
                 <button type="button" class="remove-svc-btn" onclick="removeServiceRow(this)" title="Remove">×</button>
             `;
             servicesDiv.appendChild(row);
+            window.refreshQualifiedBarbers?.();
         }
 
         function removeServiceRow(btn) {
             const row = btn.closest('.service-row');
             row.remove();
+            window.refreshQualifiedBarbers?.();
         }
 
         // Step 1 -> Step 2
-        document.getElementById('bookingForm').addEventListener('submit', function (event) {
+        document.getElementById('bookingForm').addEventListener('submit', async function (event) {
             event.preventDefault();
 
             const serviceIds = getSelectedServiceIds();
@@ -697,11 +694,18 @@
                 return;
             }
 
+            const availabilityCheck = await window.bookingCalendar.ensureSelected();
+            if(!availabilityCheck.ok){
+                window.bookingCalendar.message(availabilityCheck.message,'error');
+                document.getElementById('bookingTimeSlots').scrollIntoView({behavior:'smooth',block:'center'});
+                return;
+            }
+
             const branchSelect = document.getElementById('branch');
 
             document.getElementById('confName').textContent = document.getElementById('name').value;
             document.getElementById('confBranch').textContent = branchSelect.options[branchSelect.selectedIndex].text;
-            const selectedTimeText = new Date('1970-01-01T'+document.getElementById('time').value+':00').toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
+            const selectedTimeText = window.bookingCalendar.labelTime(document.getElementById('time').value);
             document.getElementById('confDateTime').textContent = `${document.getElementById('date').value} | ${selectedTimeText}`;
             document.getElementById('confPeople').textContent = document.getElementById('people').value;
 
@@ -726,14 +730,14 @@
                         finalDp += 100;
                         serviceListHTML += `
                         <div style="display: flex; justify-content: space-between; margin-left: ${panels.length > 1 ? '12px' : '0'};">
-                            <span>• ${name}</span>
+                            <span>• ${escapeHtml(name)}</span>
                             <span>Varies (₱35/pc)</span>
                         </div>`;
                     } else {
                         basePriceSum += price;
                         serviceListHTML += `
                         <div style="display: flex; justify-content: space-between; margin-left: ${panels.length > 1 ? '12px' : '0'};">
-                            <span>• ${name}</span>
+                            <span>• ${escapeHtml(name)}</span>
                             <span>₱${price.toLocaleString()}</span>
                         </div>`;
                     }
@@ -769,10 +773,16 @@
 
             document.getElementById('step1').style.display = 'none';
             document.getElementById('step2').style.display = 'block';
+            document.getElementById('step2').scrollIntoView({behavior:'smooth',block:'start'});
+        });
+        document.getElementById('editBookingBtn').addEventListener('click',()=>{
+            document.getElementById('step2').style.display='none';
+            document.getElementById('step1').style.display='block';
+            document.getElementById('step1').scrollIntoView({behavior:'smooth',block:'start'});
         });
 
         // Step 2 -> Modal
-        document.getElementById('proceedPaymentBtn').addEventListener('click', function () {
+        document.getElementById('proceedPaymentBtn').addEventListener('click', async function () {
             const serviceIds = getSelectedServiceIds();
             const branchId = document.getElementById('branch').value;
             const dateValue = document.getElementById('date').value;
@@ -783,6 +793,13 @@
                 return;
             }
 
+            const availabilityCheck = await window.bookingCalendar.ensureSelected();
+            if(!availabilityCheck.ok){
+                document.getElementById('step2').style.display='none';
+                document.getElementById('step1').style.display='block';
+                window.bookingCalendar.message(availabilityCheck.message,'error');
+                return;
+            }
             const serviceSelects = document.querySelectorAll('.service-select');
             let basePriceSum = 0;
             let finalDp = 0;
@@ -823,6 +840,18 @@
                 return;
             }
 
+            const confirmBtn=document.getElementById('confirmPayBtn');
+            if(confirmBtn.disabled)return;
+            confirmBtn.disabled=true;
+            const availabilityCheck=await window.bookingCalendar.ensureSelected();
+            if(!availabilityCheck.ok){
+                confirmBtn.disabled=false;
+                document.getElementById('paymentModal').style.display='none';
+                document.getElementById('step2').style.display='none';
+                document.getElementById('step1').style.display='block';
+                window.bookingCalendar.message(availabilityCheck.message,'error');
+                return;
+            }
             document.getElementById('modalContentConfirm').style.display = 'none';
             document.getElementById('modalContentLoading').style.display = 'block';
 
@@ -853,13 +882,18 @@
                     window.location.href = result.checkout_url;
                 } else {
                     document.getElementById('paymentModal').style.display = 'none';
-                    alert('Error: ' + (result.message || 'Failed to create payment session.'));
+                    if(response.status===409 || response.status===400){
+                        document.getElementById('step2').style.display='none';
+                        document.getElementById('step1').style.display='block';
+                        await window.bookingCalendar.refresh();
+                        window.bookingCalendar.message(result.message||'That time is no longer available. Please choose another.','error');
+                    } else alert('Error: ' + (result.message || 'Failed to create booking.'));
                 }
             } catch (error) {
                 console.error('Booking post error:', error);
                 document.getElementById('paymentModal').style.display = 'none';
                 alert('Server connection failed. Please try again.');
-            }
+            } finally { document.getElementById('confirmPayBtn').disabled=false; }
         });
     </script>
 </body>

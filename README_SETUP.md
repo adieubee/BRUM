@@ -109,3 +109,17 @@ Barber R Us
 ```
 
 This matches the app's booking confirmation flow and keeps the setup working without a public domain or backend email secret.
+
+## v1.2.2 calendar booking — testing instructions
+
+1. Log in as one of the original demo clients (demo buttons are still on `login.html`) and open `client/booking.html`.
+2. Choose a branch, guest count, service(s) and an eligible barber. Admin must publish barber skills in admin management; a barber lacking required qualifications cannot be selected.
+3. Click any future day on the inline calendar. Wait for the server-supplied 30-minute slot cards. Past times, booked/overlapping times, off-duty hours and times too close to closing are disabled with labels.
+4. Create a test booking at 09:00 lasting 60 minutes with Barber A. The same barber should have **09:00 and 09:30 unavailable** on that date; 10:00 may be available. Barber B's schedule is independent.
+5. Selecting No Preference allows a tentative request; it does **not** claim to reserve an unnamed barber. Admin still allocates a qualified staff member later.
+6. With two browsers, attempt the same barber and start time concurrently. One should succeed and the other should receive a conflict response and be returned to calendar selection; the DB transaction rechecks after locking the barber row.
+7. Check mobile layout and Edit Booking from the confirmation step. Repeat with appointments lasting 30, 60 and 90+ minutes, weekend hours, rejected appointments, and staff weekly rosters.
+
+Availability API time-zone rule: `appointment_date` and `appointment_time` use **Asia/Manila** business time. The website's published hours (Mon–Fri 09:00–20:00; Sat–Sun 09:00–18:00) apply across branches until branch-specific opening hours are configured. No database schema changes are needed for this release.
+
+Note that automatic tests use mocked database responses; a real MySQL instance and interactive browser session were not available for final end-to-end verification in this environment. Do not treat the test suite as a production guarantee.

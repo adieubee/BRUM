@@ -3,6 +3,7 @@ const { getPool, ensureSchema } = require('./_lib/db');
 const { generateBookingConfirmationEmail, formatEmailDate, formatEmailTime, sendViaEmailJs } = require('./_lib/email');
 const { requireAuth, getTokenPayload } = require('./_lib/auth');
 const { audit } = require('./_lib/audit');
+const availability = require('./_lib/booking-availability');
 
 const VALID_STATUSES = ['Pending Payment', 'Pending Reschedule', 'Confirmed', 'In-Progress', 'Completed', 'Cancelled', 'Rejected'];
 const ALLOWED_TRANSITIONS = {
@@ -227,34 +228,78 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // Used by booking/reschedule screens to disable occupied slots.
-        if (url.includes('/unavailable-times')) {
+        // Detailed calendar availability for the client booking screen (one DB read per table, not per slot).
+        if (url.includes('/availability')) {
             if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'Method not allowed' });
-            const { branch_id, date, staff_id } = req.query || {};
-            if (!branch_id || !date) {
-                return res.status(400).json({ success: false, message: 'branch_id and date are required.' });
+            if (!requireAuth(req,res,['client','admin','staff'])) return;
+            const { branch_id, date, staff_id, service_ids } = req.query || {};
+            if (!Number.isSafeInteger(Number(branch_id)) || Number(branch_id) <= 0 || !availability.isoDate(date)) {
+                return res.status(400).json({ success:false, message:'Choose a valid branch and calendar date.' });
             }
-
-            let query = `
-                SELECT DISTINCT appointment_time
-                FROM appointments
-                WHERE branch_id = ? AND appointment_date = ?
-                  AND status NOT IN ('Cancelled', 'Completed', 'Rejected')
-            `;
-            const params = [branch_id, date];
-            // With no preferred barber the admin will assign a free one later;
-            // a booking with another barber does not make the entire branch unavailable.
-            if (!staff_id || staff_id === '0' || staff_id === 'null') {
-                return res.status(200).json({ success: true, unavailable_times: [] });
+            const rawIds = Array.isArray(service_ids) ? service_ids : String(service_ids || '').split(',');
+            const ids = normalizeServiceIds(rawIds, null);
+            if (!ids.length || ids.length > 30 || ids.length !== rawIds.length || ids.some(id=>Number(id)<=0)) {
+                return res.status(400).json({ success:false, message:'Select your services before checking availability.' });
             }
-            query += ' AND staff_id = ?';
-            params.push(staff_id);
-            query += ' ORDER BY appointment_time';
-
-            const [rows] = await pool.query(query, params);
+            const serviceValidation = await validateServices(pool, ids);
+            if (!serviceValidation.valid) return res.status(400).json({ success:false, message:'Invalid service selection.' });
+            const [allowedServices] = await pool.query('SELECT service_id FROM branch_services WHERE branch_id=? AND is_active=1',[branch_id]);
+            const allowed = new Set(allowedServices.map(r=>String(r.service_id)));
+            if (ids.some(id=>!allowed.has(String(id)))) return res.status(400).json({ success:false, message:'Not all services are available at that branch.' });
+            const length = serviceValidation.serviceRows.reduce((n,s)=>n+availability.durationMinutes(s.duration_minutes),0);
+            const staffSelected = staff_id != null && !['','0','null'].includes(String(staff_id));
+            const assignedStaff = staffSelected ? Number(staff_id) : null;
+            if (staffSelected && (!Number.isSafeInteger(assignedStaff) || assignedStaff <= 0
+                || !(await staffBelongsToBranch(pool,assignedStaff,branch_id))
+                || !(await barberQualified(pool,assignedStaff,ids)))) {
+                return res.status(400).json({ success:false, message:'This barber is not qualified or does not work at this branch.' });
+            }
+            let reservations=[], shifts=[];
+            if (assignedStaff) {
+                const [busyRows, shiftRows] = await Promise.all([
+                    pool.query(`SELECT a.appointment_time,
+                       COALESCE(SUM(ps.duration_minutes * aps.quantity), MAX(s.duration_minutes), 30) AS duration_minutes
+                       FROM appointments a JOIN services s ON s.service_id=a.service_id
+                       LEFT JOIN appointment_services aps ON aps.appointment_id=a.appointment_id
+                       LEFT JOIN services ps ON ps.service_id=aps.service_id
+                       WHERE a.branch_id=? AND a.staff_id=? AND a.appointment_date=?
+                       AND a.status NOT IN ('Cancelled','Completed','Rejected')
+                       GROUP BY a.appointment_id,a.appointment_time`,[branch_id,assignedStaff,date]),
+                    pool.query('SELECT weekday,start_time,end_time FROM staff_availability WHERE staff_id=? AND is_active=1',[assignedStaff])
+                ]);
+                reservations=busyRows[0]; shifts=shiftRows[0];
+            }
             return res.status(200).json({
-                success: true,
-                unavailable_times: rows.map(row => String(row.appointment_time))
+                success:true, date, branch_id:Number(branch_id), staff_id:assignedStaff,
+                duration_minutes:length, provisional:!assignedStaff, schedule_published:!assignedStaff?null:shifts.length>0,
+                slots:availability.makeSlots({date,duration:length,reservations,shifts,staffChosen:!!assignedStaff})
+            });
+        }
+
+        // Backwards-compatible reschedule endpoint: return occupied 30-minute intervals,
+        // not only exact booking start times (a 9-10 AM booking also blocks 9:30 AM).
+        if (url.includes('/unavailable-times')) {
+            if (req.method !== 'GET') return res.status(405).json({ success:false, message:'Method not allowed' });
+            const { branch_id, date, staff_id } = req.query || {};
+            if (!Number.isSafeInteger(Number(branch_id)) || Number(branch_id)<=0 || !availability.isoDate(date))
+                return res.status(400).json({success:false,message:'Valid branch and date are required.'});
+            if (!staff_id || staff_id==='0' || staff_id==='null')
+                return res.status(200).json({success:true,unavailable_times:[]});
+            if(!Number.isSafeInteger(Number(staff_id)) || Number(staff_id)<=0) return res.status(400).json({success:false,message:'Invalid barber.'});
+            const [busyRows,shiftRows]=await Promise.all([
+                pool.query(`SELECT a.appointment_time,
+                  COALESCE(SUM(ps.duration_minutes * aps.quantity), MAX(s.duration_minutes),30) AS duration_minutes
+                  FROM appointments a JOIN services s ON s.service_id=a.service_id
+                  LEFT JOIN appointment_services aps ON aps.appointment_id=a.appointment_id
+                  LEFT JOIN services ps ON ps.service_id=aps.service_id
+                  WHERE a.branch_id=? AND a.staff_id=? AND a.appointment_date=?
+                    AND a.status NOT IN ('Cancelled','Completed','Rejected')
+                  GROUP BY a.appointment_id,a.appointment_time`,[branch_id,staff_id,date]),
+                pool.query('SELECT weekday,start_time,end_time FROM staff_availability WHERE staff_id=? AND is_active=1',[staff_id])
+            ]);
+            const slots=availability.makeSlots({date,duration:30,reservations:busyRows[0],shifts:shiftRows[0],staffChosen:true});
+            return res.status(200).json({success:true,
+                unavailable_times:slots.filter(s=>s.status!=='available').map(s=>s.time+':00')
             });
         }
 
@@ -266,7 +311,9 @@ module.exports = async function handler(req, res) {
             const { branch_id, service_id, service_ids, staff_id, date, time, message, pax } = req.body || {};
             const client_id = bookingUser.id;
             const ids = normalizeServiceIds(service_ids, service_id);
-            const assignedStaff = staff_id && String(staff_id) !== '0' ? Number(staff_id) : null;
+            const staffSelected=staff_id != null && !['','0','null'].includes(String(staff_id));
+            const assignedStaff = staffSelected ? Number(staff_id) : null;
+            if(staffSelected && (!Number.isSafeInteger(assignedStaff) || assignedStaff<=0)) return res.status(400).json({success:false,message:'Invalid barber selection.'});
             const paxCount = Number(pax ?? 1);
             if (!Number.isInteger(paxCount) || paxCount < 1 || paxCount > 20) return res.status(400).json({success:false,message:'Party size must be 1–20.'});
 
@@ -282,6 +329,8 @@ module.exports = async function handler(req, res) {
             if (!client) return res.status(404).json({ success: false, message: 'Client account not found.' });
             if (!branchRows.length) return res.status(404).json({ success: false, message: 'Branch not found.' });
             if (!serviceValidation.valid) return res.status(400).json({ success: false, message: 'One or more selected services are invalid.' });
+            const totalDuration = serviceValidation.serviceRows.reduce((n,s)=>n+availability.durationMinutes(s.duration_minutes),0);
+            if (!availability.withinBusinessHours(date,time,totalDuration)) return res.status(400).json({success:false,message:'Choose a 30-minute slot during branch opening hours with enough time for your services.'});
             const [allowedServices] = await pool.query(`SELECT service_id FROM branch_services WHERE branch_id=? AND is_active=1`, [branch_id]);
             const allowed=new Set(allowedServices.map(x=>String(x.service_id)));
             if (ids.some(id=>!allowed.has(String(id)))) return res.status(400).json({success:false,message:'A selected service is not offered at this branch.'});
@@ -290,7 +339,7 @@ module.exports = async function handler(req, res) {
             if (assignedStaff && !(await staffBelongsToBranch(pool, assignedStaff, branch_id))) {
                 return res.status(400).json({ success: false, message: 'Selected staff member does not belong to this branch.' });
             }
-            if (assignedStaff && !(await isStaffTimeAvailable(pool, branch_id, assignedStaff, date, time, null, serviceValidation.serviceRows.reduce((sum,s) => sum + Number(s.duration_minutes || 30),0)))) {
+            if (assignedStaff && !(await isStaffTimeAvailable(pool, branch_id, assignedStaff, date, time, null, totalDuration))) {
                 return res.status(409).json({ success: false, message: 'That staff member is already booked for the selected time.' });
             }
 
@@ -309,7 +358,7 @@ module.exports = async function handler(req, res) {
                 await cn.beginTransaction();
                 if (assignedStaff) {
                     await cn.query('SELECT staff_id FROM staff WHERE staff_id=? FOR UPDATE',[assignedStaff]);
-                    if (!(await isStaffTimeAvailable(cn,branch_id,assignedStaff,date,time,null,serviceValidation.serviceRows.reduce((n,s)=>n+Number(s.duration_minutes||30),0)))) {
+                    if (!(await isStaffTimeAvailable(cn,branch_id,assignedStaff,date,time,null,totalDuration))) {
                         await cn.rollback();
                         return res.status(409).json({success:false,message:'This barber was just booked for that time. Please select another slot.'});
                     }

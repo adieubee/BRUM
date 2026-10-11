@@ -44,3 +44,20 @@
 - Updated the ERD and clean-install SQL. New tables are created by `ensureSchema()` in existing environments; no drop/reinstall is needed for upgrade. The full SQL dump remains **destructive** and must never be imported over live data.
 
 **Limits:** No live MySQL or web-browser integration environment was provided. Automated tests and syntax checks cannot guarantee production schema/data compatibility. EmailJS is best-effort and is not a push notification service; the payment success page remains a gated demo flow. Local JSON copies are not automatic encrypted backups or offline synchronization.
+
+## v1.2.2 — Calendar booking & overlap checks (2026-10-12)
+
+- Replaced the booking page's native time input with an inline, keyboard-accessible month calendar and server-sourced 30-minute time-slot cards.
+- Preserved BRUM's existing cream, charcoal, gold, form typography, demo-account login and two-step booking flow; added an Edit Booking action and mobile-first booking form ordering.
+- Added authenticated `GET /api/bookings/availability?branch_id=...&date=YYYY-MM-DD&staff_id=...&service_ids=1,2` returning duration, shift-publication flag and time-slot statuses without disclosing customer booking details.
+- Slot states cover booked (including overlapping durations), off-duty, passed, after hours/too short for treatment, available, and no-preference request (not an automatic reservation).
+- Opening hours follow the existing website listing: Mon–Fri 09:00–20:00; Sat–Sun 09:00–18:00 (PHT). Last selectable start depends on total service duration.
+- Booking creation now rejects out-of-hours and off-grid start times, invalid barber IDs, staff conflicts, and unavailable qualified barbers, while retaining transaction-time staff locking.
+- Upgraded legacy `/unavailable-times` response used by the reschedule dropdown to block overlapping 30-minute intervals rather than only identical appointment start times.
+- Removed pre-selected 09:00 so customers cannot accidentally book a time without checking availability. Availability is rechecked at review, checkout and insert; a 409 conflict returns customers to the calendar.
+- Fixed dynamic service-add/removal invalidating an existing time choice and confirmation pages without a way to edit.
+- Added `tests/booking-calendar.test.js` covering overlap, duration, published shifts, opening hours, past times, provisional no-preference requests, API validation, anonymous denial, and booking creation conflict.
+
+**Not changed:** The initial demo accounts, admin dashboard, visitor/visit logs, staff specializations, timetable editor, ERD, and database migrations.
+
+**Known deployment dependencies:** Staff qualifications and shifts must be populated by admin. When no weekly shift is published, candidate availability is tentative. No Preference still creates an appointment requiring manual barber assignment. The demo payment flow does not collect money. Back up the DB and perform staging MySQL/browser integration tests before production deployment.
