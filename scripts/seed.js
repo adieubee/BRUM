@@ -6,20 +6,14 @@
  * Make sure your .env file is configured and the schema has been imported first.
  */
 
-const mysql = require('mysql2/promise');
+const { getPool, ensureSchema } = require('../api/_lib/db');
 
 // Load .env if available
 try { require('dotenv').config(); } catch (e) { }
 
 async function seed() {
-    const pool = mysql.createPool({
-        host: process.env.MYSQL_HOST || 'localhost',
-        user: process.env.MYSQL_USER || 'root',
-        password: process.env.MYSQL_PASSWORD || 'Frans070505',
-        database: process.env.MYSQL_DATABASE || 'brums',
-        port: parseInt(process.env.MYSQL_PORT || '3306'),
-        ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined
-    });
+    await ensureSchema();
+    const pool = getPool();
 
     console.log('Fetching database status...');
 

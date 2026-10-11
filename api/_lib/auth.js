@@ -1,93 +1,92 @@
-/**
- * _lib/auth.js
- * Lightweight signed-token auth for Vercel serverless (no JWT dependency).
- * Token format: base64url(JSON payload) + "." + HMAC-SHA256 hex signature
- * SECRET is read from process.env.TOKEN_SECRET (fall back to a hard-coded dev value).
- */
+'use strict';
 const crypto = require('crypto');
+const { getPool } = require('./db');
 
-const SECRET = process.env.TOKEN_SECRET || 'brums-dev-secret-change-in-prod';
-const TOKEN_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
-
-function b64url(str) {
-    return Buffer.from(str).toString('base64url');
-}
+const PROD = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
+const SECRET = process.env.TOKEN_SECRET || (PROD ? '' : 'brums-local-development-only-secret');
+const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
+const IDLE_TTL_MS = 20 * 60 * 1000;
 
 function sign(payload) {
-    const data = b64url(JSON.stringify(payload));
-    const sig = crypto.createHmac('sha256', SECRET).update(data).digest('hex');
-    return `${data}.${sig}`;
+    if (!SECRET || (PROD && SECRET.length < 32)) throw new Error('Set TOKEN_SECRET to a random secret of at least 32 characters.');
+    const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const signature = crypto.createHmac('sha256', SECRET).update(body).digest('hex');
+    return `${body}.${signature}`;
 }
-
 function verify(token) {
-    if (!token || typeof token !== 'string') return null;
+    if (!SECRET || typeof token !== 'string' || token.length > 4096) return null;
     const parts = token.split('.');
-    if (parts.length !== 2) return null;
-    const [data, sig] = parts;
+    if (parts.length !== 2 || !/^[a-f0-9]{64}$/.test(parts[1])) return null;
+    const expected = crypto.createHmac('sha256', SECRET).update(parts[0]).digest();
+    if (!crypto.timingSafeEqual(expected, Buffer.from(parts[1], 'hex'))) return null;
     try {
-        // The signature must be recomputed from the token payload using the same
-        // secret used by createToken(). An undefined expected signature rejects
-        // every token and makes all protected endpoints return 401.
-        const expected = crypto.createHmac('sha256', SECRET).update(data).digest('hex');
-        if (!/^[a-f0-9]{64}$/i.test(sig)) return null;
-        const sigBuf = Buffer.from(sig, 'hex');
-        const expBuf = Buffer.from(expected, 'hex');
-        if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) return null;
-        const payload = JSON.parse(Buffer.from(data, 'base64url').toString('utf8'));
-        if (payload.exp && Date.now() > payload.exp) return null; // expired
-        return payload;
-    } catch {
-        return null;
-    }
+        const p = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+        if (!Number.isSafeInteger(p.id) || !Number.isSafeInteger(p.exp) || p.exp <= Date.now() || !/^[a-f0-9]{32}$/.test(p.sid || '')) return null;
+        return p;
+    } catch { return null; }
 }
-
-/**
- * Create a signed login token.
- * @param {{ id, username, role, branch_id }} user
- */
+function bearer(req) {
+    const header = req.headers?.authorization || req.headers?.Authorization || '';
+    const match = String(header).match(/^Bearer\s+([^\s]+)$/i);
+    return match ? match[1] : null;
+}
+function hashToken(token) { return crypto.createHash('sha256').update(token).digest('hex'); }
 function createToken(user) {
-    const payload = {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        branch_id: user.branch_id ?? null,
-        exp: Date.now() + TOKEN_TTL_MS
+    return sign({ id: Number(user.id), role: user.role, sid: crypto.randomBytes(16).toString('hex'), exp: Date.now() + TOKEN_TTL_MS });
+}
+async function persistSession(pool, token, user, req) {
+    const p = verify(token);
+    if (!p) throw new Error('Unable to create session');
+    await pool.query(
+        `INSERT INTO api_sessions (session_id, user_id, token_hash, role_at_login, expires_at, last_seen_at, ip_hash)
+         VALUES (?, ?, ?, ?, FROM_UNIXTIME(?), NOW(), ?)`,
+        [p.sid, user.id, hashToken(token), user.role, Math.floor(p.exp / 1000), requestIpHash(req)]
+    );
+}
+function requestIpHash(req) {
+    // Never persist raw visitor IP addresses.
+    const ip = String(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim();
+    return crypto.createHash('sha256').update(`${process.env.AUDIT_SALT || SECRET}:${ip}`).digest('hex');
+}
+async function verifyRequestSession(req, res) {
+    if (req._sessionChecked) return req._authUser;
+    req._sessionChecked = true;
+    const raw = bearer(req);
+    if (!raw) { req._authUser = null; return null; }
+    const payload = verify(raw);
+    if (!payload) { req._authUser = null; return null; }
+    const [rows] = await getPool().query(
+        `SELECT u.user_id, u.username, u.role, u.name, s.branch_id,
+                a.session_id, a.role_at_login, a.revoked_at, a.last_seen_at,
+                a.expires_at
+         FROM api_sessions a JOIN users u ON u.user_id = a.user_id
+         LEFT JOIN staff s ON s.user_id = u.user_id AND s.is_active=1
+         WHERE a.session_id = ? AND a.user_id = ? AND a.token_hash = ? LIMIT 1`,
+        [payload.sid, payload.id, hashToken(raw)]
+    );
+    const row = rows[0];
+    const valid = row && !row.revoked_at && new Date(row.expires_at).getTime() > Date.now()
+        && new Date(row.last_seen_at).getTime() > Date.now() - IDLE_TTL_MS
+        && row.role === payload.role && row.role_at_login === row.role
+        && (row.role !== 'staff' || row.branch_id != null);
+    if (!valid) { req._authUser = null; return null; }
+    req._authUser = {
+        id: row.user_id, username: row.username, name: row.name,
+        role: row.role, branch_id: row.branch_id ?? null, sid: payload.sid
     };
-    return sign(payload);
+    await getPool().query('UPDATE api_sessions SET last_seen_at = NOW() WHERE session_id = ?', [payload.sid]);
+    return req._authUser;
 }
-
-/**
- * Extract and verify the Bearer token from a request.
- * Returns the payload or null.
- */
 function getTokenPayload(req) {
-    const headers = req.headers || {};
-    const auth = headers.authorization || headers.Authorization;
-    if (typeof auth !== 'string') return null;
-    const match = auth.trim().match(/^Bearer\s+(.+)$/i);
-    if (!match) return null;
-    return verify(match[1].trim());
+    // Never trust a token without its database session and current role being checked.
+    return req._sessionChecked ? req._authUser || null : null;
 }
-
-/**
- * Middleware helper — call at the top of any protected handler.
- * @param {object} req
- * @param {object} res
- * @param {string[]} allowedRoles  e.g. ['owner', 'staff']  — empty means any authenticated user
- * @returns {object|null} payload on success, null if already responded with 401/403
- */
 function requireAuth(req, res, allowedRoles = []) {
     const payload = getTokenPayload(req);
-    console.log(payload)
-    if (!payload) {
-        res.status(401).json({ success: false, message: 'Authentication required.' });
-        return null;
-    }
-    if (allowedRoles.length > 0 && !allowedRoles.includes(payload.role)) {
-        res.status(403).json({ success: false, message: 'Insufficient permissions.' });
-        return null;
+    if (!payload) { res.status(401).json({ success: false, message: 'Please sign in again. Your session may have expired.' }); return null; }
+    if (allowedRoles.length && !allowedRoles.includes(payload.role)) {
+        res.status(403).json({ success: false, message: 'Insufficient permissions.' }); return null;
     }
     return payload;
 }
-
-module.exports = { createToken, getTokenPayload, requireAuth };
+module.exports = { createToken, persistSession, verifyRequestSession, getTokenPayload, requireAuth, requestIpHash, IDLE_TTL_MS };

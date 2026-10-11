@@ -1,142 +1,103 @@
-/* ==========================================================================
-   FILE: js/auth.js
-   PURPOSE: Handles Login, Logout, and Registration.
-   Stores a signed server token in localStorage and attaches it to every
-   authenticated API call via the Authorization header.
-   ========================================================================== */
-
+/* BRUMS authentication: short-lived server-validated sessions with idle warnings. */
 const Auth = {
-    // A. LOGIN FUNCTION (Async API Call)
-    login: async function (username, password) {
+    _idleMs: 20 * 60 * 1000,
+    _warningMs: 2 * 60 * 1000,
+    _lastInteraction: Date.now(),
+    _checking: null,
+    getUser() { try { return JSON.parse(localStorage.getItem('currentUser') || 'null'); } catch { return null; } },
+    getToken() { return (localStorage.getItem('authToken') || '').trim().replace(/^Bearer\s+/i,''); },
+    authHeaders(extra = {}) {
+        const h = { 'Content-Type':'application/json', ...extra };
+        delete h.Authorization; delete h.authorization;
+        if(this.getToken()) h.Authorization = 'Bearer ' + this.getToken();
+        return h;
+    },
+    async login(username,password) {
         try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const result = await response.json();
-
-            if (result.success) {
-                localStorage.setItem('currentUser', JSON.stringify(result.user));
-                localStorage.setItem('authToken', result.token || '');
-                return { success: true, role: result.role, user: result.user };
-            } else {
-                return { success: false, message: result.message || 'Invalid Username or Password' };
-            }
-        } catch (error) {
-            console.error('Login API error:', error);
-            return { success: false, message: 'Server connection failed' };
-        }
+            const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+            const data=await r.json();
+            if(!data.success) return {success:false,message:data.message||'Login failed.',retry_after_seconds:data.retry_after_seconds};
+            localStorage.setItem('currentUser',JSON.stringify(data.user));
+            localStorage.setItem('authToken',data.token);
+            this._lastInteraction=Date.now();
+            return {success:true,role:data.role,user:data.user};
+        }catch(err){return {success:false,message:'Cannot connect to login service.'};}
     },
-
-    // B. REGISTER FUNCTION (Async API Call)
-    register: async function (name, username, email, password) {
+    async register(name,username,email,password) {
         try {
-            const response = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, username, email, password })
-            });
-            const result = await response.json();
-
-            if (result.success) {
-                localStorage.setItem('currentUser', JSON.stringify(result.user));
-                localStorage.setItem('authToken', result.token || '');
-                return { success: true };
-            } else {
-                return { success: false, message: result.message || 'Registration failed' };
+            const r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,username,email,password})});
+            const data=await r.json();
+            if(!data.success)return {success:false,message:data.message||'Registration failed.'};
+            localStorage.setItem('currentUser',JSON.stringify(data.user));
+            localStorage.setItem('authToken',data.token);
+            this._lastInteraction=Date.now();
+            return {success:true};
+        }catch(err){return {success:false,message:'Cannot connect to registration service.'};}
+    },
+    async logout(message='') {
+        const token=this.getToken();
+        // The server session is revoked even if another tab still has the old token.
+        if(token){try {await fetch('/api/auth/logout',{method:'POST',headers:this.authHeaders(),keepalive:true});}catch(_){}}
+        localStorage.removeItem('currentUser'); localStorage.removeItem('authToken');
+        const isNested=/\/(client|admin|staff)\//.test(window.location.pathname);
+        window.location.replace((isNested?'../':'')+'login.html'+(message?'?expired=1':''));
+    },
+    async me() {
+        if(!this.getToken())return null;
+        if(this._checking)return this._checking;
+        this._checking=(async()=>{
+            try{
+                const r=await fetch('/api/auth/me',{headers:this.authHeaders(),cache:'no-store'});
+                if(!r.ok)return null;
+                const data=await r.json();
+                if(data.success) localStorage.setItem('currentUser',JSON.stringify({...this.getUser(),...data.user}));
+                return data.success?data.user:null;
+            }catch(_){return undefined;} // Offline: do not guess the validity of the session.
+            finally{this._checking=null;}
+        })();
+        return this._checking;
+    },
+    async apiFetch(url,options={}) {
+        try{
+            const r=await fetch(url,{...options,headers:this.authHeaders(options.headers||{}),cache:'no-store'});
+            if(r.status===401 && this.getToken() && /\/(admin|staff|client)\//.test(location.pathname)){
+                this.notify('Your session is no longer valid. Please sign in again.');
+                this.logout('expired');
+                return null;
             }
-        } catch (error) {
-            console.error('Register API error:', error);
-            return { success: false, message: 'Server connection failed' };
-        }
+            return r;
+        }catch(err){console.error('Request failed:',url,err);throw err;}
     },
-
-    // C. LOGOUT FUNCTION
-    logout: function () {
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('authToken');
-        const path = window.location.pathname;
-        if (path.includes('/client/') || path.includes('/admin/') || path.includes('/staff/')) {
-            window.location.href = '../login.html';
-        } else {
-            window.location.href = 'login.html';
-        }
+    requireLogin(){
+        if(!this.getUser()||!this.getToken())this.logout('expired');
     },
-
-    // D. CHECK IF LOGGED IN (returns the user object stored at login time)
-    getUser: function () {
-        const userStr = localStorage.getItem('currentUser');
-        if (userStr) {
-            try { return JSON.parse(userStr); } catch { return null; }
-        }
-        return null;
+    notify(message){
+        let el=document.getElementById('brumsToast');
+        if(!el){el=document.createElement('div');el.id='brumsToast';el.setAttribute('role','status');el.style.cssText='position:fixed;bottom:20px;right:20px;z-index:99999;background:#8b2d2d;color:#fff;padding:16px 22px;border-radius:10px;max-width:340px;box-shadow:0 5px 24px #3335;font:14px system-ui';document.body.appendChild(el);}
+        el.textContent=message;
     },
-
-    // E. Get the auth token
-    getToken: function () {
-        // Accept the raw token and older values that may already include "Bearer ".
-        return (localStorage.getItem('authToken') || '')
-            .trim()
-            .replace(/^Bearer\s+/i, '');
-    },
-
-    // F. Build authenticated fetch headers (merges with any extra headers provided)
-    authHeaders: function (extra = {}) {
-        const token = this.getToken();
-        const headers = { 'Content-Type': 'application/json', ...extra };
-
-        // Header names are case-insensitive, but normalize the key so a stale
-        // lower-case Authorization header cannot override the current login token.
-        delete headers.authorization;
-        delete headers.Authorization;
-        if (token) headers.Authorization = `Bearer ${token}`;
-        return headers;
-    },
-
-    // G. Convenience: authenticated fetch wrapper
-    apiFetch: async function (url, options = {}) {
-        const headers = this.authHeaders(options.headers || {});
-        try {
-            const response = await fetch(url, { ...options, headers });
-
-            // Only trigger a full logout if the core token verification/session check fails.
-            // Do NOT log out when regular operational endpoints (like booking, branches, services)
-            // fail or return 401/403, as that might be a route/permission or role error.
-            if (response.status === 401) {
-                const isAuthCheckEndpoint = url.includes('/api/auth/verify') ||
-                    url.includes('/api/auth/me') ||
-                    url.includes('/api/auth/validate');
-
-                if (isAuthCheckEndpoint) {
-                    console.warn('Session expired. Logging out.');
-                    this.logout();
-                    return null;
-                }
-
-                console.warn(`Request to ${url} returned 401, but keeping user session intact.`);
-            }
-
-            return response;
-        } catch (error) {
-            console.error(`apiFetch failed for ${url}:`, error);
-            throw error;
-        }
-    },
-
-    // H. PROTECT PAGE
-    requireLogin: function () {
-        const user = this.getUser();
-        const token = this.getToken();
-
-        if (!user || !token) {
-            console.warn('You must login first!');
-            const path = window.location.pathname;
-            if (path.includes('/client/') || path.includes('/admin/') || path.includes('/staff/')) {
-                window.location.href = '../login.html';
-            } else {
-                window.location.href = 'login.html';
-            }
-        }
+    startSessionWatch(){
+        const isProtected=/\/(admin|staff|client)\//.test(location.pathname);
+        if(!isProtected)return;
+        const user=this.getUser();
+        if(!user||!this.getToken()){this.logout('expired');return;}
+        const isAllowed=location.pathname.includes('/admin/')?user.role==='admin':location.pathname.includes('/staff/')?user.role==='staff':user.role==='client';
+        if(!isAllowed){this.logout('expired');return;}
+        this.me().then(current=>{if(current===null)this.logout('expired');else if(current && current.role!==user.role)this.logout('expired');});
+        for(const name of ['click','keydown','pointerdown','touchstart'])document.addEventListener(name,()=>{this._lastInteraction=Date.now();},{passive:true});
+        const warning=document.createElement('div');warning.id='brumsIdleWarning';
+        warning.style.cssText='position:fixed;bottom:22px;left:22px;z-index:100000;max-width:340px;background:#fff;border:2px solid #8b2d2d;color:#222;border-radius:12px;padding:18px;box-shadow:0 5px 20px #3334;display:none;font:14px system-ui';
+        const line=document.createElement('p');line.textContent='Your session will expire soon due to inactivity.';
+        const btn=document.createElement('button');btn.textContent='Stay signed in';btn.type='button';btn.style.cssText='background:#8b2d2d;color:white;padding:9px 15px;border:0;border-radius:6px;cursor:pointer';
+        btn.onclick=async()=>{const current=await this.me();if(current){this._lastInteraction=Date.now();warning.style.display='none';this.notify('Session extended.');}else this.logout('expired');};
+        warning.append(line,btn);document.body.appendChild(warning);
+        window.setInterval(()=>{
+            const idle=Date.now()-this._lastInteraction;
+            if(idle>=this._idleMs){this.logout('expired');return;}
+            warning.style.display=idle>=this._idleMs-this._warningMs?'block':'none';
+        },15000);
+        // A long-idle background tab expires on returning to focus.
+        document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-this._lastInteraction>=this._idleMs)this.logout('expired');});
     }
 };
+document.addEventListener('DOMContentLoaded',()=>Auth.startSessionWatch());

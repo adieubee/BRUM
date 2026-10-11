@@ -1,39 +1,72 @@
 {
-    "rewrites": [
+  "rewrites": [
+    {
+      "source": "/api/services/:path*",
+      "destination": "/api/services"
+    },
+    {
+      "source": "/api/records/:path*",
+      "destination": "/api/records"
+    },
+    {
+      "source": "/api/visits/:path*",
+      "destination": "/api/visits"
+    },
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth"
+    },
+    {
+      "source": "/api/bookings/:path*",
+      "destination": "/api/bookings"
+    },
+    {
+      "source": "/api/finance/:path*",
+      "destination": "/api/finance"
+    },
+    {
+      "source": "/api/inventory/:path*",
+      "destination": "/api/inventory"
+    },
+    {
+      "source": "/api/users/:path*",
+      "destination": "/api/users"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
         {
-            "source": "/api/auth/:path*",
-            "destination": "/api/auth"
+          "key": "Cache-Control",
+          "value": "no-store"
         },
         {
-            "source": "/api/bookings/:path*",
-            "destination": "/api/bookings"
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
         },
         {
-            "source": "/api/finance/:path*",
-            "destination": "/api/finance"
-        },
-        {
-            "source": "/api/inventory/:path*",
-            "destination": "/api/inventory"
-        },
-        {
-            "source": "/api/users/:path*",
-            "destination": "/api/users"
-        },
-        {
-            "source": "/api/(.*)",
-            "destination": "/api/$1"
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
         }
-    ],
-    "headers": [
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
         {
-            "source": "/api/(.*)",
-            "headers": [
-                {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                }
-            ]
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
         }
-    ]
+      ]
+    }
+  ]
 }

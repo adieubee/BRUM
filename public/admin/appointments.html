@@ -48,7 +48,12 @@
             <li><a href="dashboard.html">Dashboard</a></li>
             <li><a href="inventory.html">Inventory</a></li>
             <li><a href="appointments.html" class="active">Appointments</a></li>
+            <li><a href="schedule.html">Barber Timetable</a></li>
             <li><a href="reports.html">Reports</a></li>
+            <li><a href="visitors.html">Visitors &amp; Check-ins</a></li>
+            <li><a href="database.html">Database Editor</a></li>
+            <li><a href="operations.html">Security &amp; Roles</a></li>
+            <li><a href="service-links.html">Service Relationships</a></li>
             <li><a href="commissions.html">Commissions</a></li>
             <li><a href="staff.html">Staff</a></li>
             <li><a href="pos.html">POS</a></li>
@@ -85,6 +90,7 @@
                         <option value="Completed">Completed</option>
                         <option value="Cancelled">Cancelled</option>
                         <option value="Pending Reschedule">Pending Reschedule</option>
+                        <option value="Rejected">Rejected</option>
                     </select>
                 </div>
                 <button onclick="openWalkinModal()" class="add-btn" style="height: 38px; margin-top: 26px; padding: 0 15px; background: #8b2d2d; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: 'Poppins', sans-serif; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; transition: background 0.2s;"><i class="fas fa-plus"></i> Add Appointment</button>
@@ -249,7 +255,7 @@
 
             // Hide Reports for non-owners
             const reportsLink = document.querySelector('a[href="reports.html"]');
-            if (reportsLink && user.role !== 'owner') {
+            if (reportsLink && user.role !== 'admin') {
                 reportsLink.parentElement.style.display = 'none';
             }
 
@@ -409,6 +415,7 @@
                 'Pending Reschedule': 1,
                 'Confirmed': 2,
                 'Cancelled': 3,
+                'Rejected': 3,
                 'Completed': 4
             };
 
@@ -533,6 +540,13 @@
                     actionDiv.appendChild(document.createTextNode('—'));
                 }
 
+                if (['Pending Payment','Pending Reschedule','Confirmed'].includes(appt.status)) {
+                    const rejectBtn=document.createElement('button');rejectBtn.className='action-btn';
+                    rejectBtn.style.cssText='background:#8b2d2d;color:white;padding:6px 10px';
+                    rejectBtn.textContent='Reject';rejectBtn.title='Reject booking with a reason (admin only)';
+                    rejectBtn.onclick=()=>rejectAppointment(appt.appointment_id);
+                    actionDiv.appendChild(rejectBtn);
+                }
                 actionTd.appendChild(actionDiv);
                 row.appendChild(idxTd);
                 row.appendChild(clientTd);
@@ -568,6 +582,20 @@
             }
         }
 
+        async function rejectAppointment(id){
+            const reason=prompt('Rejection reason (required; 5–500 characters). This will be visible in the booking history.');
+            if(reason===null)return;
+            if(reason.trim().length<5||reason.trim().length>500){alert('Enter a reason of 5–500 characters.');return;}
+            if(!confirm('Reject this appointment? The slot will be released.'))return;
+            try{
+                const r=await Auth.apiFetch('/api/bookings/reject',{method:'PUT',body:JSON.stringify({appointment_id:id,reason:reason.trim()})});if(!r)return;
+                const result=await r.json();if(!result.success){alert(result.message);return;}
+                alert('Appointment rejected and recorded in the audit log.');
+                const refreshed=await Auth.apiFetch('/api/bookings/branch');
+                if(refreshed?.ok){const result=await refreshed.json();if(result.success){allAppointments=result.appointments;renderAppointments();}}
+            }catch(e){alert('Could not reject: '+e.message);}
+        }
+
         // Modal UI Functions
         function openEditModal(id) {
             const appt = allAppointments.find(a => a.appointment_id === id);
@@ -590,7 +618,8 @@
             document.getElementById('historyModal').style.display = 'flex';
 
             try {
-                const res = await fetch(`/api/bookings/history?appointment_id=${id}`);
+                const res = await Auth.apiFetch(`/api/bookings/history?appointment_id=${id}`);
+                if (!res) return;
                 const result = await res.json();
 
                 if (!result.success || !Array.isArray(result.history) || !result.history.length) {

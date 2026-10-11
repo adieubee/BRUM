@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let menuItems = '';
             let mobileMenuItems = '';
 
-            if (user.role === 'owner') {
+            if (user.role === 'admin') {
                 const dashUrl = prefix + 'admin/dashboard.html';
                 menuItems = `<a href="${dashUrl}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>`;
                 mobileMenuItems = `<a href="${dashUrl}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>`;
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const trigger = document.createElement('a');
             trigger.href = '#';
             trigger.className = 'nav-btn user-dropdown-trigger';
-            trigger.innerHTML = `Hello, ${user.name}! <i class="fas fa-chevron-down" style="font-size:0.7rem; margin-left:5px;"></i>`;
+            trigger.textContent = `Hello, ${user.name || 'Guest'} ▾`;
             trigger.addEventListener('click', (e) => {
                 e.preventDefault();
                 wrapper.classList.toggle('open');
@@ -211,3 +211,8 @@ function getRelativePath() {
 function formatCurrency(amount) {
     return '₱' + Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 });
 }
+
+// Anonymous, privacy-aware page-view log: hashed IP stored server-side, no query strings.
+document.addEventListener('DOMContentLoaded', () => {
+    fetch('/api/visits', { method:'POST', headers: (typeof Auth !== 'undefined' ? Auth.authHeaders() : {'Content-Type':'application/json'}), body:JSON.stringify({path:location.pathname}), keepalive:true }).catch(()=>{});
+});

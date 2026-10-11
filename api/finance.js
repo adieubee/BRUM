@@ -1,5 +1,6 @@
 const { getPool, ensureSchema } = require('./_lib/db');
 const { requireAuth } = require('./_lib/auth');
+const { audit } = require('./_lib/audit');
 
 function safeProducts(value) {
     if (!value) return [];
@@ -18,11 +19,12 @@ module.exports = async function handler(req, res) {
 
     try {
         await ensureSchema();
+        await require('./_lib/auth').verifyRequestSession(req, res);
 
         // --- POST NEW POS TRANSACTION --- (staff or owner only)
         if (url.includes('/transaction')) {
             if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
-            const authUser = requireAuth(req, res, ['owner', 'staff']);
+            const authUser = requireAuth(req, res, ['admin', 'staff']);
             if (!authUser) return;
 
             const {
@@ -32,6 +34,11 @@ module.exports = async function handler(req, res) {
             } = req.body || {};
 
             const requestedProducts = safeProducts(products_bought);
+            // Reject duplicate lines: processing them separately could oversell the same inventory row.
+            const productKeys = requestedProducts.map(p => String(p.inventory_id));
+            if (new Set(productKeys).size !== productKeys.length || requestedProducts.some(p => !Number.isInteger(Number(p.quantity)) || Number(p.quantity) <= 0 || Number(p.quantity)>10000)) {
+                return res.status(400).json({ success:false,message:'Duplicate products or invalid quantities.' });
+            }
             if (!appointment_id && requestedProducts.length === 0) {
                 return res.status(400).json({ success: false, message: 'Select an appointment or at least one product.' });
             }
@@ -46,8 +53,8 @@ module.exports = async function handler(req, res) {
                 const [staffRows] = await connection.query(`
                     SELECT s.staff_id, s.branch_id, u.user_id, u.name
                     FROM staff s
-                    JOIN users u ON s.user_id = u.user_id
-                    WHERE u.user_id = ?
+                    JOIN users u ON s.user_id = u.user_id AND u.role='staff'
+                    WHERE u.user_id = ? AND s.is_active=1
                     LIMIT 1
                 `, [staff_id]);
                 if (!staffRows.length) {
@@ -80,9 +87,9 @@ module.exports = async function handler(req, res) {
                         await connection.rollback();
                         return res.status(409).json({ success: false, message: 'This appointment has already been checked out.' });
                     }
-                    if (appointment.status === 'Cancelled') {
+                    if (['Cancelled','Rejected'].includes(appointment.status)) {
                         await connection.rollback();
-                        return res.status(409).json({ success: false, message: 'Cancelled appointments cannot be checked out.' });
+                        return res.status(409).json({ success: false, message: 'Cancelled or rejected appointments cannot be checked out.' });
                     }
                     branchId = appointment.branch_id;
 
@@ -150,11 +157,24 @@ module.exports = async function handler(req, res) {
                     return res.status(400).json({ success: false, message: 'Transaction branch does not match the selected staff member.' });
                 }
 
-                const serviceAmount = Math.max(0, Number(service_price) || 0);
+                let serviceAmount = 0;
+                if (appointment) {
+                    const [amountRows] = await connection.query(`SELECT COALESCE(SUM(s.price * aps.quantity),0) AS value FROM appointment_services aps
+                        JOIN services s ON s.service_id=aps.service_id WHERE aps.appointment_id=?`,[appointment_id]);
+                    serviceAmount = Number(amountRows[0]?.value)||0;
+                    if (!serviceAmount) {
+                        const [fallback] = await connection.query('SELECT s.price FROM appointments a JOIN services s ON s.service_id=a.service_id WHERE a.appointment_id=?',[appointment_id]);
+                        serviceAmount = Number(fallback[0]?.price)||0;
+                    }
+                }
                 const grossAmount = serviceAmount + productsTotal;
-                const amountDue = Math.max(0, Number(total_amount) || grossAmount);
-                const cashReceived = Math.max(0, Number(cash_received) || 0);
-                const changeDue = Math.max(0, Number(change_due) || 0);
+                const amountDue = Math.max(0, Number((grossAmount - (Number(appointment?.dp_paid)||0)).toFixed(2)));
+                const cashReceived = Number(cash_received);
+                if (!Number.isFinite(cashReceived) || cashReceived < 0) {
+                    await connection.rollback();
+                    return res.status(400).json({success:false,message:'Invalid payment amount.'});
+                }
+                const changeDue = Math.max(0, Number((cashReceived-amountDue).toFixed(2)));
 
                 if (cashReceived < amountDue) {
                     await connection.rollback();
@@ -171,7 +191,7 @@ module.exports = async function handler(req, res) {
                 // Store the FULL gross amount (including DP already paid) as revenue
                 const [financeResult] = await connection.query(`
                     INSERT INTO finance (
-                        appointment_id, branch_id, staff_id, amount, amount_due,
+                        appointment_id, branch_id, staff_user_id, amount, amount_due,
                         cash_received, change_due, products_bought, payment_method
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `, [
@@ -184,14 +204,19 @@ module.exports = async function handler(req, res) {
                         UPDATE inventory
                         SET quantity = quantity - ?,
                             status = CASE
-                                WHEN quantity - ? < 3 THEN 'Critical'
-                                WHEN quantity - ? < 10 THEN 'Low Stock'
+                                WHEN quantity < 3 THEN 'Critical'
+                                WHEN quantity < 10 THEN 'Low Stock'
                                 ELSE 'Good'
                             END
                         WHERE inventory_id = ?
-                    `, [product.quantity, product.quantity, product.quantity, product.inventory_id]);
+                    `, [product.quantity, product.inventory_id]);
                 }
 
+                if (appointment) {
+                    await connection.query(`INSERT INTO booking_history(appointment_id,action,previous_status,new_status,changed_by,details)
+                        VALUES(?,'completed',?,?,?,?)`,[appointment_id,appointment.status,'Completed',authUser.id,'Checked out at POS']);
+                }
+                await audit(connection,req,'finance.transaction_created','finance',financeResult.insertId,{branch_id:branchId,amount:grossAmount,appointment_id:appointment_id||null});
                 await connection.commit();
                 return res.status(200).json({
                     success: true,
@@ -211,7 +236,7 @@ module.exports = async function handler(req, res) {
         // --- GET COMMISSIONS --- (owner only)
         if (url.includes('/commissions')) {
             if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'Method not allowed' });
-            const authUser = requireAuth(req, res, ['owner']);
+            const authUser = requireAuth(req, res, ['admin']);
             if (!authUser) return;
 
             const { start_date, end_date } = req.query || {};
@@ -226,11 +251,11 @@ module.exports = async function handler(req, res) {
 
             let query = `
                 SELECT f.transaction_id, f.amount, f.products_bought, f.created_at,
-                       DATE_FORMAT(f.created_at, '%Y-%m-%d') AS work_date, f.staff_id,
+                       DATE_FORMAT(f.created_at, '%Y-%m-%d') AS work_date, f.staff_user_id AS staff_id,
                        a.service_ids
                 FROM finance f
                 LEFT JOIN appointments a ON f.appointment_id = a.appointment_id
-                WHERE f.staff_id IS NOT NULL
+                WHERE f.staff_user_id IS NOT NULL
             `;
             const params = [];
             if (start_date) {
@@ -312,21 +337,21 @@ module.exports = async function handler(req, res) {
 
         // --- GET ALL TRANSACTIONS --- (owner or staff — staff sees own branch only)
         if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'Method not allowed' });
-        const authUser = requireAuth(req, res, ['owner', 'staff']);
+        const authUser = requireAuth(req, res, ['admin', 'staff']);
         if (!authUser) return;
 
         let query = `
-            SELECT f.*, f.amount AS total_amount,
+            SELECT f.*, f.staff_user_id AS staff_id, f.amount AS total_amount,
                    COALESCE(f.branch_id, a.branch_id) AS branch_id,
                    b.name AS branch_name,
                    u.name AS staff_name
             FROM finance f
             LEFT JOIN appointments a ON f.appointment_id = a.appointment_id
             LEFT JOIN branches b ON COALESCE(f.branch_id, a.branch_id) = b.branch_id
-            LEFT JOIN users u ON f.staff_id = u.user_id
+            LEFT JOIN users u ON f.staff_user_id = u.user_id
         `;
         const params = [];
-        if (authUser.role === 'staff' && authUser.branch_id) {
+        if (authUser.role === 'staff') {
             query += ' WHERE COALESCE(f.branch_id, a.branch_id) = ?';
             params.push(authUser.branch_id);
         }
@@ -336,6 +361,6 @@ module.exports = async function handler(req, res) {
         return res.status(200).json({ success: true, transactions: rows });
     } catch (err) {
         console.error('Finance API error:', err);
-        return res.status(500).json({ success: false, message: 'Server error with finance: ' + err.message });
+        return res.status(500).json({ success: false, message: 'Finance service unavailable.' });
     }
 };

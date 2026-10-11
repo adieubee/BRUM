@@ -281,18 +281,8 @@
                                 <label>Preferred Schedule*</label>
                                 <div class="split-inputs">
                                     <input type="date" id="date" required>
-                                    <select id="time" required>
-                                        <option value="" disabled selected>Time</option>
-                                        <option value="09:00:00">09:00 AM</option>
-                                        <option value="10:00:00">10:00 AM</option>
-                                        <option value="11:00:00">11:00 AM</option>
-                                        <option value="12:00:00">12:00 PM</option>
-                                        <option value="13:00:00">01:00 PM</option>
-                                        <option value="14:00:00">02:00 PM</option>
-                                        <option value="15:00:00">03:00 PM</option>
-                                        <option value="16:00:00">04:00 PM</option>
-                                        <option value="17:00:00">05:00 PM</option>
-                                    </select>
+                                    <input id="time" type="time" lang="en-PH" required min="09:00" max="17:00" step="1800" aria-describedby="timeAvailability" style="min-width:145px" value="09:00">
+                                    <small id="timeAvailability" role="status" style="display:block;color:#8b2d2d"></small>
                                 </div>
                             </div>
 
@@ -559,6 +549,15 @@
 
                 // Handle picking a branch -> Populates the staff for that branch
                 branchSelect.addEventListener('change', (e) => {
+                    // Only show services enabled at the selected branch; the server validates this again on booking.
+                    const relationships = formData.branch_services || [];
+                    const offered = new Set(relationships.filter(r => String(r.branch_id) === String(e.target.value) && Number(r.is_active) === 1).map(r => String(r.service_id)));
+                    const restrict = relationships.length > 0;
+                    const selects = [...document.querySelectorAll('.service-select'), window._serviceSelectTemplate].filter(Boolean);
+                    for (const sel of selects) {
+                        sel.querySelectorAll('option[data-name]').forEach(opt => { opt.disabled = restrict && !offered.has(String(opt.value)); });
+                        if (sel.selectedOptions[0]?.disabled) sel.value = '';
+                    }
                     techSelect.innerHTML = '<option value="" disabled selected>Select Barber</option>';
                     const noPref = document.createElement('option');
                     noPref.value = '0';
@@ -598,46 +597,51 @@
                     }
                 }
 
-                // Check for unavailable times
-                async function checkUnavailableTimes() {
-                    const branchId = document.getElementById('branch').value;
-                    const dateVal = document.getElementById('date').value;
-                    const techId = document.getElementById('tech').value;
-                    const timeSelect = document.getElementById('time');
-
-                    Array.from(timeSelect.options).forEach(opt => {
-                        if (opt.value) {
-                            opt.disabled = false;
-                            opt.text = opt.text.replace(' (Booked)', '');
-                        }
-                    });
-
-                    if (branchId && dateVal) {
-                        try {
-                            let url = `/api/bookings/unavailable-times?branch_id=${branchId}&date=${dateVal}`;
-                            if (techId) url += `&staff_id=${techId}`;
-
-                            const res = await Auth.apiFetch(url);
-                            if (!res) return;
-                            const data = await res.json();
-                            if (data.success && data.unavailable_times) {
-                                Array.from(timeSelect.options).forEach(opt => {
-                                    if (data.unavailable_times.includes(opt.value) || data.unavailable_times.includes(opt.value + ':00')) {
-                                        opt.disabled = true;
-                                        opt.text += ' (Booked)';
-                                        if (opt.selected) timeSelect.selectedIndex = 0;
-                                    }
-                                });
-                            }
-                        } catch (e) {
-                            console.error('Error fetching unavailable times', e);
-                        }
+                // Native calendar date + clock picker. Server rechecks every booking for collisions.
+                async function checkUnavailableTimes(){
+                    const branchId=document.getElementById('branch').value,dateVal=document.getElementById('date').value;
+                    const barber=document.getElementById('tech').value, clock=document.getElementById('time');
+                    const note=document.getElementById('timeAvailability');
+                    clock.setCustomValidity('');note.textContent='';
+                    if(!branchId||!dateVal||!barber||barber==='0'){
+                        note.textContent='No preference: an admin will allocate a qualified barber after booking.';return;
                     }
+                    try {
+                        const qs=new URLSearchParams({branch_id:branchId,date:dateVal,staff_id:barber});
+                        const response=await Auth.apiFetch('/api/bookings/unavailable-times?'+qs);
+                        if(!response)return;
+                        const result=await response.json();
+                        if(!result.success)return;
+                        const selected=clock.value.slice(0,5);
+                        if(result.unavailable_times.some(t=>String(t).slice(0,5)===selected)){
+                            clock.setCustomValidity('This time is booked for the selected barber.');
+                            note.textContent='Selected barber is booked at this time. Choose another time.';
+                        }
+                    }catch(e){note.textContent='Availability could not be checked. Booking will be validated before saving.';}
                 }
-
+                // Only show barbers whose admin-published skills cover all selected services.
+                function refreshQualifiedBarbers(){
+                    const selected=getSelectedServiceIds();
+                    const allowed=new Map();
+                    for(const row of formData.staff_services||[]){
+                        if(!allowed.has(String(row.staff_id)))allowed.set(String(row.staff_id),new Set());
+                        allowed.get(String(row.staff_id)).add(String(row.service_id));
+                    }
+                    for(const opt of techSelect.options){
+                        if(!opt.value||opt.value==='0')continue;
+                        opt.disabled=!selected.length||selected.some(id=>!allowed.get(opt.value)?.has(id));
+                    }
+                    if(techSelect.selectedOptions[0]?.disabled)techSelect.value='0';
+                    checkUnavailableTimes();
+                }
+                document.getElementById('servicesContainer').addEventListener('change',refreshQualifiedBarbers);
+                document.getElementById('people').addEventListener('change',()=>setTimeout(refreshQualifiedBarbers,0));
+                branchSelect.addEventListener('change',()=>setTimeout(refreshQualifiedBarbers,0));
+                window.refreshQualifiedBarbers=refreshQualifiedBarbers;
                 document.getElementById('branch').addEventListener('change', checkUnavailableTimes);
                 document.getElementById('date').addEventListener('change', checkUnavailableTimes);
-                document.getElementById('tech').addEventListener('change', checkUnavailableTimes);
+                document.getElementById('tech').addEventListener('change',checkUnavailableTimes);
+                document.getElementById('time').addEventListener('change',checkUnavailableTimes);
 
             } catch (err) {
                 console.error("Error loading dropdown data:", err);
@@ -697,7 +701,7 @@
 
             document.getElementById('confName').textContent = document.getElementById('name').value;
             document.getElementById('confBranch').textContent = branchSelect.options[branchSelect.selectedIndex].text;
-            const selectedTimeText = document.getElementById('time').options[document.getElementById('time').selectedIndex].text;
+            const selectedTimeText = new Date('1970-01-01T'+document.getElementById('time').value+':00').toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
             document.getElementById('confDateTime').textContent = `${document.getElementById('date').value} | ${selectedTimeText}`;
             document.getElementById('confPeople').textContent = document.getElementById('people').value;
 

@@ -1,10 +1,12 @@
 {
   "name": "brums-project",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Barber R Us Management System",
   "private": true,
   "scripts": {
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "test": "node --test tests/*.test.js",
+    "migrate:services": "node scripts/backfill-appointment-services.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

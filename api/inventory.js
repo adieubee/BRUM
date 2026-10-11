@@ -1,5 +1,6 @@
 const { getPool, ensureSchema } = require('./_lib/db');
 const { requireAuth } = require('./_lib/auth');
+const { audit } = require('./_lib/audit');
 
 function stockStatus(quantity) {
     if (quantity < 3) return 'Critical';
@@ -13,10 +14,11 @@ module.exports = async function handler(req, res) {
 
     try {
         await ensureSchema();
+        await require('./_lib/auth').verifyRequestSession(req, res);
 
         if (url.includes('/add')) {
             if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
-            const authUser = requireAuth(req, res, ['owner', 'staff']);
+            const authUser = requireAuth(req, res, ['admin', 'staff']);
             if (!authUser) return;
 
             const { item_name, unit, price, branch_id } = req.body || {};
@@ -37,12 +39,13 @@ module.exports = async function handler(req, res) {
                 [String(item_name).trim(), String(unit).trim(), Number(price) || 0, quantity, stockStatus(quantity), branch_id]
             );
 
+            await audit(pool,req,'inventory.created','inventory',result.insertId,{branch_id,quantity});
             return res.status(201).json({ success: true, message: 'Product added successfully.', inventory_id: result.insertId });
         }
 
         if (url.includes('/restock')) {
             if (req.method !== 'PUT') return res.status(405).json({ success: false, message: 'Method not allowed' });
-            const authUser = requireAuth(req, res, ['owner', 'staff']);
+            const authUser = requireAuth(req, res, ['admin', 'staff']);
             if (!authUser) return;
 
             const { inventory_id } = req.body || {};
@@ -71,20 +74,21 @@ module.exports = async function handler(req, res) {
                     UPDATE inventory
                     SET quantity = GREATEST(0, quantity + ?),
                         status = CASE
-                            WHEN GREATEST(0, quantity + ?) < 3 THEN 'Critical'
-                            WHEN GREATEST(0, quantity + ?) < 10 THEN 'Low Stock'
+                            WHEN quantity < 3 THEN 'Critical'
+                            WHEN quantity < 10 THEN 'Low Stock'
                             ELSE 'Good'
                         END
                     WHERE inventory_id = ?
-                `, [delta, delta, delta, inventory_id]);
+                `, [delta, inventory_id]);
 
                 if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Item not found.' });
                 const [updated] = await pool.query('SELECT quantity, status FROM inventory WHERE inventory_id = ?', [inventory_id]);
                 const q = updated[0]?.quantity ?? 0;
+                await audit(pool,req,'inventory.adjusted','inventory',inventory_id,{delta,quantity:q});
                 return res.status(200).json({ success: true, message: `Stock updated to ${q}. Status: ${stockStatus(q)}` });
             } else {
                 // Absolute restock (owner only, for deliberate stock-setting)
-                if (authUser.role !== 'owner') {
+                if (authUser.role !== 'admin') {
                     return res.status(403).json({ success: false, message: 'Only owners can set absolute stock levels. Use delta instead.' });
                 }
                 const quantityRaw = req.body?.quantity ?? req.body?.quantitiy;
@@ -97,13 +101,14 @@ module.exports = async function handler(req, res) {
                     [quantity, stockStatus(quantity), inventory_id]
                 );
                 if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Item not found.' });
+                await audit(pool,req,'inventory.quantity_set','inventory',inventory_id,{quantity});
                 return res.status(200).json({ success: true, message: `Stock updated to ${quantity}. Status: ${stockStatus(quantity)}` });
             }
         }
 
         // GET inventory — authenticated, staff filtered by branch
         if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'Method not allowed' });
-        const authUser = requireAuth(req, res, ['owner', 'staff']);
+        const authUser = requireAuth(req, res, ['admin', 'staff']);
         if (!authUser) return;
 
         let { branch_id } = req.query || {};
@@ -129,6 +134,6 @@ module.exports = async function handler(req, res) {
         return res.status(200).json({ success: true, inventory: rows });
     } catch (err) {
         console.error('Inventory error:', err);
-        return res.status(500).json({ success: false, message: 'Server error with inventory: ' + err.message });
+        return res.status(500).json({ success: false, message: 'Inventory service unavailable.' });
     }
 };

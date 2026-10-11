@@ -208,6 +208,8 @@
                         } else {
                             tdAction.textContent = '—';
                         }
+                    } else if (appt.status === 'Rejected') {
+                        tdAction.textContent='Rejected by admin. Please contact the branch for the recorded reason.';
                     } else if (appt.status === 'Pending Reschedule') {
                         const btn = document.createElement('button');
                         btn.className = 'cancel-btn-sm';

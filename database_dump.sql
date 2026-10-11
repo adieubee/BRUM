@@ -1,4 +1,17 @@
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS `appointment_visits`;
+DROP TABLE IF EXISTS `staff_services`;
+DROP TABLE IF EXISTS `visitor_log`;
+DROP TABLE IF EXISTS `audit_log`;
+DROP TABLE IF EXISTS `login_attempts`;
+DROP TABLE IF EXISTS `api_sessions`;
+DROP TABLE IF EXISTS `staff_availability`;
+DROP TABLE IF EXISTS `appointment_services`;
+DROP TABLE IF EXISTS `service_inventory`;
+DROP TABLE IF EXISTS `branch_services`;
+DROP TABLE IF EXISTS `admins`;
+DROP TABLE IF EXISTS `clients`;
+DROP TABLE IF EXISTS `booking_history`;
 DROP TABLE IF EXISTS `finance`;
 DROP TABLE IF EXISTS `appointments`;
 DROP TABLE IF EXISTS `inventory`;
@@ -14,7 +27,7 @@ CREATE TABLE `users` (
     `username` VARCHAR(50) NOT NULL,
     `email` VARCHAR(255) NULL,
     `password_hash` VARCHAR(255) NOT NULL,
-    `role` ENUM('owner','staff','client') NOT NULL DEFAULT 'client',
+    `role` ENUM('admin','staff','client') NOT NULL DEFAULT 'client',
     `name` VARCHAR(100) NOT NULL,
     `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`user_id`),
@@ -23,7 +36,7 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `users` (`user_id`, `username`, `email`, `password_hash`, `role`, `name`) VALUES
-(1, 'admin', 'admin@example.com', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'owner', 'Shop Owner'),
+(1, 'admin', 'admin@example.com', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'admin', 'Shop Owner'),
 (2, 'staff_malolos', 'staff.malolos@example.com', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'staff', 'Barber Marco (Malolos)'),
 (3, 'staff_pulilan', 'staff.pulilan@example.com', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'staff', 'Barber Lucas (Pulilan)'),
 (4, 'client1', 'client1@example.com', '$2a$10$KGgym/DaEJAwTDbYs.Fa/eyIzyIVIjGgP05wHaZfskTMI7mc69AOi', 'client', 'Juan Dela Cruz');
@@ -47,6 +60,7 @@ CREATE TABLE `staff` (
     `user_id` INT NOT NULL,
     `branch_id` INT NOT NULL,
     `specialization` VARCHAR(100) DEFAULT 'General Dermatechnician',
+    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
     PRIMARY KEY (`staff_id`),
     UNIQUE KEY `uq_staff_user` (`user_id`),
     KEY `idx_staff_branch` (`branch_id`),
@@ -154,7 +168,7 @@ CREATE TABLE `finance` (
     `transaction_id` INT NOT NULL AUTO_INCREMENT,
     `appointment_id` INT NULL,
     `branch_id` INT NULL,
-    `staff_id` INT NULL COMMENT 'References users.user_id for the staff member credited with the sale',
+    `staff_user_id` INT NULL COMMENT 'References users.user_id for the staff member credited with the sale',
     `amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Gross sale value including services and products',
     `amount_due` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Balance collected at POS after any recorded down payment',
     `cash_received` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
@@ -165,8 +179,86 @@ CREATE TABLE `finance` (
     PRIMARY KEY (`transaction_id`),
     KEY `idx_finance_appointment` (`appointment_id`),
     KEY `idx_finance_branch` (`branch_id`),
-    KEY `idx_finance_staff` (`staff_id`),
+    KEY `idx_finance_staff` (`staff_user_id`),
     CONSTRAINT `fk_finance_appointment` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`appointment_id`) ON DELETE SET NULL,
     CONSTRAINT `fk_finance_branch` FOREIGN KEY (`branch_id`) REFERENCES `branches` (`branch_id`) ON DELETE SET NULL,
-    CONSTRAINT `fk_finance_staff_user` FOREIGN KEY (`staff_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
+    CONSTRAINT `fk_finance_staff_user` FOREIGN KEY (`staff_user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Use this destructive DROP/CREATE script for a NEW local database only.
+-- Existing databases are upgraded in place by api/_lib/db.js; back up data first.
+
+
+-- Security, role-profile, scheduling, and normalized association tables.
+-- Also created automatically on existing installations by api/_lib/db.js.
+CREATE TABLE `admins` (`user_id` INT PRIMARY KEY,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE) ENGINE=InnoDB;
+CREATE TABLE `clients` (`user_id` INT PRIMARY KEY, `preferred_branch_id` INT NULL,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`preferred_branch_id`) REFERENCES `branches`(`branch_id`) ON DELETE SET NULL) ENGINE=InnoDB;
+INSERT INTO `admins` (`user_id`) SELECT `user_id` FROM `users` WHERE `role`='admin';
+INSERT INTO `clients` (`user_id`) SELECT `user_id` FROM `users` WHERE `role`='client';
+CREATE TABLE `branch_services` (`branch_id` INT NOT NULL, `service_id` INT NOT NULL,
+    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY(`branch_id`,`service_id`),
+    FOREIGN KEY (`branch_id`) REFERENCES `branches`(`branch_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`service_id`) REFERENCES `services`(`service_id`) ON DELETE CASCADE) ENGINE=InnoDB;
+INSERT INTO `branch_services` (`branch_id`,`service_id`,`is_active`)
+SELECT b.branch_id,s.service_id,1 FROM branches b CROSS JOIN services s;
+CREATE TABLE `service_inventory` (`service_id` INT NOT NULL, `inventory_id` INT NOT NULL,
+    `quantity_used` DECIMAL(10,3) NOT NULL DEFAULT 1,
+    PRIMARY KEY(`service_id`,`inventory_id`),
+    FOREIGN KEY (`service_id`) REFERENCES `services`(`service_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`inventory_id`) REFERENCES `inventory`(`inventory_id`) ON DELETE CASCADE) ENGINE=InnoDB;
+CREATE TABLE `appointment_services` (`appointment_id` INT NOT NULL, `service_id` INT NOT NULL,
+    `quantity` INT NOT NULL DEFAULT 1,
+    PRIMARY KEY(`appointment_id`,`service_id`),
+    FOREIGN KEY (`appointment_id`) REFERENCES `appointments`(`appointment_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`service_id`) REFERENCES `services`(`service_id`)) ENGINE=InnoDB;
+INSERT IGNORE INTO `appointment_services` (`appointment_id`,`service_id`)
+SELECT `appointment_id`,`service_id` FROM `appointments`;
+CREATE TABLE `staff_availability` (`availability_id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `staff_id` INT NOT NULL, `weekday` TINYINT NOT NULL,
+    `start_time` TIME NOT NULL, `end_time` TIME NOT NULL,
+    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+    UNIQUE KEY `uq_staff_day_times`(`staff_id`,`weekday`,`start_time`,`end_time`),
+    FOREIGN KEY (`staff_id`) REFERENCES `staff`(`staff_id`) ON DELETE CASCADE,
+    CONSTRAINT `chk_staff_day` CHECK (`weekday` BETWEEN 0 AND 6),
+    CONSTRAINT `chk_staff_times` CHECK (`start_time` < `end_time`)) ENGINE=InnoDB;
+CREATE TABLE `api_sessions` (`session_id` CHAR(32) PRIMARY KEY,
+    `user_id` INT NOT NULL, `token_hash` CHAR(64) NOT NULL, `role_at_login` VARCHAR(15) NOT NULL,
+    `expires_at` DATETIME NOT NULL, `last_seen_at` DATETIME NOT NULL,
+    `revoked_at` DATETIME NULL, `ip_hash` CHAR(64) NULL,
+    KEY `idx_sessions_user`(`user_id`), KEY `idx_sessions_expiry`(`expires_at`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE) ENGINE=InnoDB;
+CREATE TABLE `login_attempts` (`identifier` VARCHAR(255) PRIMARY KEY,
+    `failed_count` INT NOT NULL DEFAULT 0, `locked_until` DATETIME NULL, `last_failed` DATETIME NULL) ENGINE=InnoDB;
+CREATE TABLE `audit_log` (`audit_id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `actor_user_id` INT NULL, `event` VARCHAR(70) NOT NULL,
+    `entity_type` VARCHAR(50) NULL, `entity_id` VARCHAR(70) NULL,
+    `details` JSON NULL, `ip_hash` CHAR(64) NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY `idx_audit_created`(`created_at`),KEY `idx_audit_actor`(`actor_user_id`),
+    FOREIGN KEY (`actor_user_id`) REFERENCES `users`(`user_id`) ON DELETE SET NULL) ENGINE=InnoDB;
+CREATE TABLE `staff_services` (
+    `staff_id` INT NOT NULL, `service_id` INT NOT NULL,
+    PRIMARY KEY (`staff_id`, `service_id`),
+    FOREIGN KEY (`staff_id`) REFERENCES `staff`(`staff_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`service_id`) REFERENCES `services`(`service_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+INSERT INTO `staff_services` (`staff_id`,`service_id`) VALUES (1,1),(1,2),(1,3),(1,4),(2,1),(2,2),(2,3),(2,4);
+
+CREATE TABLE `appointment_visits` (
+    `appointment_id` INT PRIMARY KEY,
+    `checked_in_at` DATETIME NULL, `checked_in_by` INT NULL,
+    `checked_out_at` DATETIME NULL, `checked_out_by` INT NULL,
+    FOREIGN KEY (`appointment_id`) REFERENCES `appointments`(`appointment_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`checked_in_by`) REFERENCES `users`(`user_id`) ON DELETE SET NULL,
+    FOREIGN KEY (`checked_out_by`) REFERENCES `users`(`user_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `visitor_log` (`visit_id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NULL, `path` VARCHAR(180) NOT NULL, `ip_hash` CHAR(64) NOT NULL,
+    `user_agent` VARCHAR(240) NULL, `visited_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY `idx_visit_date`(`visited_at`),KEY `idx_visit_user`(`user_id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE SET NULL) ENGINE=InnoDB;

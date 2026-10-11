@@ -107,6 +107,7 @@
         <ul class="admin-nav" id="adminNav">
             <li><a href="dashboard.html">Dashboard</a></li>
             <li><a href="appointments.html" class="active">Appointments</a></li>
+            <li><a href="schedule.html">Barber Timetable</a></li>
             <li><a href="inventory.html">Inventory</a></li>
             <li><a href="pos.html">POS</a></li>
         </ul>
@@ -289,8 +290,8 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             currentUser = Auth.getUser();
-            if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'owner')) {
-                console.log('Access Denied. Staff/Owner only.');
+            if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'admin')) {
+                console.log('Access Denied. Staff/Admin only.');
                 window.location.href = '../login.html?error=staff_access';
                 return;
             }

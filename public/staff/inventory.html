@@ -26,6 +26,7 @@
         <ul class="admin-nav" id="adminNav">
             <li><a href="dashboard.html">Dashboard</a></li>
             <li><a href="appointments.html">Appointments</a></li>
+            <li><a href="schedule.html">Barber Timetable</a></li>
             <li><a href="inventory.html" class="active">Inventory</a></li>
             <li><a href="pos.html">POS</a></li>
         </ul>
@@ -158,8 +159,8 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             currentUser = Auth.getUser();
-            if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'owner')) {
-                console.log('Access Denied. Staff/Owner only.');
+            if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'admin')) {
+                console.log('Access Denied. Staff/Admin only.');
                 window.location.href = '../login.html?error=staff_access';
                 return;
             }
@@ -267,7 +268,7 @@
 
                     const tdAction = document.createElement('td');
                     tdAction.setAttribute('data-label', 'Action');
-                    const canRestock = item.branch_id === currentUser.branch_id || currentUser.role === 'owner';
+                    const canRestock = item.branch_id === currentUser.branch_id || currentUser.role === 'admin';
                     if (canRestock) {
                         const btn = document.createElement('button');
                         btn.className = 'action-btn';

@@ -27,7 +27,12 @@
             <li><a href="dashboard.html" class="active">Dashboard</a></li>
             <li><a href="inventory.html">Inventory</a></li>
             <li><a href="appointments.html">Appointments</a></li>
+            <li><a href="schedule.html">Barber Timetable</a></li>
             <li><a href="reports.html">Reports</a></li>
+            <li><a href="visitors.html">Visitors &amp; Check-ins</a></li>
+            <li><a href="database.html">Database Editor</a></li>
+            <li><a href="operations.html">Security &amp; Roles</a></li>
+            <li><a href="service-links.html">Service Relationships</a></li>
             <li><a href="commissions.html">Commissions</a></li>
             <li><a href="staff.html">Staff</a></li>
             <li><a href="pos.html">POS</a></li>
@@ -182,7 +187,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const user = Auth.getUser();
             if (!user || user.role === 'client') {
-                console.warn('Access denied. Staff/Owner only.');
+                console.warn('Access denied. Staff/Admin only.');
                 window.location.href = '../login.html?error=admin_access';
                 return;
             }
@@ -191,7 +196,7 @@
 
             // Hide Reports for non-owners
             const reportsLink = document.querySelector('a[href="reports.html"]');
-            if (reportsLink && user.role !== 'owner') {
+            if (reportsLink && user.role !== 'admin') {
                 reportsLink.parentElement.style.display = 'none';
             }
 
